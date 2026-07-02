@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'models/diet.dart';
+import 'models/feed_source.dart';
 import 'models/recipe.dart';
 
 /// Client per il backend locale (server Node): import reale da GialloZafferano
@@ -61,15 +62,25 @@ class LocalApi {
         Map<String, dynamic>.from(jsonDecode(res.body) as Map));
   }
 
-  /// Analizza le sorgenti e importa le ricette conformi ai regimi. Ritorna
-  /// le ricette importate.
-  Future<List<Recipe>> analyze(Set<Diet> diets, {int limit = 30}) async {
+  /// Analizza una sorgente e importa le ricette conformi ai regimi. Ritorna
+  /// le ricette importate. Lancia un'eccezione col messaggio se la sorgente
+  /// non è supportata (es. social).
+  Future<List<Recipe>> analyze(FeedSource source, Set<Diet> diets,
+      {int limit = 30}) async {
     final res = await http
         .post(_u('api/analyze'),
             headers: _json,
-            body: jsonEncode({'diets': Diet.toNames(diets), 'limit': limit}))
-        .timeout(const Duration(seconds: 120));
+            body: jsonEncode({
+              'type': source.type.name,
+              'reference': source.reference,
+              'diets': Diet.toNames(diets),
+              'limit': limit,
+            }))
+        .timeout(const Duration(seconds: 180));
     final data = jsonDecode(res.body) as Map;
+    if (data['unsupported'] == true) {
+      throw Exception(data['message'] ?? 'Sorgente non supportata');
+    }
     return ((data['imported'] as List?) ?? [])
         .map((e) => Recipe.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();

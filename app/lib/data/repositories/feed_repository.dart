@@ -46,13 +46,17 @@ class FeedRepository {
 
   /// Analizza una sorgente e importa le ricette conformi ai regimi attivi.
   /// Ritorna le ricette importate.
-  Future<List<Recipe>> analyze(String sourceId, Set<Diet> diets) async {
-    if (_demo) return localApi.analyze(diets);
+  Future<List<Recipe>> analyze(FeedSource source, Set<Diet> diets) async {
+    if (_demo) return localApi.analyze(source, diets);
     final res = await _db!.functions.invoke('analyze-feed', body: {
-      'source_id': sourceId,
+      'type': source.type.name,
+      'reference': source.reference,
       'diets': Diet.toNames(diets),
     });
     final data = res.data as Map<String, dynamic>;
+    if (data['unsupported'] == true) {
+      throw Exception(data['message'] ?? 'Sorgente non supportata');
+    }
     final list = (data['imported'] as List?) ?? const [];
     return list
         .map((r) => Recipe.fromMap(r as Map<String, dynamic>))

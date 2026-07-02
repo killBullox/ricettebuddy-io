@@ -153,18 +153,40 @@ async function handleApi(req, res, url) {
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
   if (req.method === "POST" && url.pathname === "/api/analyze") {
-    const { diets = [], limit = 30, pages = 15 } = await readBody(req);
+    const { type = "web", reference = "", diets = [], limit = 30, pages = 15 } =
+      await readBody(req);
+    // I social non sono ancora supportati: niente import "di nascosto" da GZ.
+    if (type && type !== "web") {
+      return sendJson(res, 200, {
+        imported: [],
+        unsupported: true,
+        message: `Import da ${type} non ancora supportato. Per ora funzionano ` +
+          `i siti con ricette strutturate (es. GialloZafferano).`,
+      });
+    }
     try {
-      const urls = await listVeganUrls(pages);
       const existing = new Set(recipes.map((r) => r.source_url));
       const imported = [];
-      for (const u of urls) {
-        if (imported.length >= limit) break;
-        if (existing.has(u)) continue;
-        let r; try { r = await parseRecipe(u); } catch { continue; }
-        if (!r || !matchesDiets(r.diet_tags, diets)) continue;
-        const saved = { ...r, id: String(++seq) };
-        recipes.unshift(saved); imported.push(saved); existing.add(u);
+      const isSingle = /ricette\.giallozafferano\.it\/.+\.html/i.test(reference) &&
+        !/(vegan|ricerca-ricette)/i.test(reference);
+      if (isSingle) {
+        if (!existing.has(reference)) {
+          const r = await parseRecipe(reference);
+          if (r && matchesDiets(r.diet_tags, diets)) {
+            const saved = { ...r, id: String(++seq) };
+            recipes.unshift(saved); imported.push(saved);
+          }
+        }
+      } else {
+        const urls = await listVeganUrls(pages);
+        for (const u of urls) {
+          if (imported.length >= limit) break;
+          if (existing.has(u)) continue;
+          let r; try { r = await parseRecipe(u); } catch { continue; }
+          if (!r || !matchesDiets(r.diet_tags, diets)) continue;
+          const saved = { ...r, id: String(++seq) };
+          recipes.unshift(saved); imported.push(saved); existing.add(u);
+        }
       }
       save();
       return sendJson(res, 200, { imported });

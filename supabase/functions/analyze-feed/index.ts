@@ -27,7 +27,19 @@ function json(body: unknown, status: number): Response {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { diets = [], limit = 30, pages = 15 } = await req.json().catch(() => ({}));
+    const { type = "web", diets = [], limit = 30, pages = 15 } =
+      await req.json().catch(() => ({}));
+
+    // I social non sono ancora supportati.
+    if (type && type !== "web") {
+      return json({
+        imported: [],
+        unsupported: true,
+        message: `Import da ${type} non ancora supportato. Per ora funzionano ` +
+          `i siti con ricette strutturate (es. GialloZafferano).`,
+      }, 200);
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,

@@ -162,7 +162,7 @@ class _SourceTileState extends ConsumerState<_SourceTile> {
     try {
       final diets = ref.read(activeDietsProvider);
       final imported =
-          await ref.read(feedRepositoryProvider).analyze(widget.source.id!, diets);
+          await ref.read(feedRepositoryProvider).analyze(widget.source, diets);
       ref.invalidate(recipeListProvider);
       ref.invalidate(feedSourcesProvider);
       if (mounted) {
@@ -173,6 +173,14 @@ class _SourceTileState extends ConsumerState<_SourceTile> {
                 : 'Importate ${imported.length} ricette: '
                     '${imported.map((r) => r.title).join(', ')}'),
           ),
+        );
+      }
+    } catch (e) {
+      // Es. sorgente social non ancora supportata.
+      if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), duration: const Duration(seconds: 5)),
         );
       }
     } finally {
