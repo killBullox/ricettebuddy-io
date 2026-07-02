@@ -96,6 +96,11 @@ class _RecipeTile extends StatelessWidget {
   }
 }
 
+Widget _placeholder(BuildContext context) => Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Icon(Icons.restaurant),
+    );
+
 class _Thumb extends StatelessWidget {
   final String? url;
   const _Thumb({this.url});
@@ -108,11 +113,13 @@ class _Thumb extends StatelessWidget {
         width: 52,
         height: 52,
         child: url == null
-            ? Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.restaurant),
-              )
-            : CachedNetworkImage(imageUrl: url!, fit: BoxFit.cover),
+            ? _placeholder(context)
+            : CachedNetworkImage(
+                imageUrl: url!,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => _placeholder(context),
+                errorWidget: (_, __, ___) => _placeholder(context),
+              ),
       ),
     );
   }

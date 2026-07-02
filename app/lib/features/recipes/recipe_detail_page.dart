@@ -85,7 +85,13 @@ class _Detail extends ConsumerWidget {
             title: Text(recipe.title),
             background: recipe.imageUrl != null
                 ? CachedNetworkImage(
-                    imageUrl: recipe.imageUrl!, fit: BoxFit.cover)
+                    imageUrl: recipe.imageUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: const Icon(Icons.restaurant, size: 48),
+                    ),
+                  )
                 : null,
           ),
         ),
