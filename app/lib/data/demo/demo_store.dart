@@ -174,6 +174,7 @@ class DemoStore {
     recipes.add(_withMeta(
       Recipe(
         title: 'Ricetta importata (demo)',
+        imageUrl: 'https://loremflickr.com/600/400/food,recipe',
         sourceUrl: url,
         source: RecipeSource.web,
         ingredients: const [
@@ -296,6 +297,7 @@ class DemoStore {
         cookMinutes: r.cookMinutes,
         servings: r.servings,
         tags: r.tags,
+        dietTags: r.dietTags,
         isFavorite: r.isFavorite,
         ingredients: r.ingredients,
         steps: r.steps,
@@ -309,6 +311,7 @@ class DemoStore {
         Recipe(
           id: 'demo-1',
           title: 'Spaghetti aglio, olio e peperoncino',
+          imageUrl: 'https://loremflickr.com/600/400/spaghetti,pasta',
           source: RecipeSource.manual,
           prepMinutes: 5,
           cookMinutes: 12,
@@ -337,6 +340,7 @@ class DemoStore {
         Recipe(
           id: 'demo-2',
           title: 'Frittata di zucchine',
+          imageUrl: 'https://loremflickr.com/600/400/omelette,eggs',
           source: RecipeSource.manual,
           prepMinutes: 10,
           cookMinutes: 10,
@@ -362,6 +366,7 @@ class DemoStore {
         Recipe(
           id: 'demo-3',
           title: 'Pasta al pomodoro',
+          imageUrl: 'https://loremflickr.com/600/400/pasta,tomato',
           source: RecipeSource.web,
           sourceUrl: 'https://example.com/pasta-pomodoro',
           prepMinutes: 5,
@@ -421,6 +426,7 @@ class DemoStore {
   static List<Recipe> _seedFeedCandidates() => [
         const Recipe(
           title: 'Insalata di ceci e verdure',
+          imageUrl: 'https://loremflickr.com/600/400/salad,chickpeas',
           source: RecipeSource.web,
           sourceUrl: 'https://example.com/insalata-ceci',
           prepMinutes: 15,
@@ -440,6 +446,7 @@ class DemoStore {
         ),
         const Recipe(
           title: 'Risotto ai funghi',
+          imageUrl: 'https://loremflickr.com/600/400/risotto,mushroom',
           source: RecipeSource.web,
           sourceUrl: 'https://example.com/risotto-funghi',
           prepMinutes: 10,
@@ -457,6 +464,7 @@ class DemoStore {
         ),
         const Recipe(
           title: 'Pollo al limone',
+          imageUrl: 'https://loremflickr.com/600/400/chicken,lemon',
           source: RecipeSource.web,
           sourceUrl: 'https://example.com/pollo-limone',
           prepMinutes: 10,
@@ -473,6 +481,7 @@ class DemoStore {
         ),
         const Recipe(
           title: 'Pancake vegani ai mirtilli',
+          imageUrl: 'https://loremflickr.com/600/400/pancakes,blueberry',
           source: RecipeSource.web,
           sourceUrl: 'https://example.com/pancake-vegani',
           prepMinutes: 10,
