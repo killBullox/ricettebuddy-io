@@ -97,7 +97,7 @@ async function handleApi(req, res, url) {
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
   if (req.method === "POST" && url.pathname === "/api/analyze") {
-    const { diets = [], limit = 24, pages = 6 } = await readBody(req);
+    const { diets = [], limit = 30, pages = 15 } = await readBody(req);
     try {
       const urls = await listVeganUrls(pages);
       const existing = new Set(recipes.map((r) => r.source_url));

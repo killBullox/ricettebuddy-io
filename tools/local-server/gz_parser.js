@@ -143,12 +143,14 @@ async function parseRecipe(url) {
   };
 }
 
+// La ricerca vegana di GZ pagina con /ricerca-ricette/pageN/vegano/ (il numero
+// pagina sta nel path, PRIMA del termine) e le ricette sono nei data-recipeurl.
 async function listVeganUrls(maxPages) {
   const urls = [];
   for (let p = 1; p <= maxPages; p++) {
     const u = p === 1
-      ? `${SITE}/ricette-vegane/`
-      : `${SITE}/ricette-vegane/?pagina=${p}`;
+      ? `${SITE}/ricerca-ricette/vegano/`
+      : `${SITE}/ricerca-ricette/page${p}/vegano/`;
     let html;
     try {
       html = await fetchText(u);
@@ -156,8 +158,10 @@ async function listVeganUrls(maxPages) {
       break;
     }
     const found = [
-      ...html.matchAll(/https:\/\/ricette\.giallozafferano\.it\/[A-Za-z0-9-]+\.html/g),
-    ].map((x) => x[0]);
+      ...html.matchAll(
+        /data-recipeurl="(https:\/\/ricette\.giallozafferano\.it\/[A-Za-z0-9-]+\.html)"/g,
+      ),
+    ].map((x) => x[1]);
     const uniq = [...new Set(found)];
     if (uniq.length === 0) break;
     urls.push(...uniq);
