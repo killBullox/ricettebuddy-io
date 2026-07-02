@@ -7,11 +7,32 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 
 const ROOT = path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
 const PORT = 8080;
+const FFMPEG = process.env.FFMPEG || "ffmpeg"; // per lo streaming video
+
+// Streaming video: gli MP4 di GZ non sono "faststart" (moov in fondo) e il
+// browser aspetterebbe il download completo. Li rimuxiamo al volo in MP4
+// frammentato, così partono subito.
+function streamVideo(req, res, u) {
+  const ff = spawn(FFMPEG, [
+    "-loglevel", "error",
+    "-i", u,
+    "-c", "copy",
+    "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+    "-f", "mp4",
+    "pipe:1",
+  ]);
+  res.writeHead(200, { "Content-Type": "video/mp4", "Cache-Control": "no-cache" });
+  ff.stdout.pipe(res);
+  ff.stderr.on("data", () => {});
+  ff.on("error", () => { try { res.end(); } catch {} });
+  req.on("close", () => ff.kill("SIGKILL"));
+}
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36";
 
 // Proxy immagini: le immagini di GialloZafferano non hanno header CORS e
@@ -142,6 +163,11 @@ http.createServer((req, res) => {
     const u = url.searchParams.get("u");
     if (!u) { res.writeHead(400); return res.end("missing u"); }
     return proxyImage(res, u);
+  }
+  if (url.pathname === "/video") {
+    const u = url.searchParams.get("u");
+    if (!u) { res.writeHead(400); return res.end("missing u"); }
+    return streamVideo(req, res, u);
   }
   if (url.pathname.startsWith("/api/")) return handleApi(req, res, url);
   serveStatic(req, res, url);
