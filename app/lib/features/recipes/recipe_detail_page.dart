@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +7,7 @@ import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
 import 'diet_badges.dart';
 import 'recipe_editor_page.dart';
+import 'recipe_image.dart';
 
 class RecipeDetailPage extends ConsumerWidget {
   final String recipeId;
@@ -84,14 +84,7 @@ class _Detail extends ConsumerWidget {
           flexibleSpace: FlexibleSpaceBar(
             title: Text(recipe.title),
             background: recipe.imageUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: recipe.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: const Icon(Icons.restaurant, size: 48),
-                    ),
-                  )
+                ? RecipeImage(path: recipe.imageUrl, iconSize: 48)
                 : null,
           ),
         ),

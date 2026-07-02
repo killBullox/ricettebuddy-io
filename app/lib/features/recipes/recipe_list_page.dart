@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +6,7 @@ import '../../data/repositories/recipe_repository.dart';
 import 'diet_badges.dart';
 import 'recipe_detail_page.dart';
 import 'recipe_editor_page.dart';
+import 'recipe_image.dart';
 
 class RecipeListPage extends ConsumerWidget {
   const RecipeListPage({super.key});
@@ -96,11 +96,6 @@ class _RecipeTile extends StatelessWidget {
   }
 }
 
-Widget _placeholder(BuildContext context) => Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: const Icon(Icons.restaurant),
-    );
-
 class _Thumb extends StatelessWidget {
   final String? url;
   const _Thumb({this.url});
@@ -109,18 +104,7 @@ class _Thumb extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: 52,
-        height: 52,
-        child: url == null
-            ? _placeholder(context)
-            : CachedNetworkImage(
-                imageUrl: url!,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _placeholder(context),
-                errorWidget: (_, __, ___) => _placeholder(context),
-              ),
-      ),
+      child: RecipeImage(path: url, width: 52, height: 52),
     );
   }
 }
