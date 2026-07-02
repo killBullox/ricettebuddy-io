@@ -103,6 +103,21 @@ function parseVideo(html) {
   return { id: id[1], poster: `https://ptps.stbm.it/t/${id[1]}_large.jpg` };
 }
 
+// Ricava l'URL MP4 diretto dal player embeddabile di GZ (stbm). L'MP4 è servito
+// con CORS aperto e supporta il range: riproducibile inline nell'app.
+async function videoMp4(id) {
+  try {
+    const r = await fetch(`https://ptp.stbm.it/v/${id}gzfg`, {
+      headers: { "User-Agent": UA },
+    });
+    const t = await r.text();
+    const m = t.match(/https:[^"\s]*?_alexa\.mp4/);
+    return m ? m[0].replace(/\\/g, "") : null;
+  } catch {
+    return null;
+  }
+}
+
 const GLUTEN = ["farina", "pasta", "pane", "couscous", "cous cous", "farro",
   "orzo", "seitan", "pangrattato", "bulgur", "semola", "birra", "grano",
   "lasagne", "brioche", "biscotti"];
@@ -128,6 +143,7 @@ async function parseRecipe(url) {
   const ingredients = (ld.recipeIngredient || []).map((s) => stripTags(String(s)));
   const steps = parseSteps(html);
   const video = parseVideo(html);
+  const video_mp4 = video ? await videoMp4(video.id) : null;
   return {
     title: stripTags(ld.name || "Ricetta"),
     image_url: firstImage(ld.image),
@@ -140,6 +156,7 @@ async function parseRecipe(url) {
     steps,
     video_url: video ? video.poster : null,
     video_id: video ? video.id : null,
+    video_mp4,
   };
 }
 

@@ -1,6 +1,8 @@
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../data/models/enums.dart';
 import '../../data/models/recipe.dart';
@@ -150,8 +152,12 @@ class _Detail extends ConsumerWidget {
                     ],
                   ),
           ),
-          if (recipe.videoUrl != null)
-            _VideoSection(poster: recipe.videoUrl!, link: recipe.sourceUrl),
+          if (recipe.videoMp4 != null || recipe.videoUrl != null)
+            _VideoSection(
+              poster: recipe.videoUrl,
+              mp4: recipe.videoMp4,
+              link: recipe.sourceUrl,
+            ),
           _Section(
             title: 'Preparazione',
             child: steps.isEmpty
@@ -202,39 +208,98 @@ class _Detail extends ConsumerWidget {
   }
 }
 
-class _VideoSection extends StatelessWidget {
-  final String poster;
+/// Video della ricetta: mostra l'anteprima; al tap riproduce l'MP4 inline
+/// (player con controlli). Se manca l'MP4, apre il video sulla pagina originale.
+class _VideoSection extends StatefulWidget {
+  final String? poster;
+  final String? mp4;
   final String? link;
-  const _VideoSection({required this.poster, this.link});
+  const _VideoSection({this.poster, this.mp4, this.link});
+
+  @override
+  State<_VideoSection> createState() => _VideoSectionState();
+}
+
+class _VideoSectionState extends State<_VideoSection> {
+  VideoPlayerController? _controller;
+  ChewieController? _chewie;
+  bool _loading = false;
+
+  Future<void> _start() async {
+    if (widget.mp4 == null) {
+      if (widget.link != null) {
+        launchUrl(Uri.parse(widget.link!),
+            mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+    setState(() => _loading = true);
+    final c = VideoPlayerController.networkUrl(Uri.parse(widget.mp4!));
+    await c.initialize();
+    if (!mounted) {
+      c.dispose();
+      return;
+    }
+    setState(() {
+      _controller = c;
+      _chewie = ChewieController(
+        videoPlayerController: c,
+        autoPlay: true,
+        looping: false,
+        aspectRatio: c.value.aspectRatio == 0 ? 16 / 9 : c.value.aspectRatio,
+      );
+      _loading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _chewie?.dispose();
+    _controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return _Section(
       title: 'Video ricetta',
-      child: InkWell(
-        onTap: link == null
-            ? null
-            : () => launchUrl(Uri.parse(link!),
-                mode: LaunchMode.externalApplication),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              RecipeImage(path: poster, width: double.infinity, height: 200),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  shape: BoxShape.circle,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: _chewie != null
+            ? AspectRatio(
+                aspectRatio: _controller!.value.aspectRatio == 0
+                    ? 16 / 9
+                    : _controller!.value.aspectRatio,
+                child: Chewie(controller: _chewie!),
+              )
+            : InkWell(
+                onTap: _loading ? null : _start,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    RecipeImage(
+                        path: widget.poster,
+                        width: double.infinity,
+                        height: 200),
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle,
+                      ),
+                      child: _loading
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 3),
+                            )
+                          : const Icon(Icons.play_arrow,
+                              color: Colors.white, size: 40),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.play_arrow,
-                    color: Colors.white, size: 40),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }

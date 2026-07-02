@@ -24,9 +24,10 @@ class Recipe {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  // Video associato (poster) e galleria foto del procedimento.
+  // Video associato: poster, id e URL MP4 diretto (riproducibile inline).
   final String? videoUrl;
   final String? videoId;
+  final String? videoMp4;
   final List<String> stepGallery;
 
   final List<Ingredient> ingredients;
@@ -51,6 +52,7 @@ class Recipe {
     this.updatedAt,
     this.videoUrl,
     this.videoId,
+    this.videoMp4,
     this.stepGallery = const [],
     this.ingredients = const [],
     this.steps = const [],
@@ -97,6 +99,7 @@ class Recipe {
       updatedAt: _date(m['updated_at']),
       videoUrl: m['video_url'] as String?,
       videoId: m['video_id'] as String?,
+      videoMp4: m['video_mp4'] as String?,
       stepGallery: (m['step_gallery'] as List?)?.cast<String>() ?? const [],
       ingredients: ing,
       steps: st,
@@ -128,6 +131,7 @@ class Recipe {
         'step_gallery': stepGallery,
         'video_url': videoUrl,
         'video_id': videoId,
+        'video_mp4': videoMp4,
       };
 
   Recipe copyWith({
@@ -161,6 +165,7 @@ class Recipe {
         updatedAt: updatedAt,
         videoUrl: videoUrl,
         videoId: videoId,
+        videoMp4: videoMp4,
         stepGallery: stepGallery,
         ingredients: ingredients ?? this.ingredients,
         steps: steps ?? this.steps,
