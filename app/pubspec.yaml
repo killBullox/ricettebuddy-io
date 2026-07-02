@@ -1,0 +1,39 @@
+name: ricettebuddy
+description: RicetteBuddy — ricette, piano pasti, spesa e Chef creativo (iOS + Android).
+publish_to: "none"
+version: 0.2.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Backend / auth / storage
+  supabase_flutter: ^2.5.6
+
+  # Stato
+  flutter_riverpod: ^2.5.1
+
+  # Utilità
+  intl: any
+  cached_network_image: ^3.3.1
+
+  # --- Feature che aggiungeremo (lasciate qui come promemoria) ---
+  # receive_sharing_intent: ^1.8.0        # F1 import dai social (Share Extension)
+  # image_picker: ^1.1.2                  # F3 scatto/galleria
+  # google_mlkit_text_recognition: ^0.13.0  # F3 OCR
+  # drift: ^2.18.0                        # cache offline-first
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true   # abilita la generazione l10n (F8) da lib/l10n/*.arb
