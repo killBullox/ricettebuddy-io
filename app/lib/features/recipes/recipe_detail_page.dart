@@ -225,31 +225,51 @@ class _VideoSectionState extends State<_VideoSection> {
   ChewieController? _chewie;
   bool _loading = false;
 
+  Future<void> _openSource() async {
+    if (widget.link != null) {
+      await launchUrl(Uri.parse(widget.link!),
+          mode: LaunchMode.externalApplication);
+    }
+  }
+
   Future<void> _start() async {
     if (widget.mp4 == null) {
-      if (widget.link != null) {
-        launchUrl(Uri.parse(widget.link!),
-            mode: LaunchMode.externalApplication);
-      }
+      await _openSource();
       return;
     }
     setState(() => _loading = true);
-    final c = VideoPlayerController.networkUrl(Uri.parse(widget.mp4!));
-    await c.initialize();
-    if (!mounted) {
+    // Riproduce tramite l'endpoint /video del server locale, che rimuxa al volo
+    // in MP4 frammentato (gli MP4 di GZ non sono faststart) -> parte subito.
+    final playUrl =
+        Uri.base.resolve('video?u=${Uri.encodeQueryComponent(widget.mp4!)}');
+    final c = VideoPlayerController.networkUrl(playUrl);
+    try {
+      await c.initialize().timeout(const Duration(seconds: 30));
+      if (!mounted) {
+        c.dispose();
+        return;
+      }
+      setState(() {
+        _controller = c;
+        _chewie = ChewieController(
+          videoPlayerController: c,
+          autoPlay: true,
+          looping: false,
+          aspectRatio: c.value.aspectRatio == 0 ? 16 / 9 : c.value.aspectRatio,
+        );
+        _loading = false;
+      });
+    } catch (_) {
       c.dispose();
-      return;
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video non riproducibile, apro la fonte.')),
+        );
+      }
+      await _openSource();
     }
-    setState(() {
-      _controller = c;
-      _chewie = ChewieController(
-        videoPlayerController: c,
-        autoPlay: true,
-        looping: false,
-        aspectRatio: c.value.aspectRatio == 0 ? 16 / 9 : c.value.aspectRatio,
-      );
-      _loading = false;
-    });
   }
 
   @override
