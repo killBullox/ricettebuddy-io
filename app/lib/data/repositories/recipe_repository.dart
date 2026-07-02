@@ -1,19 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config.dart';
+import '../demo/demo_store.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../models/recipe_step.dart';
 
 class RecipeRepository {
-  final SupabaseClient _db;
+  final SupabaseClient? _db;
   RecipeRepository(this._db);
 
-  String get _uid => _db.auth.currentUser!.id;
+  bool get _demo => Config.demo;
+  DemoStore get _store => DemoStore.instance;
+  String get _uid => _db!.auth.currentUser!.id;
 
   /// Elenco ricette (senza relazioni, per la lista).
   Future<List<Recipe>> list({String? search}) async {
-    var query = _db.from('recipes').select();
+    if (_demo) return _store.listRecipes(search: search);
+    var query = _db!.from('recipes').select();
     if (search != null && search.trim().isNotEmpty) {
       query = query.ilike('title', '%${search.trim()}%');
     }
@@ -25,7 +30,8 @@ class RecipeRepository {
 
   /// Ricetta completa con ingredienti e passi.
   Future<Recipe> getFull(String id) async {
-    final row = await _db.from('recipes').select().eq('id', id).single();
+    if (_demo) return _store.getRecipe(id);
+    final row = await _db!.from('recipes').select().eq('id', id).single();
     final ing = await _db
         .from('ingredients')
         .select()
@@ -49,7 +55,8 @@ class RecipeRepository {
 
   /// Inserisce ricetta + ingredienti + passi. Ritorna l'id creato.
   Future<String> create(Recipe recipe) async {
-    final inserted = await _db
+    if (_demo) return _store.createRecipe(recipe);
+    final inserted = await _db!
         .from('recipes')
         .insert({...recipe.toMap(), 'user_id': _uid})
         .select('id')
@@ -71,19 +78,26 @@ class RecipeRepository {
     return id;
   }
 
-  Future<void> setFavorite(String id, bool value) =>
-      _db.from('recipes').update({'is_favorite': value}).eq('id', id);
+  Future<void> setFavorite(String id, bool value) async {
+    if (_demo) return _store.setFavorite(id, value);
+    await _db!.from('recipes').update({'is_favorite': value}).eq('id', id);
+  }
 
-  Future<void> setServings(String id, int servings) =>
-      _db.from('recipes').update({'servings': servings}).eq('id', id);
+  Future<void> setServings(String id, int servings) async {
+    if (_demo) return _store.setServings(id, servings);
+    await _db!.from('recipes').update({'servings': servings}).eq('id', id);
+  }
 
-  Future<void> delete(String id) =>
-      _db.from('recipes').delete().eq('id', id);
+  Future<void> delete(String id) async {
+    if (_demo) return _store.deleteRecipe(id);
+    await _db!.from('recipes').delete().eq('id', id);
+  }
 }
 
-final recipeRepositoryProvider = Provider<RecipeRepository>(
-  (ref) => RecipeRepository(Supabase.instance.client),
-);
+RecipeRepository _make() =>
+    RecipeRepository(Config.demo ? null : Supabase.instance.client);
+
+final recipeRepositoryProvider = Provider<RecipeRepository>((ref) => _make());
 
 /// Lista ricette filtrata per testo di ricerca.
 final recipeSearchProvider = StateProvider<String>((ref) => '');

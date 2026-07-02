@@ -1,33 +1,44 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config.dart';
+import '../demo/demo_store.dart';
 import '../models/recipe.dart';
 import '../models/shopping_item.dart';
 
 class ShoppingRepository {
-  final SupabaseClient _db;
+  final SupabaseClient? _db;
   ShoppingRepository(this._db);
 
-  String get _uid => _db.auth.currentUser!.id;
+  bool get _demo => Config.demo;
+  DemoStore get _store => DemoStore.instance;
+  String get _uid => _db!.auth.currentUser!.id;
 
   Future<List<ShoppingItem>> list() async {
-    final rows = await _db.from('shopping_items').select().order('name');
+    if (_demo) {
+      return [..._store.shopping]..sort((a, b) => a.name.compareTo(b.name));
+    }
+    final rows = await _db!.from('shopping_items').select().order('name');
     return (rows as List)
         .map((r) => ShoppingItem.fromMap(r as Map<String, dynamic>))
         .toList();
   }
 
-  Future<void> setChecked(String id, bool value) =>
-      _db.from('shopping_items').update({'is_checked': value}).eq('id', id);
+  Future<void> setChecked(String id, bool value) async {
+    if (_demo) return _store.setShoppingChecked(id, value);
+    await _db!.from('shopping_items').update({'is_checked': value}).eq('id', id);
+  }
 
-  Future<void> addFree(String name) => _db
-      .from('shopping_items')
-      .insert({'name': name, 'user_id': _uid});
+  Future<void> addFree(String name) async {
+    if (_demo) return _store.addFreeShopping(name);
+    await _db!.from('shopping_items').insert({'name': name, 'user_id': _uid});
+  }
 
   /// Aggiunge gli ingredienti di una ricetta e ri-aggrega le voci non spuntate.
   Future<void> addFromRecipe(Recipe recipe) async {
+    if (_demo) return _store.addShoppingFromRecipe(recipe);
     if (recipe.ingredients.isNotEmpty) {
-      await _db.from('shopping_items').insert([
+      await _db!.from('shopping_items').insert([
         for (final ing in recipe.ingredients)
           {
             'user_id': _uid,
@@ -65,19 +76,20 @@ class ShoppingRepository {
     for (final entry in merged.entries) {
       final it = entry.value;
       if (it.id != null && sums[entry.key] != it.quantity) {
-        await _db
+        await _db!
             .from('shopping_items')
             .update({'quantity': sums[entry.key]}).eq('id', it.id!);
       }
     }
     if (toDelete.isNotEmpty) {
-      await _db.from('shopping_items').delete().inFilter('id', toDelete);
+      await _db!.from('shopping_items').delete().inFilter('id', toDelete);
     }
   }
 }
 
 final shoppingRepositoryProvider = Provider<ShoppingRepository>(
-  (ref) => ShoppingRepository(Supabase.instance.client),
+  (ref) =>
+      ShoppingRepository(Config.demo ? null : Supabase.instance.client),
 );
 
 final shoppingListProvider = FutureProvider.autoDispose<List<ShoppingItem>>(

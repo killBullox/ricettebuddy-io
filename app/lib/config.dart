@@ -9,4 +9,8 @@ class Config {
 
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  /// Modalità demo: senza Supabase l'app gira con dati di esempio in memoria,
+  /// così è provabile subito (utile per il test e le anteprime web).
+  static bool get demo => !isConfigured;
 }

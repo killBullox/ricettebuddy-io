@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config.dart';
+import '../demo/demo_store.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../models/recipe_step.dart';
@@ -10,14 +12,16 @@ import '../models/recipe_step.dart';
 /// `import-recipe`, così le API key restano lato server e i parser si
 /// aggiornano senza rilasciare una nuova build.
 class ImportRepository {
-  final SupabaseClient _db;
+  final SupabaseClient? _db;
   ImportRepository(this._db);
 
-  String get _uid => _db.auth.currentUser!.id;
+  bool get _demo => Config.demo;
+  String get _uid => _db!.auth.currentUser!.id;
 
   /// Importa da un URL (web o social) e salva la ricetta. Ritorna l'id.
   Future<String> importFromUrl(String url) async {
-    final res = await _db.functions.invoke('import-recipe', body: {'url': url});
+    if (_demo) return DemoStore.instance.importFromUrl(url);
+    final res = await _db!.functions.invoke('import-recipe', body: {'url': url});
     final data = res.data as Map<String, dynamic>;
     final recipe = _parse(data);
     return _save(recipe);
@@ -34,7 +38,7 @@ class ImportRepository {
       );
 
   Future<String> _save(Recipe recipe) async {
-    final inserted = await _db
+    final inserted = await _db!
         .from('recipes')
         .insert({...recipe.toMap(), 'user_id': _uid})
         .select('id')
@@ -57,5 +61,6 @@ class ImportRepository {
 }
 
 final importRepositoryProvider = Provider<ImportRepository>(
-  (ref) => ImportRepository(Supabase.instance.client),
+  (ref) =>
+      ImportRepository(Config.demo ? null : Supabase.instance.client),
 );

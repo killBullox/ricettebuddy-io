@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config.dart';
+import '../demo/demo_store.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../models/recipe_step.dart';
@@ -35,12 +37,16 @@ class DoableRecipe {
 
 /// "Chef creativo": ricette fattibili dal ricettario + idee nuove generate.
 class CreativeRepository {
-  final SupabaseClient _db;
+  final SupabaseClient? _db;
   CreativeRepository(this._db);
+
+  bool get _demo => Config.demo;
+  DemoStore get _store => DemoStore.instance;
 
   /// Sezione "Puoi già farle" — via RPC su Postgres (nessun costo AI).
   Future<List<DoableRecipe>> doableFromPantry({double minCoverage = 0.6}) async {
-    final rows = await _db.rpc(
+    if (_demo) return _store.doableFromPantry(minCoverage: minCoverage);
+    final rows = await _db!.rpc(
       'recipes_doable_from_pantry',
       params: {'min_coverage': minCoverage},
     );
@@ -58,7 +64,8 @@ class CreativeRepository {
     List<String> diet = const [],
     List<String> excludeAllergens = const [],
   }) async {
-    final res = await _db.functions.invoke('creative-generate', body: {
+    if (_demo) return _store.generateIdeas(count: count);
+    final res = await _db!.functions.invoke('creative-generate', body: {
       'count': count,
       'max_minutes': maxMinutes,
       'diet': diet,
@@ -82,7 +89,8 @@ class CreativeRepository {
 }
 
 final creativeRepositoryProvider = Provider<CreativeRepository>(
-  (ref) => CreativeRepository(Supabase.instance.client),
+  (ref) =>
+      CreativeRepository(Config.demo ? null : Supabase.instance.client),
 );
 
 final doableRecipesProvider =

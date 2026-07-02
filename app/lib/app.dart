@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'config.dart';
 import 'features/auth/auth_gate.dart';
+import 'features/home/home_shell.dart';
 
 class RicetteBuddyApp extends StatelessWidget {
   const RicetteBuddyApp({super.key});
@@ -30,42 +31,8 @@ class RicetteBuddyApp extends StatelessWidget {
         Locale('de'),
         Locale('es'),
       ],
-      home: Config.isConfigured
-          ? const AuthGate()
-          : const _MissingConfigScreen(),
-    );
-  }
-}
-
-/// Mostrata se mancano le variabili --dart-define di Supabase.
-class _MissingConfigScreen extends StatelessWidget {
-  const _MissingConfigScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.settings_suggest, size: 48),
-              const SizedBox(height: 16),
-              Text('Configurazione mancante',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              const Text(
-                'Avvia con:\n'
-                'flutter run \\\n'
-                '  --dart-define=SUPABASE_URL=... \\\n'
-                '  --dart-define=SUPABASE_ANON_KEY=...',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
+      // Con Supabase configurato → login reale; altrimenti modalità demo.
+      home: Config.isConfigured ? const AuthGate() : const HomeShell(),
     );
   }
 }

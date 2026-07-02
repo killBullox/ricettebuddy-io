@@ -1,19 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config.dart';
+import '../demo/demo_store.dart';
 import '../models/enums.dart';
 import '../models/meal_plan_entry.dart';
 
 class MealPlanRepository {
-  final SupabaseClient _db;
+  final SupabaseClient? _db;
   MealPlanRepository(this._db);
 
-  String get _uid => _db.auth.currentUser!.id;
+  bool get _demo => Config.demo;
+  DemoStore get _store => DemoStore.instance;
+  String get _uid => _db!.auth.currentUser!.id;
 
   Future<List<MealPlanEntry>> forWeek(DateTime weekStart) async {
     final start = _dateOnly(weekStart);
+    if (_demo) return _store.mealPlanForWeek(start);
     final end = start.add(const Duration(days: 7));
-    final rows = await _db
+    final rows = await _db!
         .from('meal_plan_entries')
         .select('*, recipes(title)')
         .gte('date', _fmt(start))
@@ -30,7 +35,8 @@ class MealPlanRepository {
     required String recipeId,
     int servings = 2,
   }) async {
-    await _db.from('meal_plan_entries').upsert({
+    if (_demo) return; // gestione slot demo non necessaria per il test UI
+    await _db!.from('meal_plan_entries').upsert({
       'user_id': _uid,
       'date': _fmt(_dateOnly(date)),
       'slot': slot.name,
@@ -39,15 +45,18 @@ class MealPlanRepository {
     }, onConflict: 'user_id,date,slot');
   }
 
-  Future<void> clearSlot(String id) =>
-      _db.from('meal_plan_entries').delete().eq('id', id);
+  Future<void> clearSlot(String id) async {
+    if (_demo) return;
+    await _db!.from('meal_plan_entries').delete().eq('id', id);
+  }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
   static String _fmt(DateTime d) => d.toIso8601String().split('T').first;
 }
 
 final mealPlanRepositoryProvider = Provider<MealPlanRepository>(
-  (ref) => MealPlanRepository(Supabase.instance.client),
+  (ref) =>
+      MealPlanRepository(Config.demo ? null : Supabase.instance.client),
 );
 
 final mealPlanWeekProvider = FutureProvider.autoDispose
