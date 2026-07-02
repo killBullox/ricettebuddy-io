@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/meal_plan_entry.dart';
 import '../../data/repositories/meal_plan_repository.dart';
+import '../../data/repositories/recipe_repository.dart';
+import '../../data/repositories/shopping_repository.dart';
 
 final _weekStartProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();
@@ -37,12 +39,31 @@ class MealPlanPage extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.shopping_cart_checkout),
+        label: const Text('Genera spesa'),
+        onPressed: () async {
+          final n = await ref
+              .read(mealPlanRepositoryProvider)
+              .generateShoppingFromWeek(weekStart);
+          ref.invalidate(shoppingListProvider);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(n == 0
+                  ? 'Nessuna ricetta pianificata questa settimana.'
+                  : 'Aggiunte $n voci alla spesa dai pasti della settimana.'),
+            ));
+          }
+        },
+      ),
       body: entries.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (list) => ListView(
+          padding: const EdgeInsets.only(bottom: 88),
           children: [
-            for (final day in days) _DaySection(day: day, entries: list),
+            for (final day in days)
+              _DaySection(day: day, entries: list, weekStart: weekStart),
           ],
         ),
       ),
@@ -50,10 +71,15 @@ class MealPlanPage extends ConsumerWidget {
   }
 }
 
-class _DaySection extends StatelessWidget {
+class _DaySection extends ConsumerWidget {
   final DateTime day;
+  final DateTime weekStart;
   final List<MealPlanEntry> entries;
-  const _DaySection({required this.day, required this.entries});
+  const _DaySection({
+    required this.day,
+    required this.entries,
+    required this.weekStart,
+  });
 
   MealPlanEntry? _entry(MealSlot slot) {
     for (final e in entries) {
@@ -68,9 +94,7 @@ class _DaySection extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Locale esplicito ('it') richiederebbe initializeDateFormatting: per ora
-    // usiamo il locale di default. TODO(F8): inizializzare i dati locale.
+  Widget build(BuildContext context, WidgetRef ref) {
     final title = DateFormat('EEEE d MMMM').format(day);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,9 +112,52 @@ class _DaySection extends StatelessWidget {
                   style: TextStyle(color: Theme.of(context).hintColor)),
             ),
             title: Text(_entry(slot)?.recipeTitle ?? '—'),
-            // TODO(F4): tap → scegli ricetta (setSlot) + regola porzioni.
+            trailing: _entry(slot) != null
+                ? IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () async {
+                      await ref
+                          .read(mealPlanRepositoryProvider)
+                          .clearSlot(date: day, slot: slot);
+                      ref.invalidate(mealPlanWeekProvider(weekStart));
+                    },
+                  )
+                : const Icon(Icons.add, size: 18),
+            onTap: () => _pickRecipe(context, ref, slot),
           ),
       ],
     );
+  }
+
+  Future<void> _pickRecipe(
+      BuildContext context, WidgetRef ref, MealSlot slot) async {
+    final recipes = await ref.read(recipeRepositoryProvider).list();
+    if (!context.mounted) return;
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(
+              title: Text('Scegli una ricetta',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            for (final r in recipes)
+              ListTile(
+                title: Text(r.title),
+                onTap: () => Navigator.pop(context, r.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null) return;
+    await ref.read(mealPlanRepositoryProvider).setSlot(
+          date: day,
+          slot: slot,
+          recipeId: chosen,
+        );
+    ref.invalidate(mealPlanWeekProvider(weekStart));
   }
 }

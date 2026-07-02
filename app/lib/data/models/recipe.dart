@@ -13,6 +13,8 @@ class Recipe {
   final int? cookMinutes;
   final int servings;
   final List<String> tags;
+  /// Regimi soddisfatti dalla ricetta (nomi di Diet), es. ['vegan','glutenFree'].
+  final List<String> dietTags;
   final bool isFavorite;
 
   // Segnali di gusto per lo "Chef creativo".
@@ -36,6 +38,7 @@ class Recipe {
     this.cookMinutes,
     this.servings = 2,
     this.tags = const [],
+    this.dietTags = const [],
     this.isFavorite = false,
     this.cookedCount = 0,
     this.lastCookedAt,
@@ -66,6 +69,7 @@ class Recipe {
         cookMinutes: m['cook_minutes'] as int?,
         servings: (m['servings'] as int?) ?? 2,
         tags: (m['tags'] as List?)?.cast<String>() ?? const [],
+        dietTags: (m['diet_tags'] as List?)?.cast<String>() ?? const [],
         isFavorite: (m['is_favorite'] as bool?) ?? false,
         cookedCount: (m['cooked_count'] as int?) ?? 0,
         lastCookedAt: _date(m['last_cooked_at']),
@@ -87,6 +91,7 @@ class Recipe {
         'cook_minutes': cookMinutes,
         'servings': servings,
         'tags': tags,
+        'diet_tags': dietTags,
         'is_favorite': isFavorite,
         'cooked_count': cookedCount,
       };
@@ -96,6 +101,12 @@ class Recipe {
     bool? isFavorite,
     int? servings,
     int? cookedCount,
+    int? prepMinutes,
+    int? cookMinutes,
+    List<String>? tags,
+    List<String>? dietTags,
+    List<Ingredient>? ingredients,
+    List<RecipeStep>? steps,
   }) =>
       Recipe(
         id: id,
@@ -104,17 +115,18 @@ class Recipe {
         sourceUrl: sourceUrl,
         source: source,
         originalLanguage: originalLanguage,
-        prepMinutes: prepMinutes,
-        cookMinutes: cookMinutes,
+        prepMinutes: prepMinutes ?? this.prepMinutes,
+        cookMinutes: cookMinutes ?? this.cookMinutes,
         servings: servings ?? this.servings,
-        tags: tags,
+        tags: tags ?? this.tags,
+        dietTags: dietTags ?? this.dietTags,
         isFavorite: isFavorite ?? this.isFavorite,
         cookedCount: cookedCount ?? this.cookedCount,
         lastCookedAt: lastCookedAt,
         createdAt: createdAt,
         updatedAt: updatedAt,
-        ingredients: ingredients,
-        steps: steps,
+        ingredients: ingredients ?? this.ingredients,
+        steps: steps ?? this.steps,
       );
 
   static DateTime? _date(dynamic v) =>

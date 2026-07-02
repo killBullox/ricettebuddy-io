@@ -34,6 +34,16 @@ class ShoppingRepository {
     await _db!.from('shopping_items').insert({'name': name, 'user_id': _uid});
   }
 
+  Future<void> delete(String id) async {
+    if (_demo) return _store.deleteShopping(id);
+    await _db!.from('shopping_items').delete().eq('id', id);
+  }
+
+  Future<void> clearChecked() async {
+    if (_demo) return _store.clearCheckedShopping();
+    await _db!.from('shopping_items').delete().eq('is_checked', true);
+  }
+
   /// Aggiunge gli ingredienti di una ricetta e ri-aggrega le voci non spuntate.
   Future<void> addFromRecipe(Recipe recipe) async {
     if (_demo) return _store.addShoppingFromRecipe(recipe);

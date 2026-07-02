@@ -35,7 +35,7 @@ class MealPlanRepository {
     required String recipeId,
     int servings = 2,
   }) async {
-    if (_demo) return; // gestione slot demo non necessaria per il test UI
+    if (_demo) return _store.setSlot(date, slot, recipeId, servings);
     await _db!.from('meal_plan_entries').upsert({
       'user_id': _uid,
       'date': _fmt(_dateOnly(date)),
@@ -45,9 +45,21 @@ class MealPlanRepository {
     }, onConflict: 'user_id,date,slot');
   }
 
-  Future<void> clearSlot(String id) async {
-    if (_demo) return;
-    await _db!.from('meal_plan_entries').delete().eq('id', id);
+  Future<void> clearSlot({required DateTime date, required MealSlot slot}) async {
+    if (_demo) return _store.clearSlotByDaySlot(date, slot);
+    await _db!
+        .from('meal_plan_entries')
+        .delete()
+        .eq('date', _fmt(_dateOnly(date)))
+        .eq('slot', slot.name);
+  }
+
+  /// Genera/aggiorna la spesa a partire dai pasti pianificati nella settimana.
+  /// Ritorna il numero di voci aggiunte.
+  Future<int> generateShoppingFromWeek(DateTime weekStart) async {
+    if (_demo) return _store.generateShoppingFromWeek(_dateOnly(weekStart));
+    // Reale: gestito lato server / o iterando le ricette; TODO fase backend.
+    return 0;
   }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
