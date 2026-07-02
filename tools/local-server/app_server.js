@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
+const { importInstagram } = require("./instagram.js");
 
 const ROOT = path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
@@ -155,13 +156,32 @@ async function handleApi(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/analyze") {
     const { type = "web", reference = "", diets = [], limit = 30, pages = 15 } =
       await readBody(req);
-    // I social non sono ancora supportati: niente import "di nascosto" da GZ.
+    // Instagram: importatore interno (post pubblici -> ricetta dalla didascalia).
+    if (type === "instagram") {
+      try {
+        const igRecipes = await importInstagram(reference);
+        const existing = new Set(recipes.map((r) => r.source_url));
+        const imported = [];
+        for (const r of igRecipes) {
+          if (existing.has(r.source_url)) continue;
+          const saved = { ...r, id: String(++seq) };
+          recipes.unshift(saved); imported.push(saved); existing.add(r.source_url);
+        }
+        save();
+        return sendJson(res, 200, { imported });
+      } catch (e) {
+        return sendJson(res, 200, {
+          imported: [], unsupported: true, message: String(e.message || e),
+        });
+      }
+    }
+    // Altri social non ancora supportati.
     if (type && type !== "web") {
       return sendJson(res, 200, {
         imported: [],
         unsupported: true,
         message: `Import da ${type} non ancora supportato. Per ora funzionano ` +
-          `i siti con ricette strutturate (es. GialloZafferano).`,
+          `Instagram e i siti con ricette strutturate (es. GialloZafferano).`,
       });
     }
     try {
