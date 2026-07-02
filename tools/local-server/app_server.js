@@ -14,24 +14,59 @@ const ROOT = path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
 const PORT = 8080;
 const FFMPEG = process.env.FFMPEG || "ffmpeg"; // per lo streaming video
+const crypto = require("crypto");
+const CACHE = path.join(__dirname, "video-cache");
+fs.mkdirSync(CACHE, { recursive: true });
 
-// Streaming video: gli MP4 di GZ non sono "faststart" (moov in fondo) e il
-// browser aspetterebbe il download completo. Li rimuxiamo al volo in MP4
-// frammentato, così partono subito.
+// Video: gli MP4 di GZ non sono "faststart" (moov in fondo), quindi il browser
+// aspetterebbe il download completo. Li rimuxiamo con ffmpeg in un file
+// faststart (moov all'inizio) servito con supporto Range: il player parte
+// subito ed è seekabile. Il file remuxato è messo in cache.
+function serveFileRange(req, res, file) {
+  const size = fs.statSync(file).size;
+  const range = req.headers.range;
+  if (range) {
+    const m = range.match(/bytes=(\d+)-(\d*)/);
+    const s = parseInt(m[1], 10);
+    const e = m[2] ? parseInt(m[2], 10) : size - 1;
+    res.writeHead(206, {
+      "Content-Type": "video/mp4",
+      "Accept-Ranges": "bytes",
+      "Content-Range": `bytes ${s}-${e}/${size}`,
+      "Content-Length": e - s + 1,
+    });
+    fs.createReadStream(file, { start: s, end: e }).pipe(res);
+  } else {
+    res.writeHead(200, {
+      "Content-Type": "video/mp4",
+      "Accept-Ranges": "bytes",
+      "Content-Length": size,
+    });
+    fs.createReadStream(file).pipe(res);
+  }
+}
+
 function streamVideo(req, res, u) {
+  const key = crypto.createHash("md5").update(u).digest("hex");
+  const file = path.join(CACHE, key + ".mp4");
+  if (fs.existsSync(file) && fs.statSync(file).size > 0) {
+    return serveFileRange(req, res, file);
+  }
+  const tmp = file + ".tmp";
   const ff = spawn(FFMPEG, [
-    "-loglevel", "error",
-    "-i", u,
-    "-c", "copy",
-    "-movflags", "frag_keyframe+empty_moov+default_base_moof",
-    "-f", "mp4",
-    "pipe:1",
+    "-y", "-loglevel", "error", "-i", u, "-c", "copy",
+    "-movflags", "+faststart", "-f", "mp4", tmp,
   ]);
-  res.writeHead(200, { "Content-Type": "video/mp4", "Cache-Control": "no-cache" });
-  ff.stdout.pipe(res);
-  ff.stderr.on("data", () => {});
-  ff.on("error", () => { try { res.end(); } catch {} });
-  req.on("close", () => ff.kill("SIGKILL"));
+  ff.on("error", () => { res.writeHead(502); res.end("ffmpeg error"); });
+  ff.on("close", (code) => {
+    if (code === 0 && fs.existsSync(tmp) && fs.statSync(tmp).size > 0) {
+      fs.renameSync(tmp, file);
+      serveFileRange(req, res, file);
+    } else {
+      try { fs.unlinkSync(tmp); } catch {}
+      res.writeHead(502); res.end("remux failed");
+    }
+  });
 }
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36";
 
