@@ -63,7 +63,7 @@ class LocalApi {
 
   /// Analizza le sorgenti e importa le ricette conformi ai regimi. Ritorna
   /// le ricette importate.
-  Future<List<Recipe>> analyze(Set<Diet> diets, {int limit = 24}) async {
+  Future<List<Recipe>> analyze(Set<Diet> diets, {int limit = 30}) async {
     final res = await http
         .post(_u('api/analyze'),
             headers: _json,
