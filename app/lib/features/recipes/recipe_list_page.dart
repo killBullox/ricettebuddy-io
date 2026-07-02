@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
+import 'diet_badges.dart';
 import 'recipe_detail_page.dart';
+import 'recipe_editor_page.dart';
 
 class RecipeListPage extends ConsumerWidget {
   const RecipeListPage({super.key});
@@ -17,9 +19,9 @@ class RecipeListPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Ricette')),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await ref
-              .read(recipeRepositoryProvider)
-              .create(const Recipe(title: 'Nuova ricetta'));
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RecipeEditorPage()),
+          );
           ref.invalidate(recipeListProvider);
         },
         child: const Icon(Icons.add),
@@ -70,9 +72,18 @@ class _RecipeTile extends StatelessWidget {
     return ListTile(
       leading: _Thumb(url: recipe.imageUrl),
       title: Text(recipe.title),
-      subtitle: recipe.totalMinutes != null
-          ? Text('${recipe.totalMinutes} min')
-          : null,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (recipe.totalMinutes != null) Text('${recipe.totalMinutes} min'),
+          if (recipe.dietTags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: DietBadges(dietTags: recipe.dietTags),
+            ),
+        ],
+      ),
+      isThreeLine: recipe.dietTags.isNotEmpty,
       trailing: recipe.isFavorite
           ? const Icon(Icons.favorite, color: Colors.pink)
           : null,

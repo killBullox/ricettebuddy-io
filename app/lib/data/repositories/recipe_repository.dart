@@ -78,6 +78,27 @@ class RecipeRepository {
     return id;
   }
 
+  /// Aggiorna una ricetta esistente con i suoi ingredienti e passi.
+  Future<void> update(String id, Recipe recipe) async {
+    if (_demo) return _store.updateRecipe(id, recipe);
+    await _db!.from('recipes').update(recipe.toMap()).eq('id', id);
+    // Sostituisce ingredienti e passi.
+    await _db.from('ingredients').delete().eq('recipe_id', id);
+    await _db.from('steps').delete().eq('recipe_id', id);
+    if (recipe.ingredients.isNotEmpty) {
+      await _db.from('ingredients').insert([
+        for (final (i, ing) in recipe.ingredients.indexed)
+          {...ing.toMap(), 'recipe_id': id, 'user_id': _uid, 'position': i}
+      ]);
+    }
+    if (recipe.steps.isNotEmpty) {
+      await _db.from('steps').insert([
+        for (final (i, s) in recipe.steps.indexed)
+          {...s.toMap(), 'recipe_id': id, 'user_id': _uid, 'position': i}
+      ]);
+    }
+  }
+
   Future<void> setFavorite(String id, bool value) async {
     if (_demo) return _store.setFavorite(id, value);
     await _db!.from('recipes').update({'is_favorite': value}).eq('id', id);

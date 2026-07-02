@@ -6,6 +6,8 @@ import '../../data/models/enums.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
+import 'diet_badges.dart';
+import 'recipe_editor_page.dart';
 
 class RecipeDetailPage extends ConsumerWidget {
   final String recipeId;
@@ -39,6 +41,19 @@ class _Detail extends ConsumerWidget {
           expandedHeight: recipe.imageUrl != null ? 220 : kToolbarHeight,
           pinned: true,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Modifica',
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RecipeEditorPage(existing: recipe),
+                  ),
+                );
+                ref.invalidate(recipeDetailProvider(recipe.id!));
+                ref.invalidate(recipeListProvider);
+              },
+            ),
             IconButton(
               icon: Icon(
                 recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -82,6 +97,43 @@ class _Detail extends ConsumerWidget {
                 avatar: Icon(Icons.auto_awesome, size: 18),
                 label: Text('Idea generata dallo Chef creativo'),
               ),
+            ),
+          // Porzioni con stepper
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              children: [
+                const Text('Porzioni'),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline),
+                  onPressed: recipe.servings > 1
+                      ? () async {
+                          await ref
+                              .read(recipeRepositoryProvider)
+                              .setServings(recipe.id!, recipe.servings - 1);
+                          ref.invalidate(recipeDetailProvider(recipe.id!));
+                        }
+                      : null,
+                ),
+                Text('${recipe.servings}',
+                    style: Theme.of(context).textTheme.titleMedium),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  onPressed: () async {
+                    await ref
+                        .read(recipeRepositoryProvider)
+                        .setServings(recipe.id!, recipe.servings + 1);
+                    ref.invalidate(recipeDetailProvider(recipe.id!));
+                  },
+                ),
+              ],
+            ),
+          ),
+          if (recipe.dietTags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: DietBadges(dietTags: recipe.dietTags),
             ),
           _Section(
             title: 'Ingredienti',

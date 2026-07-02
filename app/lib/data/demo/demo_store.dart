@@ -1,4 +1,6 @@
+import '../models/diet.dart';
 import '../models/enums.dart';
+import '../models/feed_source.dart';
 import '../models/ingredient.dart';
 import '../models/meal_plan_entry.dart';
 import '../models/pantry_item.dart';
@@ -21,6 +23,10 @@ class DemoStore {
   final List<PantryItem> pantry = _seedPantry();
   final List<ShoppingItem> shopping = [];
   final List<MealPlanEntry> mealPlan = [];
+  final List<FeedSource> sources = _seedSources();
+
+  /// Ricette che le sorgenti/feed potrebbero importare (simulazione demo).
+  late final List<Recipe> _feedCandidates = _seedFeedCandidates();
 
   // --- Ricette ---------------------------------------------------------------
 
@@ -82,6 +88,12 @@ class DemoStore {
       sourceRecipeId: s.sourceRecipeId,
     );
   }
+
+  void deleteShopping(String id) =>
+      shopping.removeWhere((s) => s.id == id);
+
+  void clearCheckedShopping() =>
+      shopping.removeWhere((s) => s.isChecked);
 
   void addShoppingFromRecipe(Recipe recipe) {
     for (final ing in recipe.ingredients) {
@@ -175,6 +187,97 @@ class DemoStore {
     return id;
   }
 
+  // --- Sorgenti / Feed -------------------------------------------------------
+
+  String addSource(FeedSource s) {
+    final id = _id();
+    sources.add(FeedSource(
+      id: id,
+      type: s.type,
+      reference: s.reference,
+      name: s.name,
+      autoImport: s.autoImport,
+    ));
+    return id;
+  }
+
+  void deleteSource(String id) => sources.removeWhere((s) => s.id == id);
+
+  void toggleSourceAuto(String id, bool value) {
+    final i = sources.indexWhere((s) => s.id == id);
+    if (i >= 0) sources[i] = sources[i].copyWith(autoImport: value);
+  }
+
+  /// Analizza una sorgente e importa le ricette conformi ai regimi attivi
+  /// che non sono già presenti. Ritorna le ricette importate.
+  List<Recipe> analyzeSource(String sourceId, Set<Diet> activeDiets) {
+    final i = sources.indexWhere((s) => s.id == sourceId);
+    if (i < 0) return [];
+    final existingTitles = recipes.map((r) => r.title.toLowerCase()).toSet();
+
+    final imported = <Recipe>[];
+    for (final cand in _feedCandidates) {
+      if (existingTitles.contains(cand.title.toLowerCase())) continue;
+      if (!_matchesDiets(cand, activeDiets)) continue;
+      final id = _id();
+      recipes.add(_withMeta(cand, id));
+      imported.add(recipes.last);
+    }
+    sources[i] = sources[i].copyWith(lastCheckedAt: DateTime.now());
+    return imported;
+  }
+
+  /// Anteprima: quante ricette del feed sono conformi ai regimi (per la UI).
+  int compatibleCount(Set<Diet> activeDiets) => _feedCandidates
+      .where((c) => _matchesDiets(c, activeDiets))
+      .length;
+
+  bool _matchesDiets(Recipe r, Set<Diet> diets) =>
+      diets.every((d) => r.dietTags.contains(d.name));
+
+  // --- Piano pasti (assegnazione) --------------------------------------------
+
+  void setSlot(DateTime date, MealSlot slot, String recipeId, int servings) {
+    final d = DateTime(date.year, date.month, date.day);
+    mealPlan.removeWhere((e) =>
+        e.date == d && e.slot == slot);
+    final recipe = recipes.firstWhere((r) => r.id == recipeId);
+    mealPlan.add(MealPlanEntry(
+      id: _id(),
+      date: d,
+      slot: slot,
+      servings: servings,
+      recipeId: recipeId,
+      recipeTitle: recipe.title,
+    ));
+  }
+
+  void clearSlotByDaySlot(DateTime date, MealSlot slot) {
+    final d = DateTime(date.year, date.month, date.day);
+    mealPlan.removeWhere((e) => e.date == d && e.slot == slot);
+  }
+
+  /// Genera la spesa aggregando gli ingredienti delle ricette pianificate.
+  int generateShoppingFromWeek(DateTime weekStart) {
+    final entries = mealPlanForWeek(weekStart);
+    var added = 0;
+    for (final e in entries) {
+      if (e.recipeId == null) continue;
+      final r = recipes.firstWhere((x) => x.id == e.recipeId);
+      addShoppingFromRecipe(r);
+      added += r.ingredients.length;
+    }
+    return added;
+  }
+
+  // --- Modifica ricetta (editor) ---------------------------------------------
+
+  void updateRecipe(String id, Recipe updated) {
+    final i = recipes.indexWhere((r) => r.id == id);
+    if (i < 0) return;
+    recipes[i] = _withMeta(updated, id);
+  }
+
   // --- Helper ----------------------------------------------------------------
 
   void _replace(String id, Recipe Function(Recipe) f) {
@@ -212,6 +315,7 @@ class DemoStore {
           servings: 2,
           isFavorite: true,
           tags: const ['primo', 'veloce'],
+          dietTags: const ['vegan', 'vegetarian', 'lactoseFree', 'pescetarian'],
           createdAt: DateTime(2026, 6, 30),
           updatedAt: DateTime(2026, 7, 1),
           ingredients: const [
@@ -238,6 +342,7 @@ class DemoStore {
           cookMinutes: 10,
           servings: 2,
           tags: const ['secondo'],
+          dietTags: const ['vegetarian', 'glutenFree', 'pescetarian'],
           createdAt: DateTime(2026, 6, 28),
           updatedAt: DateTime(2026, 6, 29),
           ingredients: const [
@@ -263,6 +368,7 @@ class DemoStore {
           cookMinutes: 20,
           servings: 3,
           tags: const ['primo', 'classico'],
+          dietTags: const ['vegan', 'vegetarian', 'lactoseFree', 'pescetarian'],
           createdAt: DateTime(2026, 6, 25),
           updatedAt: DateTime(2026, 6, 26),
           ingredients: const [
@@ -294,5 +400,93 @@ class DemoStore {
             normalizedName: 'peperoncino'),
         const PantryItem(id: 'p-5', rawText: 'passata di pomodoro',
             normalizedName: 'pomodoro'),
+      ];
+
+  static List<FeedSource> _seedSources() => [
+        const FeedSource(
+          id: 's-1',
+          type: SourceType.web,
+          reference: 'https://www.giallozafferano.it',
+          name: 'GialloZafferano',
+        ),
+        const FeedSource(
+          id: 's-2',
+          type: SourceType.instagram,
+          reference: '@ricette_veloci',
+          name: 'Ricette Veloci (IG)',
+        ),
+      ];
+
+  /// Pool simulato di ricette "trovate" dai feed, con i regimi soddisfatti.
+  static List<Recipe> _seedFeedCandidates() => [
+        const Recipe(
+          title: 'Insalata di ceci e verdure',
+          source: RecipeSource.web,
+          sourceUrl: 'https://example.com/insalata-ceci',
+          prepMinutes: 15,
+          cookMinutes: 0,
+          dietTags: [
+            'vegan', 'vegetarian', 'glutenFree', 'lactoseFree', 'pescetarian'
+          ],
+          ingredients: [
+            Ingredient(rawText: '240 g ceci lessati', normalizedName: 'ceci'),
+            Ingredient(rawText: '1 cetriolo', normalizedName: 'cetriolo'),
+            Ingredient(rawText: 'pomodorini', normalizedName: 'pomodorini'),
+          ],
+          steps: [
+            RecipeStep(position: 0, text: 'Taglia le verdure.'),
+            RecipeStep(position: 1, text: 'Condisci con ceci, olio e sale.'),
+          ],
+        ),
+        const Recipe(
+          title: 'Risotto ai funghi',
+          source: RecipeSource.web,
+          sourceUrl: 'https://example.com/risotto-funghi',
+          prepMinutes: 10,
+          cookMinutes: 25,
+          dietTags: ['vegetarian', 'glutenFree', 'pescetarian'],
+          ingredients: [
+            Ingredient(rawText: '320 g riso', normalizedName: 'riso'),
+            Ingredient(rawText: '250 g funghi', normalizedName: 'funghi'),
+            Ingredient(rawText: '50 g parmigiano', normalizedName: 'parmigiano'),
+          ],
+          steps: [
+            RecipeStep(position: 0, text: 'Tosta il riso.'),
+            RecipeStep(position: 1, text: 'Aggiungi brodo e funghi, manteca.'),
+          ],
+        ),
+        const Recipe(
+          title: 'Pollo al limone',
+          source: RecipeSource.web,
+          sourceUrl: 'https://example.com/pollo-limone',
+          prepMinutes: 10,
+          cookMinutes: 20,
+          dietTags: ['glutenFree', 'lactoseFree'],
+          ingredients: [
+            Ingredient(rawText: '500 g pollo', normalizedName: 'pollo'),
+            Ingredient(rawText: '1 limone', normalizedName: 'limone'),
+          ],
+          steps: [
+            RecipeStep(position: 0, text: 'Rosola il pollo.'),
+            RecipeStep(position: 1, text: 'Sfuma con succo di limone.'),
+          ],
+        ),
+        const Recipe(
+          title: 'Pancake vegani ai mirtilli',
+          source: RecipeSource.web,
+          sourceUrl: 'https://example.com/pancake-vegani',
+          prepMinutes: 10,
+          cookMinutes: 10,
+          dietTags: ['vegan', 'vegetarian', 'lactoseFree'],
+          ingredients: [
+            Ingredient(rawText: '150 g farina', normalizedName: 'farina'),
+            Ingredient(rawText: '200 ml latte di soia', normalizedName: 'latte di soia'),
+            Ingredient(rawText: 'mirtilli', normalizedName: 'mirtilli'),
+          ],
+          steps: [
+            RecipeStep(position: 0, text: 'Mescola gli ingredienti.'),
+            RecipeStep(position: 1, text: 'Cuoci i pancake in padella.'),
+          ],
+        ),
       ];
 }

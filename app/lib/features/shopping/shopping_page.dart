@@ -18,6 +18,14 @@ class ShoppingPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Spesa'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_outlined),
+            tooltip: 'Svuota spuntati',
+            onPressed: () async {
+              await ref.read(shoppingRepositoryProvider).clearChecked();
+              ref.invalidate(shoppingListProvider);
+            },
+          ),
           PopupMenuButton<bool>(
             initialValue: groupByAisle,
             onSelected: (v) => ref.read(_groupByAisleProvider.notifier).state = v,
@@ -27,6 +35,10 @@ class ShoppingPage extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addFreeDialog(context, ref),
+        child: const Icon(Icons.add),
       ),
       body: items.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -53,13 +65,55 @@ class ShoppingPage extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleSmall),
                 ),
                 for (final item in s.items)
-                  _ShoppingRow(item: item),
+                  Dismissible(
+                    key: ValueKey(item.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 16),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    onDismissed: (_) async {
+                      await ref
+                          .read(shoppingRepositoryProvider)
+                          .delete(item.id!);
+                      ref.invalidate(shoppingListProvider);
+                    },
+                    child: _ShoppingRow(item: item),
+                  ),
               ],
             ],
           );
         },
       ),
     );
+  }
+
+  Future<void> _addFreeDialog(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aggiungi voce'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Es. pane, latte…'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Aggiungi')),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty) return;
+    await ref.read(shoppingRepositoryProvider).addFree(name.trim());
+    ref.invalidate(shoppingListProvider);
   }
 
   List<({String title, List<ShoppingItem> items})> _sections(
