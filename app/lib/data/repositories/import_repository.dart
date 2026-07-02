@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
-import '../demo/demo_store.dart';
+import '../local_api.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../models/recipe_step.dart';
@@ -20,7 +20,7 @@ class ImportRepository {
 
   /// Importa da un URL (web o social) e salva la ricetta. Ritorna l'id.
   Future<String> importFromUrl(String url) async {
-    if (_demo) return DemoStore.instance.importFromUrl(url);
+    if (_demo) return (await localApi.importUrl(url)).id!;
     final res = await _db!.functions.invoke('import-recipe', body: {'url': url});
     final data = res.data as Map<String, dynamic>;
     final recipe = _parse(data);

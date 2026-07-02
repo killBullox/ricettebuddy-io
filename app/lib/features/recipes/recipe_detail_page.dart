@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/models/enums.dart';
 import '../../data/models/recipe.dart';
@@ -149,6 +150,8 @@ class _Detail extends ConsumerWidget {
                     ],
                   ),
           ),
+          if (recipe.videoUrl != null)
+            _VideoSection(poster: recipe.videoUrl!, link: recipe.sourceUrl),
           _Section(
             title: 'Preparazione',
             child: steps.isEmpty
@@ -158,20 +161,100 @@ class _Detail extends ConsumerWidget {
                     children: [
                       for (final s in steps)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text('${s.position + 1}. ${s.text}'),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${s.position + 1}. ${s.text}'),
+                              if (s.imageUrl != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: RecipeImage(
+                                        path: s.imageUrl,
+                                        width: double.infinity,
+                                        height: 180),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                     ],
                   ),
           ),
+          // Galleria del procedimento (quando le foto non sono per-passo).
+          if (recipe.stepGallery.isNotEmpty &&
+              !steps.any((s) => s.imageUrl != null))
+            _Section(
+              title: 'Foto del procedimento',
+              child: SizedBox(
+                height: 140,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: recipe.stepGallery.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) => ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: RecipeImage(
+                        path: recipe.stepGallery[i], width: 200, height: 140),
+                  ),
+                ),
+              ),
+            ),
           if (recipe.sourceUrl != null)
             _Section(
               title: 'Fonte',
-              child: Text(recipe.sourceUrl!),
+              child: InkWell(
+                onTap: () => launchUrl(Uri.parse(recipe.sourceUrl!),
+                    mode: LaunchMode.externalApplication),
+                child: Text(recipe.sourceUrl!,
+                    style: const TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline)),
+              ),
             ),
           const SizedBox(height: 32),
         ]),
       ],
+    );
+  }
+}
+
+class _VideoSection extends StatelessWidget {
+  final String poster;
+  final String? link;
+  const _VideoSection({required this.poster, this.link});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: 'Video ricetta',
+      child: InkWell(
+        onTap: link == null
+            ? null
+            : () => launchUrl(Uri.parse(link!),
+                mode: LaunchMode.externalApplication),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              RecipeImage(path: poster, width: double.infinity, height: 200),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow,
+                    color: Colors.white, size: 40),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

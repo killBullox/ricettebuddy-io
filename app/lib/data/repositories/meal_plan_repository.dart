@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
 import '../demo/demo_store.dart';
+import '../local_api.dart';
 import '../models/enums.dart';
 import '../models/meal_plan_entry.dart';
 
@@ -33,9 +34,10 @@ class MealPlanRepository {
     required DateTime date,
     required MealSlot slot,
     required String recipeId,
+    String recipeTitle = '',
     int servings = 2,
   }) async {
-    if (_demo) return _store.setSlot(date, slot, recipeId, servings);
+    if (_demo) return _store.setSlot(date, slot, recipeId, servings, recipeTitle);
     await _db!.from('meal_plan_entries').upsert({
       'user_id': _uid,
       'date': _fmt(_dateOnly(date)),
@@ -57,7 +59,18 @@ class MealPlanRepository {
   /// Genera/aggiorna la spesa a partire dai pasti pianificati nella settimana.
   /// Ritorna il numero di voci aggiunte.
   Future<int> generateShoppingFromWeek(DateTime weekStart) async {
-    if (_demo) return _store.generateShoppingFromWeek(_dateOnly(weekStart));
+    if (_demo) {
+      final ids = _store.plannedRecipeIds(_dateOnly(weekStart));
+      var added = 0;
+      for (final id in ids) {
+        try {
+          final r = await localApi.getRecipe(id);
+          _store.addShoppingFromRecipe(r);
+          added += r.ingredients.length;
+        } catch (_) {}
+      }
+      return added;
+    }
     // Reale: gestito lato server / o iterando le ricette; TODO fase backend.
     return 0;
   }
