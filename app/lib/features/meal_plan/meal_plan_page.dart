@@ -133,7 +133,7 @@ class _DaySection extends ConsumerWidget {
       BuildContext context, WidgetRef ref, MealSlot slot) async {
     final recipes = await ref.read(recipeRepositoryProvider).list();
     if (!context.mounted) return;
-    final chosen = await showModalBottomSheet<String>(
+    final chosen = await showModalBottomSheet<(String, String)>(
       context: context,
       builder: (_) => SafeArea(
         child: ListView(
@@ -146,7 +146,7 @@ class _DaySection extends ConsumerWidget {
             for (final r in recipes)
               ListTile(
                 title: Text(r.title),
-                onTap: () => Navigator.pop(context, r.id),
+                onTap: () => Navigator.pop(context, (r.id!, r.title)),
               ),
           ],
         ),
@@ -156,7 +156,8 @@ class _DaySection extends ConsumerWidget {
     await ref.read(mealPlanRepositoryProvider).setSlot(
           date: day,
           slot: slot,
-          recipeId: chosen,
+          recipeId: chosen.$1,
+          recipeTitle: chosen.$2,
         );
     ref.invalidate(mealPlanWeekProvider(weekStart));
   }

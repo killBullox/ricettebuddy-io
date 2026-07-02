@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
 import '../demo/demo_store.dart';
+import '../local_api.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../models/recipe_step.dart';
@@ -43,9 +44,41 @@ class CreativeRepository {
   bool get _demo => Config.demo;
   DemoStore get _store => DemoStore.instance;
 
-  /// Sezione "Puoi già farle" — via RPC su Postgres (nessun costo AI).
+  /// Sezione "Puoi già farle" — ricette (reali) fattibili con la dispensa.
   Future<List<DoableRecipe>> doableFromPantry({double minCoverage = 0.6}) async {
-    if (_demo) return _store.doableFromPantry(minCoverage: minCoverage);
+    if (_demo) {
+      final recipes = await localApi.listRecipes();
+      final have = _store.pantry
+          .map((p) => p.normalizedName.toLowerCase())
+          .toSet();
+      final out = <DoableRecipe>[];
+      for (final r in recipes) {
+        // usa i nomi normalizzati se presenti, altrimenti il testo grezzo
+        final names = r.ingredients
+            .map((i) => (i.normalizedName ?? i.rawText).toLowerCase())
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+        if (names.isEmpty) continue;
+        final missing = names
+            .where((n) => !have.any((h) => n.contains(h) || h.contains(n)))
+            .toSet()
+            .toList();
+        final haveCount = names.length - missing.length;
+        final coverage = haveCount / names.length;
+        if (coverage >= minCoverage && r.id != null) {
+          out.add(DoableRecipe(
+            recipeId: r.id!,
+            title: r.title,
+            totalNamed: names.length,
+            haveCount: haveCount,
+            coverage: double.parse(coverage.toStringAsFixed(2)),
+            missing: missing,
+          ));
+        }
+      }
+      out.sort((a, b) => b.coverage.compareTo(a.coverage));
+      return out;
+    }
     final rows = await _db!.rpc(
       'recipes_doable_from_pantry',
       params: {'min_coverage': minCoverage},

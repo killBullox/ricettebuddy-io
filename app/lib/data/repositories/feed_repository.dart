@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
 import '../demo/demo_store.dart';
+import '../local_api.dart';
 import '../models/diet.dart';
 import '../models/feed_source.dart';
 import '../models/recipe.dart';
@@ -46,7 +47,7 @@ class FeedRepository {
   /// Analizza una sorgente e importa le ricette conformi ai regimi attivi.
   /// Ritorna le ricette importate.
   Future<List<Recipe>> analyze(String sourceId, Set<Diet> diets) async {
-    if (_demo) return _store.analyzeSource(sourceId, diets);
+    if (_demo) return localApi.analyze(diets);
     final res = await _db!.functions.invoke('analyze-feed', body: {
       'source_id': sourceId,
       'diets': Diet.toNames(diets),

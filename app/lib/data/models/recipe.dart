@@ -24,6 +24,11 @@ class Recipe {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  // Video associato (poster) e galleria foto del procedimento.
+  final String? videoUrl;
+  final String? videoId;
+  final List<String> stepGallery;
+
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
 
@@ -44,6 +49,9 @@ class Recipe {
     this.lastCookedAt,
     this.createdAt,
     this.updatedAt,
+    this.videoUrl,
+    this.videoId,
+    this.stepGallery = const [],
     this.ingredients = const [],
     this.steps = const [],
   });
@@ -57,27 +65,43 @@ class Recipe {
     Map<String, dynamic> m, {
     List<Ingredient> ingredients = const [],
     List<RecipeStep> steps = const [],
-  }) =>
-      Recipe(
-        id: m['id'] as String?,
-        title: m['title'] as String? ?? '',
-        imageUrl: m['image_url'] as String?,
-        sourceUrl: m['source_url'] as String?,
-        source: RecipeSource.fromString(m['source_type'] as String?),
-        originalLanguage: m['original_language'] as String?,
-        prepMinutes: m['prep_minutes'] as int?,
-        cookMinutes: m['cook_minutes'] as int?,
-        servings: (m['servings'] as int?) ?? 2,
-        tags: (m['tags'] as List?)?.cast<String>() ?? const [],
-        dietTags: (m['diet_tags'] as List?)?.cast<String>() ?? const [],
-        isFavorite: (m['is_favorite'] as bool?) ?? false,
-        cookedCount: (m['cooked_count'] as int?) ?? 0,
-        lastCookedAt: _date(m['last_cooked_at']),
-        createdAt: _date(m['created_at']),
-        updatedAt: _date(m['updated_at']),
-        ingredients: ingredients,
-        steps: steps,
-      );
+  }) {
+    // Se il map contiene già ingredienti/passi inline (formato API), usali;
+    // altrimenti usa quelli passati (formato Supabase con query separate).
+    final ing = m['ingredients'] is List
+        ? (m['ingredients'] as List)
+            .map((e) => Ingredient.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList()
+        : ingredients;
+    final st = m['steps'] is List
+        ? (m['steps'] as List)
+            .map((e) => RecipeStep.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList()
+        : steps;
+    return Recipe(
+      id: m['id']?.toString(),
+      title: m['title'] as String? ?? '',
+      imageUrl: m['image_url'] as String?,
+      sourceUrl: m['source_url'] as String?,
+      source: RecipeSource.fromString(m['source_type'] as String?),
+      originalLanguage: m['original_language'] as String?,
+      prepMinutes: m['prep_minutes'] as int?,
+      cookMinutes: m['cook_minutes'] as int?,
+      servings: (m['servings'] as int?) ?? 2,
+      tags: (m['tags'] as List?)?.cast<String>() ?? const [],
+      dietTags: (m['diet_tags'] as List?)?.cast<String>() ?? const [],
+      isFavorite: (m['is_favorite'] as bool?) ?? false,
+      cookedCount: (m['cooked_count'] as int?) ?? 0,
+      lastCookedAt: _date(m['last_cooked_at']),
+      createdAt: _date(m['created_at']),
+      updatedAt: _date(m['updated_at']),
+      videoUrl: m['video_url'] as String?,
+      videoId: m['video_id'] as String?,
+      stepGallery: (m['step_gallery'] as List?)?.cast<String>() ?? const [],
+      ingredients: ing,
+      steps: st,
+    );
+  }
 
   /// Colonne della sola riga `recipes` (senza relazioni).
   Map<String, dynamic> toMap() => {
@@ -94,6 +118,16 @@ class Recipe {
         'diet_tags': dietTags,
         'is_favorite': isFavorite,
         'cooked_count': cookedCount,
+      };
+
+  /// Map completa per l'API locale (include relazioni, galleria e video).
+  Map<String, dynamic> toApiMap() => {
+        ...toMap(),
+        'ingredients': [for (final i in ingredients) i.toMap()],
+        'steps': [for (final s in steps) s.toMap()],
+        'step_gallery': stepGallery,
+        'video_url': videoUrl,
+        'video_id': videoId,
       };
 
   Recipe copyWith({
@@ -125,6 +159,9 @@ class Recipe {
         lastCookedAt: lastCookedAt,
         createdAt: createdAt,
         updatedAt: updatedAt,
+        videoUrl: videoUrl,
+        videoId: videoId,
+        stepGallery: stepGallery,
         ingredients: ingredients ?? this.ingredients,
         steps: steps ?? this.steps,
       );

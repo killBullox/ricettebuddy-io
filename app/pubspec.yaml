@@ -22,6 +22,8 @@ dependencies:
   # Utilità
   intl: any
   cached_network_image: ^3.3.1
+  http: ^1.2.0
+  url_launcher: ^6.3.0
 
   # --- Feature che aggiungeremo (lasciate qui come promemoria) ---
   # receive_sharing_intent: ^1.8.0        # F1 import dai social (Share Extension)
