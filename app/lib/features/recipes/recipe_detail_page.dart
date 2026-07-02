@@ -183,25 +183,6 @@ class _Detail extends ConsumerWidget {
                     ],
                   ),
           ),
-          // Galleria del procedimento (quando le foto non sono per-passo).
-          if (recipe.stepGallery.isNotEmpty &&
-              !steps.any((s) => s.imageUrl != null))
-            _Section(
-              title: 'Foto del procedimento',
-              child: SizedBox(
-                height: 140,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: recipe.stepGallery.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: RecipeImage(
-                        path: recipe.stepGallery[i], width: 200, height: 140),
-                  ),
-                ),
-              ),
-            ),
           if (recipe.sourceUrl != null)
             _Section(
               title: 'Fonte',

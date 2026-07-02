@@ -12,6 +12,26 @@ const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 const ROOT = path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
 const PORT = 8080;
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36";
+
+// Proxy immagini: le immagini di GialloZafferano non hanno header CORS e
+// Flutter web (CanvasKit) ne scarica i byte -> fallirebbero. Le serviamo
+// same-origin attraverso il server.
+async function proxyImage(res, u) {
+  try {
+    const r = await fetch(u, {
+      headers: { "User-Agent": UA, Referer: "https://www.giallozafferano.it/" },
+    });
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.writeHead(r.status, {
+      "Content-Type": r.headers.get("content-type") || "image/jpeg",
+      "Cache-Control": "public, max-age=86400",
+    });
+    res.end(buf);
+  } catch (e) {
+    res.writeHead(502); res.end("proxy error");
+  }
+}
 
 let recipes = [];
 try { recipes = JSON.parse(fs.readFileSync(DB, "utf8")); } catch { recipes = []; }
@@ -118,6 +138,11 @@ function serveStatic(req, res, url) {
 
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+  if (url.pathname === "/img") {
+    const u = url.searchParams.get("u");
+    if (!u) { res.writeHead(400); return res.end("missing u"); }
+    return proxyImage(res, u);
+  }
   if (url.pathname.startsWith("/api/")) return handleApi(req, res, url);
   serveStatic(req, res, url);
 }).listen(PORT, "127.0.0.1", () => {
