@@ -121,6 +121,10 @@ class Recipe {
         'diet_tags': dietTags,
         'is_favorite': isFavorite,
         'cooked_count': cookedCount,
+        'video_url': videoUrl,
+        'video_id': videoId,
+        'video_mp4': videoMp4,
+        'step_gallery': stepGallery,
       };
 
   /// Map completa per l'API locale (include relazioni, galleria e video).
