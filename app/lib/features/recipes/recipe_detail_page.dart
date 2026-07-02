@@ -224,6 +224,8 @@ class _VideoSectionState extends State<_VideoSection> {
   VideoPlayerController? _controller;
   ChewieController? _chewie;
   bool _loading = false;
+  bool _failed = false;
+  String? _errorText;
 
   Future<void> _openSource() async {
     if (widget.link != null) {
@@ -259,16 +261,14 @@ class _VideoSectionState extends State<_VideoSection> {
         );
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
       c.dispose();
       if (!mounted) return;
-      setState(() => _loading = false);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Video non riproducibile, apro la fonte.')),
-        );
-      }
-      await _openSource();
+      setState(() {
+        _loading = false;
+        _failed = true;
+        _errorText = '$e';
+      });
     }
   }
 
@@ -293,7 +293,7 @@ class _VideoSectionState extends State<_VideoSection> {
                 child: Chewie(controller: _chewie!),
               )
             : InkWell(
-                onTap: _loading ? null : _start,
+                onTap: _loading ? null : (_failed ? _openSource : _start),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -314,9 +314,26 @@ class _VideoSectionState extends State<_VideoSection> {
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 3),
                             )
-                          : const Icon(Icons.play_arrow,
+                          : Icon(_failed ? Icons.open_in_new : Icons.play_arrow,
                               color: Colors.white, size: 40),
                     ),
+                    if (_failed)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            'Riproduzione non riuscita — tocca per aprire su GialloZafferano'
+                            '${_errorText != null ? '\n$_errorText' : ''}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 11),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

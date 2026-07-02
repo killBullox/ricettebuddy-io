@@ -187,7 +187,10 @@ function serveStatic(req, res, url) {
       return;
     }
     const ext = path.extname(file).toLowerCase();
-    res.writeHead(200, { "Content-Type": TYPES[ext] || "application/octet-stream" });
+    res.writeHead(200, {
+      "Content-Type": TYPES[ext] || "application/octet-stream",
+      "Cache-Control": "no-cache",
+    });
     res.end(data);
   });
 }
@@ -203,6 +206,23 @@ http.createServer((req, res) => {
     const u = url.searchParams.get("u");
     if (!u) { res.writeHead(400); return res.end("missing u"); }
     return streamVideo(req, res, u);
+  }
+  // Kill-switch: disinstalla eventuali vecchi service worker e svuota le cache
+  // del browser, così viene sempre servita l'ultima build (build con
+  // --pwa-strategy=none non registra più un SW).
+  if (url.pathname === "/flutter_service_worker.js") {
+    res.writeHead(200, {
+      "Content-Type": "text/javascript",
+      "Cache-Control": "no-store",
+    });
+    return res.end(
+      "self.addEventListener('install',()=>self.skipWaiting());" +
+      "self.addEventListener('activate',(e)=>{e.waitUntil((async()=>{" +
+      "try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}catch(_){}" +
+      "try{await self.registration.unregister();}catch(_){}" +
+      "const cs=await self.clients.matchAll();cs.forEach(c=>c.navigate(c.url));" +
+      "})());});",
+    );
   }
   if (url.pathname.startsWith("/api/")) return handleApi(req, res, url);
   serveStatic(req, res, url);
