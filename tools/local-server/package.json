@@ -1,0 +1,9 @@
+{
+  "name": "ricettebuddy-local-server",
+  "private": true,
+  "description": "Server locale: serve la web build + API import (GZ, Instagram, Pinterest).",
+  "scripts": { "start": "node app_server.js" },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}

@@ -10,6 +10,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 const { importInstagram } = require("./instagram.js");
+const { importPinterest } = require("./pinterest.js");
 
 const ROOT = path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
@@ -175,13 +176,34 @@ async function handleApi(req, res, url) {
         });
       }
     }
-    // Altri social non ancora supportati.
+    // Pinterest: board/profilo -> pin -> sito ricetta (headless).
+    if (type === "pinterest") {
+      try {
+        const pinRecipes = await importPinterest(reference);
+        const existing = new Set(recipes.map((r) => r.source_url));
+        const imported = [];
+        for (const r of pinRecipes) {
+          if (existing.has(r.source_url)) continue;
+          const saved = { ...r, id: String(++seq) };
+          recipes.unshift(saved); imported.push(saved); existing.add(r.source_url);
+        }
+        save();
+        return sendJson(res, 200, { imported });
+      } catch (e) {
+        return sendJson(res, 200, {
+          imported: [], unsupported: true, message: String(e.message || e),
+        });
+      }
+    }
+    // TikTok e Facebook obbligano il login per sfogliare un account: non
+    // importabili senza credenziali/servizi a pagamento.
     if (type && type !== "web") {
       return sendJson(res, 200, {
         imported: [],
         unsupported: true,
-        message: `Import da ${type} non ancora supportato. Per ora funzionano ` +
-          `Instagram e i siti con ricette strutturate (es. GialloZafferano).`,
+        message: `Import da ${type} non disponibile: la piattaforma richiede il ` +
+          `login per sfogliare un account. Funzionano Instagram, Pinterest e i ` +
+          `siti di ricette.`,
       });
     }
     try {
