@@ -1,0 +1,14 @@
+{
+  "name": "beetit-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Worker di ingest+arricchimento: Instagram creator -> catalogo globale Supabase.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "once": "node index.js --once"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
