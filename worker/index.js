@@ -4,6 +4,7 @@
 //
 // Uso:  node index.js --once   (un ciclo)   |   node index.js  (loop continuo)
 
+try { require("dotenv").config(); } catch { /* dotenv opzionale */ }
 const { createClient } = require("@supabase/supabase-js");
 const { recentPosts, looksLikeRecipe } = require("./ig.js");
 const { enrichCaption } = require("./enrich.js");

@@ -2,12 +2,27 @@
 const APP_ID = "936619743392459";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
 
+// Instagram blocca gli IP datacenter (VPS -> HTTP 429). Le richieste IG vanno
+// instradate su un PROXY RESIDENZIALE. Imposta IG_PROXY (es.
+// http://user:pass@host:porta). Se assente, va diretto (ok solo da IP residenziale).
+let dispatcher = null;
+if (process.env.IG_PROXY) {
+  try {
+    const { ProxyAgent } = require("undici");
+    dispatcher = new ProxyAgent(process.env.IG_PROXY);
+  } catch (e) {
+    console.error("Proxy non inizializzato:", e.message);
+  }
+}
+
 async function fetchProfile(handle) {
+  let last = "";
   for (let i = 0; i < 3; i++) {
     try {
       const r = await fetch(
         `https://www.instagram.com/api/v1/users/web_profile_info/?username=${handle}`,
         {
+          dispatcher: dispatcher || undefined,
           headers: {
             "User-Agent": UA, "x-ig-app-id": APP_ID, "Accept": "*/*",
             "Referer": `https://www.instagram.com/${handle}/`,
@@ -19,10 +34,11 @@ async function fetchProfile(handle) {
       );
       const t = await r.text();
       if (t.startsWith("{")) return JSON.parse(t);
-    } catch { /* retry */ }
+      last = `HTTP ${r.status}`;
+    } catch (e) { last = String(e.message || e); }
     if (i < 2) await new Promise((res) => setTimeout(res, 2500));
   }
-  throw new Error("Instagram non risponde (rate-limit).");
+  throw new Error(`Instagram non risponde (${last}). Serve un proxy residenziale se sei su VPS.`);
 }
 
 // Un post sembra una ricetta? header ingredienti o >=3 righe con quantità.
