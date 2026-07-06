@@ -12,7 +12,7 @@ Rispondi SOLO con JSON valido:
 {
   "was_vegan": boolean,
   "substitutions": [ {"original": string, "vegan": string, "note": string} ],
-  "title": string,
+  "title": string,   // nome del piatto BREVE e pulito, SENZA parentesi, descrizioni o slogan (es. "Carbonara Vegana", NON "Carbonara Vegana (autentica, a base vegetale)")
   "servings": number,
   "prep_minutes": number|null,
   "cook_minutes": number|null,
@@ -21,7 +21,11 @@ Rispondi SOLO con JSON valido:
   "nutrition_per_serving": {"kcal": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number},
   "classification": {"category": string, "cuisine": string, "difficulty": "facile"|"media"|"difficile", "diet_tags": string[], "allergens": string[], "tags": string[]}
 }
-Regole: sostituzioni credibili (uova->aquafaba/lino; guanciale->tempeh/funghi affumicati; pecorino/parmigiano->lievito alimentare/parmigiano vegetale; panna->panna di soia/anacardi; burro->margarina/olio; miele->sciroppo d'acero). Adatta i passi. Ingredienti in grammi/ml. diet_tags sempre includa "vegan".`;
+Regole sostituzioni: credibili (uova->aquafaba/lino; guanciale->tempeh/funghi affumicati; pecorino/parmigiano->lievito alimentare/parmigiano vegetale; panna->panna di soia/anacardi; burro->margarina/olio; miele->sciroppo d'acero). Adatta i passi. diet_tags sempre includa "vegan".
+
+LINGUA: scrivi TUTTO in ITALIANO — titolo, nomi ingredienti (sia "name" sia "raw"), passi, note delle sostituzioni, category, cuisine, tags. Se la ricetta di partenza è in un'altra lingua, TRADUCILA in italiano naturale e scorrevole (non lasciare parole in inglese o altre lingue).
+
+UNITÀ DI MISURA: usa SEMPRE il sistema metrico. Converti ogni misura anglosassone/imperiale: cup/stick/oz/lb/pinch -> grammi o ml; fluid oz/tbsp/tsp -> ml (1 cucchiaio≈15 ml, 1 cucchiaino≈5 ml); °F -> °C; inch -> cm. Nei "steps" riporta le temperature in °C e le quantità in g/ml. Nel campo "unit" usa solo "g", "ml", "pz" oppure null. Nel campo "raw" scrivi la quantità in italiano con unità metrica (es. "200 g di tempeh", "2 cucchiai di olio d'oliva", "500 ml di brodo vegetale"); "name" è il nome pulito del prodotto in italiano (es. "tempeh", "olio d'oliva").`;
 
 async function callClaude(input) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -39,13 +43,18 @@ async function callClaude(input) {
 
 // recipe = { title, ingredients:[{raw_text}], steps:[{text}], image_url, video_*... }
 // Ritorna la ricetta arricchita in formato app (conserva media originali).
+// Titolo pulito: via eventuali parentesi/descrizioni finali aggiunte dall'AI.
+function cleanTitle(t) {
+  return String(t || "").replace(/\s*[\(\[][^)\]]*[\)\]]\s*$/g, "").trim() || String(t || "").trim();
+}
+
 async function enrichRecipe(recipe) {
   if (!KEY) return recipe; // senza chiave, passa liscia
   const input = `Titolo: ${recipe.title}\n\nIngredienti:\n${(recipe.ingredients || []).map((i) => "- " + i.raw_text).join("\n")}\n\nProcedimento:\n${(recipe.steps || []).map((s, i) => `${i + 1}. ${s.text}`).join("\n")}`;
   const v = await callClaude(input);
   return {
     ...recipe,
-    title: v.title || recipe.title,
+    title: cleanTitle(v.title || recipe.title),
     servings: v.servings || recipe.servings || 2,
     prep_minutes: v.prep_minutes,
     cook_minutes: v.cook_minutes ?? recipe.cook_minutes,
