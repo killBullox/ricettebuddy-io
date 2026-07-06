@@ -23,7 +23,7 @@ const persist = () => fs.writeFileSync(DB, JSON.stringify(cache));
 // Unità/quantità/parole di contorno da togliere per ricavare il "nome pulito"
 // dell'ingrediente, così ricette diverse riusano la stessa icona.
 const UNIT_RE =
-  /\b(g|gr|grammi|kg|ml|cl|dl|l|litri?|cucchiai|cucchiaio|cucchiaini?|tazze?|q\.?\s?b\.?|pizzichi?|spicchi?|foglie?|rametti?|manciate?|fette?|pezzi?|confezion[ei]|barattoli?|lattin[ae]|mazzett[oi]|noce|scatol[ae]|bicchier[ei]|circa|qualche)\b/gi;
+  /\b(g|gr|grammi?|kg|ml|cl|dl|l|litr\w*|cucchiai\w*|tazz\w*|q\.?\s?b\.?|pizzic\w*|spicch\w*|fogli\w*|foglie|ramett\w*|manciat\w*|fett\w*|pezz\w*|confezion\w*|barattol\w*|lattin\w*|mazzett\w*|noce|scatol\w*|bicchier\w*|circa|qualche)\b/gi;
 const STOP_RE =
   /\b(di|de|d|del|della|dello|dei|degli|delle|al|allo|alla|ai|agli|un|una|uno|lo|la|le|gli|il|i|fresc[oaie]|tritat[oaie]|macinat[oaie]|in|polvere|a|piacere|per|con|e|ed|extra|vergine|bio|q|b)\b/gi;
 
