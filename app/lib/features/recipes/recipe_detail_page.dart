@@ -39,62 +39,99 @@ class _Detail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final steps = [...recipe.steps]..sort((a, b) => a.position - b.position);
-
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: recipe.imageUrl != null ? 220 : kToolbarHeight,
-          pinned: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Modifica',
-              onPressed: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => RecipeEditorPage(existing: recipe),
-                  ),
-                );
-                ref.invalidate(recipeDetailProvider(recipe.id!));
-                ref.invalidate(recipeListProvider);
-              },
-            ),
-            IconButton(
-              icon: Icon(
-                recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: NestedScrollView(
+          headerSliverBuilder: (context, _) => [
+            SliverAppBar(
+              expandedHeight: recipe.imageUrl != null ? 240 : kToolbarHeight,
+              pinned: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Modifica',
+                  onPressed: () async {
+                    await Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => RecipeEditorPage(existing: recipe),
+                    ));
+                    ref.invalidate(recipeDetailProvider(recipe.id!));
+                    ref.invalidate(recipeListProvider);
+                  },
+                ),
+                IconButton(
+                  icon: Icon(recipe.isFavorite ? Icons.favorite : Icons.favorite_border),
+                  onPressed: () async {
+                    await ref.read(recipeRepositoryProvider)
+                        .setFavorite(recipe.id!, !recipe.isFavorite);
+                    ref.invalidate(recipeDetailProvider(recipe.id!));
+                    ref.invalidate(recipeListProvider);
+                  },
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                title: Text(recipe.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                background: recipe.imageUrl != null
+                    ? RecipeImage(path: recipe.imageUrl, iconSize: 48)
+                    : null,
               ),
-              onPressed: () async {
-                await ref
-                    .read(recipeRepositoryProvider)
-                    .setFavorite(recipe.id!, !recipe.isFavorite);
-                ref.invalidate(recipeDetailProvider(recipe.id!));
-                ref.invalidate(recipeListProvider);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_shopping_cart),
-              tooltip: 'Aggiungi alla spesa',
-              onPressed: () async {
-                await ref
-                    .read(shoppingRepositoryProvider)
-                    .addFromRecipe(recipe);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Aggiunto alla spesa')),
-                  );
-                }
-              },
+              bottom: const TabBar(
+                tabs: [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
+              ),
             ),
           ],
-          flexibleSpace: FlexibleSpaceBar(
-            title: Text(recipe.title),
-            background: recipe.imageUrl != null
-                ? RecipeImage(path: recipe.imageUrl, iconSize: 48)
-                : null,
+          body: TabBarView(
+            children: [
+              _RecipeTab(recipe: recipe),
+              _ShoppingTab(recipe: recipe),
+            ],
           ),
         ),
-        SliverList.list(children: [
+      ),
+    );
+  }
+}
+
+/// Riga ingrediente con iconcina (o pallino neutro se non c'è emoji adatta).
+Widget ingredientRow(BuildContext context, String raw) {
+  final emoji = ingredientEmoji(raw);
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFEDE6),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: emoji.isEmpty
+              ? Icon(Icons.circle, size: 7, color: Theme.of(context).hintColor)
+              : Text(emoji, style: const TextStyle(fontSize: 16)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(raw),
+        )),
+      ],
+    ),
+  );
+}
+
+class _RecipeTab extends ConsumerWidget {
+  final Recipe recipe;
+  const _RecipeTab({required this.recipe});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final steps = [...recipe.steps]..sort((a, b) => a.position - b.position);
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 32),
+      children: [
           if (recipe.source == RecipeSource.generated)
             const Padding(
               padding: EdgeInsets.all(12),
@@ -168,32 +205,7 @@ class _Detail extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (final ing in recipe.ingredients)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFEDE6),
-                                  borderRadius: BorderRadius.circular(9),
-                                ),
-                                child: Text(ingredientEmoji(ing.rawText),
-                                    style: const TextStyle(fontSize: 16)),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(ing.rawText),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ingredientRow(context, ing.rawText),
                     ],
                   ),
           ),
@@ -265,7 +277,103 @@ class _Detail extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 32),
-        ]),
+      ],
+    );
+  }
+}
+
+/// Tab "Lista spesa" della ricetta: ingredienti selezionabili + aggiunta alla
+/// lista della spesa generale.
+class _ShoppingTab extends ConsumerStatefulWidget {
+  final Recipe recipe;
+  const _ShoppingTab({required this.recipe});
+
+  @override
+  ConsumerState<_ShoppingTab> createState() => _ShoppingTabState();
+}
+
+class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
+  late final Set<int> _selected =
+      {for (var i = 0; i < widget.recipe.ingredients.length; i++) i};
+  bool _adding = false;
+
+  Future<void> _addSelected() async {
+    setState(() => _adding = true);
+    final chosen = [
+      for (var i = 0; i < widget.recipe.ingredients.length; i++)
+        if (_selected.contains(i)) widget.recipe.ingredients[i],
+    ];
+    // Riusa addFromRecipe passando una ricetta con i soli ingredienti scelti.
+    final subset = widget.recipe.copyWith(ingredients: chosen);
+    await ref.read(shoppingRepositoryProvider).addFromRecipe(subset);
+    ref.invalidate(shoppingListProvider);
+    if (!mounted) return;
+    setState(() => _adding = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${chosen.length} ingredienti aggiunti alla lista della spesa'),
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ings = widget.recipe.ingredients;
+    if (ings.isEmpty) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Text('Nessun ingrediente da aggiungere.'),
+      ));
+    }
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            children: [
+              for (var i = 0; i < ings.length; i++)
+                CheckboxListTile(
+                  dense: true,
+                  value: _selected.contains(i),
+                  onChanged: (v) => setState(() =>
+                      v == true ? _selected.add(i) : _selected.remove(i)),
+                  secondary: Container(
+                    width: 30, height: 30, alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFEDE6),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: ingredientEmoji(ings[i].rawText).isEmpty
+                        ? Icon(Icons.circle, size: 7, color: Theme.of(context).hintColor)
+                        : Text(ingredientEmoji(ings[i].rawText), style: const TextStyle(fontSize: 16)),
+                  ),
+                  title: Text(ings[i].rawText),
+                  controlAffinity: ListTileControlAffinity.trailing,
+                ),
+            ],
+          ),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _adding || _selected.isEmpty ? null : _addSelected,
+                icon: _adding
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.add_shopping_cart),
+                label: Text('Aggiungi ${_selected.length} alla lista della spesa'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
