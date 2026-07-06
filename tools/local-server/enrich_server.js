@@ -29,18 +29,29 @@ UNITÀ DI MISURA: usa SEMPRE il sistema metrico. Converti ogni misura anglosasso
 
 PASSAGGI CON QUANTITÀ: in ogni step, quando aggiungi/usi un ingrediente, indica INLINE la quantità usata IN QUEL passaggio (es. "Aggiungi 100 g di farina e mescola"). Se lo stesso ingrediente compare in più passaggi con quantità diverse, ripartisci correttamente e specifica ogni volta (es. step 2 "unisci 100 g di farina", step 5 "aggiungi i restanti 50 g di farina"): la somma delle quantità di un ingrediente nei passaggi deve corrispondere alla quantità totale in "ingredients". Se un ingrediente si usa tutto in un unico passaggio, scrivi la quantità intera. Mantieni i passi scorrevoli e naturali, non elencare quantità in modo meccanico.`;
 
-async function callClaude(input) {
+async function callClaudeOnce(input) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 4096, system: SYSTEM, messages: [{ role: "user", content: input }] }),
+    body: JSON.stringify({ model: MODEL, max_tokens: 8192, system: SYSTEM, messages: [{ role: "user", content: input }] }),
   });
   const raw = await res.text();
   if (res.status !== 200) throw new Error(`Anthropic HTTP ${res.status}: ${raw.slice(0, 150)}`);
   const data = JSON.parse(raw);
   const block = (data.content || []).find((b) => b.type === "text");
   const t = block.text;
+  // Il modello a volte produce JSON leggermente malformato: riprovo (campione
+  // diverso) invece di fallire.
   return JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
+}
+
+async function callClaude(input, tries = 3) {
+  let lastErr;
+  for (let k = 0; k < tries; k++) {
+    try { return await callClaudeOnce(input); }
+    catch (e) { lastErr = e; }
+  }
+  throw lastErr;
 }
 
 // recipe = { title, ingredients:[{raw_text}], steps:[{text}], image_url, video_*... }
