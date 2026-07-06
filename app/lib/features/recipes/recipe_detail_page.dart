@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../data/models/enums.dart';
+import '../../data/models/ingredient.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
@@ -364,13 +365,39 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
       {for (var i = 0; i < widget.recipe.ingredients.length; i++) i};
   bool _adding = false;
 
+  /// Prodotto da comprare (senza preparazione): usa il nome normalizzato
+  /// dell'AI, con fallback al pulitore client per le ricette non arricchite.
+  String _product(Ingredient ing) {
+    final n = ing.normalizedName?.trim();
+    if (n != null && n.isNotEmpty) {
+      return n[0].toUpperCase() + n.substring(1);
+    }
+    return cleanIngredientName(ing.rawText);
+  }
+
+  /// Quantità formattata (es. "200 g", "2"), stringa vuota se assente.
+  String _amount(Ingredient ing) {
+    final q = ing.quantity;
+    if (q == null) return '';
+    final qs = q == q.roundToDouble() ? q.toInt().toString() : '$q';
+    return ing.unit != null && ing.unit!.isNotEmpty ? '$qs ${ing.unit}' : qs;
+  }
+
   Future<void> _addSelected() async {
     setState(() => _adding = true);
+    // Aggiunge il PRODOTTO pulito (non la riga con la preparazione).
     final chosen = [
       for (var i = 0; i < widget.recipe.ingredients.length; i++)
-        if (_selected.contains(i)) widget.recipe.ingredients[i],
+        if (_selected.contains(i))
+          Ingredient(
+            position: i,
+            rawText: _product(widget.recipe.ingredients[i]),
+            normalizedName: _product(widget.recipe.ingredients[i]),
+            quantity: widget.recipe.ingredients[i].quantity,
+            unit: widget.recipe.ingredients[i].unit,
+            aisleCategory: widget.recipe.ingredients[i].aisleCategory,
+          ),
     ];
-    // Riusa addFromRecipe passando una ricetta con i soli ingredienti scelti.
     final subset = widget.recipe.copyWith(ingredients: chosen);
     await ref.read(shoppingRepositoryProvider).addFromRecipe(subset);
     ref.invalidate(shoppingListProvider);
@@ -406,7 +433,11 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
                   onChanged: (v) => setState(() =>
                       v == true ? _selected.add(i) : _selected.remove(i)),
                   secondary: IngredientAvatar(raw: ings[i].rawText),
-                  title: Text(ings[i].rawText),
+                  title: Text(_product(ings[i]),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: _amount(ings[i]).isEmpty
+                      ? null
+                      : Text(_amount(ings[i])),
                   controlAffinity: ListTileControlAffinity.trailing,
                 ),
             ],
