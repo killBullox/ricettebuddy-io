@@ -49,7 +49,7 @@ class _Detail extends ConsumerWidget {
             SliverAppBar(
               expandedHeight: recipe.imageUrl != null ? 250 : kToolbarHeight,
               pinned: true,
-              backgroundColor: const Color(0xFF2E7D4F),
+              backgroundColor: const Color(0xFFB5326B),
               foregroundColor: Colors.white,
               actions: [
                 IconButton(
@@ -103,9 +103,9 @@ class _Detail extends ConsumerWidget {
                 child: ColoredBox(
                   color: const Color(0xFFFBFAF7),
                   child: TabBar(
-                    labelColor: const Color(0xFF2E7D4F),
+                    labelColor: const Color(0xFFB5326B),
                     unselectedLabelColor: const Color(0xFF898781),
-                    indicatorColor: const Color(0xFFB5326B),
+                    indicatorColor: const Color(0xFF2E7D32),
                     indicatorWeight: 3,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     tabs: const [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
@@ -620,7 +620,8 @@ class _VeganizedBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Text('🥑 ', style: TextStyle(fontSize: 18)),
+            SvgPicture.asset('assets/branding/beet_mark.svg', width: 20, height: 20),
+            const SizedBox(width: 6),
             Text('Ricetta veganizzata',
                 style: Theme.of(context).textTheme.titleSmall!
                     .copyWith(color: Colors.green.shade800, fontWeight: FontWeight.bold)),

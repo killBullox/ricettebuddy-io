@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
@@ -16,7 +17,16 @@ class RecipeListPage extends ConsumerWidget {
     final recipes = ref.watch(recipeListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ricette')),
+      appBar: AppBar(
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            SvgPicture.asset('assets/branding/beet_mark.svg', width: 28, height: 28),
+            const SizedBox(width: 8),
+            const Text('BeetIt'),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.of(context).push(

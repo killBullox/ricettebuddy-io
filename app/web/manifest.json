@@ -1,11 +1,11 @@
 {
-    "name": "ricettebuddy",
-    "short_name": "ricettebuddy",
+    "name": "BeetIt",
+    "short_name": "BeetIt",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#170420",
+    "theme_color": "#B5326B",
+    "description": "BeetIt - nutrizione vegetale che spacca. Importa qualsiasi ricetta e la rendiamo vegana.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

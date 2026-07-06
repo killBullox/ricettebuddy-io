@@ -11,9 +11,9 @@ class RicetteBuddyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF3BA55D), // verde avocado
-      primary: const Color(0xFF2E7D4F),
-      secondary: const Color(0xFFB5326B), // barbabietola
+      seedColor: const Color(0xFFB5326B), // barbabietola (identità BeetIt)
+      primary: const Color(0xFFB5326B), // magenta barbabietola
+      secondary: const Color(0xFF2E7D32), // verde foglia (accento)
       surface: const Color(0xFFFBFAF7),
       brightness: Brightness.light,
     );
@@ -29,7 +29,7 @@ class RicetteBuddyApp extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
           centerTitle: false,
           titleTextStyle: TextStyle(
-            color: Color(0xFF17321F),
+            color: Color(0xFF3A0E2A),
             fontSize: 22,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.5,

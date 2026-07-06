@@ -45,3 +45,4 @@ flutter:
   generate: true   # abilita la generazione l10n (F8) da lib/l10n/*.arb
   assets:
     - assets/images/
+    - assets/branding/

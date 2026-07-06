@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="ibg" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" style="stop-color:#2A0A35"/>
+      <stop offset="100%" style="stop-color:#170420"/>
+    </radialGradient>
+    <radialGradient id="ibody" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#E8559A"/>
+      <stop offset="60%" style="stop-color:#A01E5A"/>
+      <stop offset="100%" style="stop-color:#6B0F3A"/>
+    </radialGradient>
+    <radialGradient id="iglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#D64E8A;stop-opacity:0.45"/>
+      <stop offset="100%" style="stop-color:#D64E8A;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  <!-- sfondo pieno (buono anche per icone maskable) -->
+  <rect width="512" height="512" fill="url(#ibg)"/>
+  <ellipse cx="256" cy="270" rx="150" ry="160" fill="url(#iglow)"/>
+  <!-- foglie -->
+  <path d="M228 150 Q184 92 150 62 Q182 100 221 148 Z" fill="#2E7D32"/>
+  <path d="M245 140 Q216 78 206 46 Q238 86 251 138 Z" fill="#388E3C"/>
+  <path d="M256 140 Q254 112 256 92 Q259 112 258 140 Z" fill="#2E7D32"/>
+  <path d="M267 140 Q296 78 306 46 Q274 86 261 138 Z" fill="#388E3C"/>
+  <path d="M284 150 Q328 92 362 62 Q330 100 291 148 Z" fill="#2E7D32"/>
+  <!-- corpo barbabietola -->
+  <path d="M256 148 C304 148 352 172 366 222 C378 268 366 340 340 382 C316 416 286 434 256 434 C226 434 196 416 172 382 C146 340 134 268 146 222 C160 172 208 148 256 148 Z" fill="url(#ibody)"/>
+  <!-- texture -->
+  <path d="M182 232 Q256 214 330 232" stroke="#6B0F3A" stroke-width="3" fill="none" opacity="0.45"/>
+  <path d="M176 282 Q256 262 336 282" stroke="#6B0F3A" stroke-width="3" fill="none" opacity="0.35"/>
+  <path d="M184 330 Q256 312 328 330" stroke="#6B0F3A" stroke-width="2.5" fill="none" opacity="0.25"/>
+  <!-- radichetta -->
+  <path d="M248 432 Q254 458 246 478 Q258 464 264 484" stroke="#6B0F3A" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- fulmine rock -->
+  <path d="M270 196 L232 292 L262 292 L236 386 L294 274 L262 274 L288 196 Z" fill="#FFF8F5"/>
+</svg>

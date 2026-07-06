@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#2A0A35"/>
+      <stop offset="100%" style="stop-color:#1A0520"/>
+    </radialGradient>
+    <radialGradient id="beetBody" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#E8559A"/>
+      <stop offset="60%" style="stop-color:#A01E5A"/>
+      <stop offset="100%" style="stop-color:#6B0F3A"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#D64E8A;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#D64E8A;stop-opacity:0"/>
+    </radialGradient>
+    <filter id="blur">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <!-- Sfondo -->
+  <rect width="500" height="500" fill="url(#bg)"/>
+
+  <!-- Glow effetto dietro la beet -->
+  <ellipse cx="250" cy="230" rx="130" ry="140" fill="url(#glow)" filter="url(#blur)"/>
+
+  <!-- Corpo barbabietola forma dinamica, asimmetrica, rock -->
+  <path d="
+    M250 108
+    C295 108 348 130 362 178
+    C376 226 365 295 340 335
+    C318 368 285 385 250 385
+    C215 385 182 368 160 335
+    C135 295 124 226 138 178
+    C152 130 205 108 250 108 Z
+  " fill="url(#beetBody)"/>
+
+  <!-- Texture lines sul corpo stile vinile/rock -->
+  <path d="M175 185 Q250 168 325 185" stroke="#6B0F3A" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M162 228 Q250 208 338 228" stroke="#6B0F3A" stroke-width="2" fill="none" opacity="0.4"/>
+  <path d="M160 272 Q250 252 340 272" stroke="#6B0F3A" stroke-width="2" fill="none" opacity="0.3"/>
+  <path d="M168 315 Q250 298 332 315" stroke="#6B0F3A" stroke-width="1.5" fill="none" opacity="0.25"/>
+
+  <!-- Highlight speculare effetto lucido -->
+  <path d="M195 148 Q220 138 240 148 Q232 175 210 182 Q188 172 195 148 Z" fill="white" opacity="0.12"/>
+
+  <!-- FULMINE elemento rock centrale -->
+  <path d="M262 155 L232 248 L255 248 L228 345 L282 232 L256 232 L282 155 Z"
+        fill="#FFF8F5" opacity="0.95"/>
+  <!-- Ombra fulmine -->
+  <path d="M265 158 L235 251 L258 251 L231 348 L285 235 L259 235 L285 158 Z"
+        fill="#D64E8A" opacity="0.4"/>
+
+  <!-- Foglie formano una V nascosta (easter egg vegan) -->
+  <path d="M222 118 Q180 58 148 28 Q178 65 215 115 Z" fill="#2E7D32"/>
+  <path d="M238 108 Q210 44 200 12 Q230 50 244 106 Z" fill="#388E3C"/>
+  <path d="M250 108 Q248 82 250 64 Q253 82 252 108 Z" fill="#2E7D32" opacity="0.9"/>
+  <path d="M262 108 Q290 44 300 12 Q270 50 256 106 Z" fill="#388E3C"/>
+  <path d="M278 118 Q320 58 352 28 Q322 65 285 115 Z" fill="#2E7D32"/>
+
+  <!-- Radichetta stilizzata, come una firma -->
+  <path d="M242 383 Q248 408 240 428 Q252 415 258 435 Q265 418 260 400 Q268 420 275 430"
+        stroke="#6B0F3A" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Particelle / note musicali stilizzate intorno -->
+  <circle cx="118" cy="200" r="4" fill="#D64E8A" opacity="0.7"/>
+  <circle cx="108" cy="240" r="2.5" fill="#D64E8A" opacity="0.5"/>
+  <circle cx="382" cy="210" r="4" fill="#D64E8A" opacity="0.7"/>
+  <circle cx="392" cy="260" r="2.5" fill="#D64E8A" opacity="0.5"/>
+  <circle cx="128" cy="320" r="3" fill="#D64E8A" opacity="0.4"/>
+  <circle cx="375" cy="310" r="3" fill="#D64E8A" opacity="0.4"/>
+
+  <!-- Linee di energia effetto vibrante -->
+  <line x1="95" y1="230" x2="130" y2="230" stroke="#D64E8A" stroke-width="2" opacity="0.5" stroke-linecap="round"/>
+  <line x1="100" y1="245" x2="128" y2="245" stroke="#D64E8A" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+  <line x1="370" y1="230" x2="405" y2="230" stroke="#D64E8A" stroke-width="2" opacity="0.5" stroke-linecap="round"/>
+  <line x1="372" y1="245" x2="400" y2="245" stroke="#D64E8A" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+
+  <!-- BEET IT! testo bold rock in basso -->
+  <text x="250" y="456"
+        font-family="'Arial Black', 'Impact', sans-serif"
+        font-size="62"
+        font-weight="900"
+        fill="#FFF8F5"
+        text-anchor="middle"
+        letter-spacing="-1">BEET IT!</text>
+
+  <!-- Linea decorativa sotto il titolo -->
+  <line x1="95" y1="466" x2="175" y2="466" stroke="#D64E8A" stroke-width="2" opacity="0.6"/>
+  <line x1="325" y1="466" x2="405" y2="466" stroke="#D64E8A" stroke-width="2" opacity="0.6"/>
+
+  <!-- Sottotitolo -->
+  <text x="250" y="483"
+        font-family="Arial, sans-serif"
+        font-size="12"
+        fill="#D64E8A"
+        text-anchor="middle"
+        letter-spacing="5">NUTRIZIONE VEGETALE</text>
+
+  <!-- Che spacca -->
+  <text x="250" y="499"
+        font-family="'Arial Black', Impact, sans-serif"
+        font-size="14"
+        font-weight="900"
+        fill="#E8559A"
+        text-anchor="middle"
+        letter-spacing="6">CHE SPACCA</text>
+</svg>

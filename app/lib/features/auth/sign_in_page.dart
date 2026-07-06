@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Accesso via magic link (email). Sign in with Apple / Google si aggiungono
@@ -50,11 +51,8 @@ class _SignInPageState extends State<SignInPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.restaurant_menu, size: 56),
-                const SizedBox(height: 12),
-                Text('RicetteBuddy',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall),
+                SvgPicture.asset('assets/branding/beet_it.svg',
+                    width: 200, semanticsLabel: 'BeetIt'),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _email,
