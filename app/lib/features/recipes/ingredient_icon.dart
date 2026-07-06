@@ -38,7 +38,28 @@ String ingredientEmoji(String raw) {
   bool w(List<String> kws) =>
       kws.any((k) => RegExp('(^|[^a-zà-ù])$k').hasMatch(s));
 
-  // ordine: dal più specifico al più generico
+  // LIVELLO 1 — FORME / derivati: quello che il prodotto È vince su ciò da cui
+  // deriva ("olio di soia" è OLIO, "latte di mandorle" è LATTE, "farina di ceci"
+  // è FARINA). Vanno PRIMA degli ingredienti grezzi per non farsi rubare il match.
+  if (w(['olio', 'oliva', 'olive', 'evo'])) return '🫒';
+  if (w(['burro', 'margarina'])) return '🧈';
+  if (w(['latte', 'panna', 'yogurt', 'bevanda vegetale', 'parmigian', 'pecorino',
+        'formagg', 'mozzarell', 'ricotta', 'stracchino', 'mascarpone'])) return '🥛';
+  if (w(['sale'])) return '🧂';
+  if (w(['zucchero', 'dolcificante'])) return '🍬';
+  if (w(['miele', 'sciroppo', 'agave', 'acero', 'malto'])) return '🍯';
+  if (w(['aceto', 'vino', 'birra'])) return '🍷';
+  if (w(['brodo', 'acqua'])) return '💧';
+  if (w(['cioccolat', 'cacao'])) return '🍫';
+  if (w(['farina', 'semola'])) return '🌾'; // farina di qualsiasi cosa
+  if (w(['spaghett', 'pasta', 'penne', 'fusilli', 'lasagn', 'tagliatell',
+        'gnocch', 'maccheron', 'rigatoni', 'noodle', 'tortellin', 'ravioli'])) return '🍝';
+  if (w(['riso', 'risotto', 'basmati'])) return '🍚';
+  if (w(['pane', 'pangrattato', 'crostini', 'baguette', 'focaccia', 'toast'])) return '🍞';
+  if (w(['avena', 'couscous', 'quinoa', 'bulgur', 'farro', 'orzo', 'cereali',
+        'fiocchi'])) return '🌾';
+
+  // LIVELLO 2 — ingredienti grezzi (verdura, frutta, legumi, frutta secca, semi).
   if (w(['peperoncin'])) return '🌶️';
   if (w(['peperon'])) return '🫑';
   if (w(['pomodor', 'passata', 'pelati', 'concentrato di pom'])) return '🍅';
@@ -63,24 +84,11 @@ String ingredientEmoji(String raw) {
   if (w(['cocco'])) return '🥥';
   if (w(['ceci', 'fagiol', 'lenticch', 'legumi', 'piselli', 'edamame',
         'cannellini', 'borlotti', 'soia'])) return '🫘';
-  if (w(['spaghett', 'pasta', 'penne', 'fusilli', 'lasagn', 'tagliatell',
-        'gnocch', 'maccheron', 'rigatoni', 'noodle', 'tortellin', 'ravioli'])) return '🍝';
-  if (w(['riso', 'risotto', 'basmati'])) return '🍚';
-  if (w(['pane', 'pangrattato', 'crostini', 'baguette', 'focaccia', 'toast'])) return '🍞';
-  if (w(['farina', 'semola', 'avena', 'couscous', 'quinoa', 'bulgur', 'farro',
-        'orzo', 'cereali', 'fiocchi'])) return '🌾';
+  // semi (lino, chia, sesamo, zucca...): non sono frutta secca -> icona AI
+  if (w(['semi di lino', 'semi di chia', 'semi di sesamo', 'semi di zucca',
+        'semi di girasole', 'semi di papavero', 'lino', 'chia'])) return '';
   if (w(['mandorl', 'anacard', 'noci', 'nocciol', 'pistacch', 'arachidi',
-        'tahin', 'pinoli', 'semi di'])) return '🥜';
-  if (w(['burro', 'margarina'])) return '🧈';
-  if (w(['olio', 'oliva', 'olive', 'evo'])) return '🫒';
-  if (w(['sale'])) return '🧂';
-  if (w(['latte', 'panna', 'yogurt', 'bevanda', 'parmigian', 'pecorino',
-        'formagg', 'mozzarell', 'ricotta', 'stracchino', 'mascarpone'])) return '🥛';
-  if (w(['cioccolat', 'cacao'])) return '🍫';
-  if (w(['miele', 'sciroppo', 'agave', 'acero'])) return '🍯';
-  if (w(['zucchero', 'dolcificante'])) return '🍬';
-  if (w(['acqua', 'brodo'])) return '💧';
-  if (w(['vino', 'aceto', 'birra'])) return '🍷';
+        'tahin', 'pinoli'])) return '🥜';
   // tofu/tempeh/seitan/lupini e spezie (pepe, lievito, curcuma, cumino, paprika,
   // cannella...): niente emoji adatta -> l'UI usa un'icona SVG generata dall'AI.
   return '';
