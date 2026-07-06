@@ -1,6 +1,7 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
@@ -45,8 +46,10 @@ class _Detail extends ConsumerWidget {
         body: NestedScrollView(
           headerSliverBuilder: (context, _) => [
             SliverAppBar(
-              expandedHeight: recipe.imageUrl != null ? 240 : kToolbarHeight,
+              expandedHeight: recipe.imageUrl != null ? 250 : kToolbarHeight,
               pinned: true,
+              backgroundColor: const Color(0xFF2E7D4F),
+              foregroundColor: Colors.white,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.edit),
@@ -70,13 +73,43 @@ class _Detail extends ConsumerWidget {
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                title: Text(recipe.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                background: recipe.imageUrl != null
-                    ? RecipeImage(path: recipe.imageUrl, iconSize: 48)
-                    : null,
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 14, right: 16),
+                title: Text(recipe.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                background: recipe.imageUrl == null
+                    ? null
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          RecipeImage(path: recipe.imageUrl, iconSize: 48),
+                          // scrim per rendere leggibile il titolo
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.center,
+                                end: Alignment.bottomCenter,
+                                colors: [Colors.transparent, Color(0xCC000000)],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
               ),
-              bottom: const TabBar(
-                tabs: [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: ColoredBox(
+                  color: const Color(0xFFFBFAF7),
+                  child: TabBar(
+                    labelColor: const Color(0xFF2E7D4F),
+                    unselectedLabelColor: const Color(0xFF898781),
+                    indicatorColor: const Color(0xFFB5326B),
+                    indicatorWeight: 3,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    tabs: const [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
+                  ),
+                ),
               ),
             ),
           ],
@@ -92,7 +125,8 @@ class _Detail extends ConsumerWidget {
   }
 }
 
-/// Riga ingrediente con iconcina (o pallino neutro se non c'è emoji adatta).
+/// Riga ingrediente con iconcina: emoji se disponibile, altrimenti icona SVG
+/// generata dall'AI lato server (creata una volta e riusata dalla cache).
 Widget ingredientRow(BuildContext context, String raw) {
   final emoji = ingredientEmoji(raw);
   return Padding(
@@ -109,7 +143,7 @@ Widget ingredientRow(BuildContext context, String raw) {
             borderRadius: BorderRadius.circular(9),
           ),
           child: emoji.isEmpty
-              ? Icon(Icons.circle, size: 7, color: Theme.of(context).hintColor)
+              ? _AiIngredientIcon(raw: raw)
               : Text(emoji, style: const TextStyle(fontSize: 16)),
         ),
         const SizedBox(width: 10),
@@ -120,6 +154,27 @@ Widget ingredientRow(BuildContext context, String raw) {
       ],
     ),
   );
+}
+
+/// Icona SVG dell'ingrediente servita da /api/ingredient-icon (cache-first).
+/// Mostra un pallino neutro mentre carica o se la generazione non riesce.
+class _AiIngredientIcon extends StatelessWidget {
+  final String raw;
+  const _AiIngredientIcon({required this.raw});
+
+  @override
+  Widget build(BuildContext context) {
+    final dot = Icon(Icons.circle, size: 7, color: Theme.of(context).hintColor);
+    final url = Uri.base
+        .resolve('/api/ingredient-icon?name=${Uri.encodeQueryComponent(raw)}')
+        .toString();
+    return SvgPicture.network(
+      url,
+      width: 22,
+      height: 22,
+      placeholderBuilder: (_) => dot,
+    );
+  }
 }
 
 class _RecipeTab extends ConsumerWidget {

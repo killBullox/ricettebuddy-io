@@ -2,3 +2,6 @@
 # file di test
 vid.mp4
 *.tmp
+
+# Segreti server locale
+tools/local-server/.env

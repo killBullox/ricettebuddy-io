@@ -49,7 +49,7 @@ String ingredientEmoji(String raw) {
   if (w(['zucchero', 'dolcificante'])) return '🍬';
   if (w(['acqua', 'brodo'])) return '💧';
   if (w(['vino', 'aceto', 'birra'])) return '🍷';
-  if (w(['tofu', 'tempeh', 'seitan', 'lupini'])) return '🍥';
-  // pepe, lievito, curcuma, cumino, paprika, cannella, ecc.: niente emoji adatta
+  // tofu/tempeh/seitan/lupini e spezie (pepe, lievito, curcuma, cumino, paprika,
+  // cannella...): niente emoji adatta -> l'UI usa un'icona SVG generata dall'AI.
   return '';
 }

@@ -1,6 +1,6 @@
-// RicetteBuddy — server locale di sviluppo: serve la build web e fornisce
-// un'API reale con import da GialloZafferano e persistenza su file.
-// (In produzione la stessa logica vive nelle Edge Functions Supabase.)
+// RicetteBuddy — server locale: statico (build web) + API reale con import da
+// GialloZafferano/Instagram/Pinterest + veganizzazione/arricchimento AI e
+// persistenza su file. (In produzione la stessa logica vive nelle Edge Functions.)
 //
 // Avvio:  cd tools/local-server && node app_server.js
 // Richiede la build web:  cd ../../app && flutter build web
@@ -8,11 +8,30 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+
+// Carica le variabili da tools/local-server/.env (se presente) PRIMA di
+// richiedere i moduli che leggono ANTHROPIC_API_KEY. Il file .env è gitignored:
+// ci metti la chiave una volta e i riavvii successivi non la richiedono più.
+(() => {
+  const file = process.env.ENV_FILE || path.join(__dirname, ".env");
+  try {
+    const txt = fs.readFileSync(file, "utf8");
+    for (const line of txt.split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*)\s*$/);
+      if (m && !process.env[m[1]]) {
+        process.env[m[1]] = m[2].replace(/^["']|["']$/g, "").trim();
+      }
+    }
+  } catch {}
+})();
+
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 const { importInstagram } = require("./instagram.js");
-const { importPinterest } = require("./pinterest.js");
+const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
+const { enrichRecipe } = require("./enrich_server.js");
+const { iconSvg } = require("./icongen.js");
 
-const ROOT = path.join(__dirname, "../../app/build/web");
+const ROOT = process.env.WEB_ROOT || path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
 const PORT = 8080;
 const FFMPEG = process.env.FFMPEG || "ffmpeg"; // per lo streaming video
@@ -118,7 +137,21 @@ function matchesDiets(recipeDiets, active) {
 }
 
 async function handleApi(req, res, url) {
-  const parts = url.pathname.split("/").filter(Boolean);
+  const parts = url.pathname.split("/").filter(Boolean); // ['api', ...]
+
+  // GET /api/ingredient-icon?name=...  -> icona SVG (cache + genera al bisogno)
+  if (req.method === "GET" && url.pathname === "/api/ingredient-icon") {
+    const name = url.searchParams.get("name") || "";
+    if (!name.trim()) { res.writeHead(400); return res.end(""); }
+    let svg = null;
+    try { svg = await iconSvg(name); } catch (e) { console.log("icon ERR:", e.message); }
+    if (!svg) { res.writeHead(404); return res.end(""); }
+    res.writeHead(200, {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=604800",
+    });
+    return res.end(svg);
+  }
 
   if (req.method === "GET" && url.pathname === "/api/recipes") {
     return sendJson(res, 200, recipes);
@@ -144,19 +177,39 @@ async function handleApi(req, res, url) {
     recipes = recipes.filter((x) => x.id !== parts[2]); save();
     return sendJson(res, 200, { ok: true });
   }
+  // POST /api/import-url {url}
   if (req.method === "POST" && url.pathname === "/api/import-url") {
     const { url: u } = await readBody(req);
     try {
-      const r = await parseRecipe(u);
-      if (!r) return sendJson(res, 422, { error: "Ricetta non riconosciuta" });
+      console.log("import-url:", u);
+      // CACHE: stessa ricetta (stessa fonte) -> stessa veganizzazione, sempre.
+      const cached = recipes.find((x) => x.source_url === u);
+      if (cached) {
+        console.log("cache hit:", cached.title);
+        return sendJson(res, 201, cached);
+      }
+      let r = null;
+      // GialloZafferano -> parser ricco; altri siti -> parser JSON-LD generico.
+      if (/giallozafferano/i.test(u)) {
+        try { r = await parseRecipe(u); } catch (e) { console.log("gz parse:", e.message); }
+      }
+      if (!r) {
+        try { r = await parseGenericRecipe(u); } catch (e) { console.log("generic parse:", e.message); }
+      }
+      if (!r) return sendJson(res, 422, { error: "Ricetta non riconosciuta su questo sito" });
+      console.log("parsed:", r.title, "-> enrich...");
+      try { r = await enrichRecipe(r); console.log("enriched. was_vegan:", r.was_vegan); }
+      catch (e) { console.log("enrich ERR:", e.message, "| cause:", e.cause && (e.cause.code || e.cause.message)); }
       const saved = { ...r, id: String(++seq) };
       recipes.unshift(saved); save();
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
+  // POST /api/analyze {type, reference, diets, limit, pages}
   if (req.method === "POST" && url.pathname === "/api/analyze") {
     const { type = "web", reference = "", diets = [], limit = 30, pages = 15 } =
       await readBody(req);
+
     // Instagram: importatore interno (post pubblici -> ricetta dalla didascalia).
     if (type === "instagram") {
       try {
@@ -195,23 +248,25 @@ async function handleApi(req, res, url) {
         });
       }
     }
-    // TikTok e Facebook obbligano il login per sfogliare un account: non
-    // importabili senza credenziali/servizi a pagamento.
+    // Altri social non ancora supportati.
     if (type && type !== "web") {
       return sendJson(res, 200, {
         imported: [],
         unsupported: true,
-        message: `Import da ${type} non disponibile: la piattaforma richiede il ` +
-          `login per sfogliare un account. Funzionano Instagram, Pinterest e i ` +
-          `siti di ricette.`,
+        message: `Import da ${type} non ancora supportato. Per ora funzionano ` +
+          `Instagram, Pinterest e i siti con ricette strutturate.`,
       });
     }
+
     try {
       const existing = new Set(recipes.map((r) => r.source_url));
       const imported = [];
-      const isSingle = /ricette\.giallozafferano\.it\/.+\.html/i.test(reference) &&
-        !/(vegan|ricerca-ricette)/i.test(reference);
-      if (isSingle) {
+
+      const isGzListing = /giallozafferano/i.test(reference) &&
+        /(vegan|ricette-vegane|ricerca-ricette)/i.test(reference);
+      const isSingleRecipe = /ricette\.giallozafferano\.it\/.+\.html/i.test(reference);
+
+      if (isSingleRecipe && !isGzListing) {
         if (!existing.has(reference)) {
           const r = await parseRecipe(reference);
           if (r && matchesDiets(r.diet_tags, diets)) {
@@ -272,8 +327,7 @@ http.createServer((req, res) => {
     return streamVideo(req, res, u);
   }
   // Kill-switch: disinstalla eventuali vecchi service worker e svuota le cache
-  // del browser, così viene sempre servita l'ultima build (build con
-  // --pwa-strategy=none non registra più un SW).
+  // del browser, così viene sempre servita l'ultima build.
   if (url.pathname === "/flutter_service_worker.js") {
     res.writeHead(200, {
       "Content-Type": "text/javascript",
