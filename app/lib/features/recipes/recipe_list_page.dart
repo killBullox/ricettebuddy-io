@@ -49,8 +49,9 @@ class RecipeListPage extends ConsumerWidget {
                 return RefreshIndicator(
                   onRefresh: () async => ref.invalidate(recipeListProvider),
                   child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                     itemCount: list.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (_, i) => _RecipeTile(recipe: list[i]),
                   ),
                 );
@@ -69,42 +70,65 @@ class _RecipeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: _Thumb(url: recipe.imageUrl),
-      title: Text(recipe.title),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (recipe.totalMinutes != null) Text('${recipe.totalMinutes} min'),
-          if (recipe.dietTags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: DietBadges(dietTags: recipe.dietTags),
-            ),
-        ],
-      ),
-      isThreeLine: recipe.dietTags.isNotEmpty,
-      trailing: recipe.isFavorite
-          ? const Icon(Icons.favorite, color: Colors.pink)
-          : null,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => RecipeDetailPage(recipeId: recipe.id!),
+    final kcal = recipe.nutrition?['kcal'];
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => RecipeDetailPage(recipeId: recipe.id!)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: RecipeImage(path: recipe.imageUrl, width: 76, height: 76),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(recipe.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      if (recipe.totalMinutes != null) ...[
+                        Icon(Icons.schedule, size: 14, color: Theme.of(context).hintColor),
+                        const SizedBox(width: 3),
+                        Text('${recipe.totalMinutes} min',
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                        const SizedBox(width: 12),
+                      ],
+                      if (kcal != null) ...[
+                        Icon(Icons.local_fire_department, size: 14, color: Theme.of(context).hintColor),
+                        const SizedBox(width: 3),
+                        Text('${(kcal as num).round()} kcal',
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                      ],
+                    ]),
+                    if (recipe.dietTags.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: DietBadges(dietTags: recipe.dietTags),
+                      ),
+                  ],
+                ),
+              ),
+              if (recipe.isFavorite)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Icon(Icons.favorite, color: Color(0xFFB5326B), size: 20),
+                ),
+            ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _Thumb extends StatelessWidget {
-  final String? url;
-  const _Thumb({this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: RecipeImage(path: url, width: 52, height: 52),
     );
   }
 }

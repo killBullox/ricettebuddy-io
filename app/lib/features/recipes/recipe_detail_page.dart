@@ -8,7 +8,10 @@ import '../../data/models/enums.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
+import 'cook_mode_page.dart';
 import 'diet_badges.dart';
+import 'ingredient_icon.dart';
+import 'nutrition_donut.dart';
 import 'recipe_editor_page.dart';
 import 'recipe_image.dart';
 
@@ -139,7 +142,7 @@ class _Detail extends ConsumerWidget {
             ),
           if (recipe.wasVegan == false)
             _VeganizedBanner(substitutions: recipe.substitutions),
-          if (recipe.nutrition != null) _NutritionCard(n: recipe.nutrition!),
+          if (recipe.nutrition != null) NutritionDonut(n: recipe.nutrition!),
           if (recipe.category != null ||
               recipe.difficulty != null ||
               recipe.allergens.isNotEmpty)
@@ -166,8 +169,30 @@ class _Detail extends ConsumerWidget {
                     children: [
                       for (final ing in recipe.ingredients)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text('• ${ing.rawText}'),
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFEDE6),
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: Text(ingredientEmoji(ing.rawText),
+                                    style: const TextStyle(fontSize: 16)),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(ing.rawText),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                     ],
                   ),
@@ -177,6 +202,24 @@ class _Detail extends ConsumerWidget {
               poster: recipe.videoUrl,
               mp4: recipe.videoMp4,
               link: recipe.sourceUrl,
+            ),
+          if (steps.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CookModePage(recipe: recipe),
+                  )),
+                  icon: const Icon(Icons.soup_kitchen),
+                  label: const Text('Cucina passo-passo'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
             ),
           _Section(
             title: 'Preparazione',
@@ -402,61 +445,6 @@ class _VeganizedBanner extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NutritionCard extends StatelessWidget {
-  final Map<String, dynamic> n;
-  const _NutritionCard({required this.n});
-
-  String _v(String k, String unit) {
-    final val = n[k];
-    return val == null ? '—' : '${(val as num).toStringAsFixed(val % 1 == 0 ? 0 : 1)}$unit';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      ('Calorie', _v('kcal', ' kcal')),
-      ('Proteine', _v('protein_g', ' g')),
-      ('Carboidrati', _v('carbs_g', ' g')),
-      ('Grassi', _v('fat_g', ' g')),
-      ('Fibre', _v('fiber_g', ' g')),
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Valori nutrizionali (per porzione)',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (final it in items)
-                Container(
-                  width: 96,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(it.$2, style: Theme.of(context).textTheme.titleMedium!
-                          .copyWith(fontWeight: FontWeight.bold)),
-                      Text(it.$1, style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                  ),
-                ),
-            ],
-          ),
         ],
       ),
     );

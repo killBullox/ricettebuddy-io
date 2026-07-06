@@ -26,6 +26,7 @@ dependencies:
   url_launcher: ^6.3.0
   video_player: ^2.9.2
   chewie: ^1.8.5
+  fl_chart: ^0.69.0
 
   # --- Feature che aggiungeremo (lasciate qui come promemoria) ---
   # receive_sharing_intent: ^1.8.0        # F1 import dai social (Share Extension)
