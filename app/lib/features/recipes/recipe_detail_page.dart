@@ -137,6 +137,26 @@ class _Detail extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: DietBadges(dietTags: recipe.dietTags),
             ),
+          if (recipe.wasVegan == false)
+            _VeganizedBanner(substitutions: recipe.substitutions),
+          if (recipe.nutrition != null) _NutritionCard(n: recipe.nutrition!),
+          if (recipe.category != null ||
+              recipe.difficulty != null ||
+              recipe.allergens.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (recipe.category != null) _MetaChip(icon: Icons.restaurant_menu, text: recipe.category!),
+                  if (recipe.difficulty != null) _MetaChip(icon: Icons.bar_chart, text: recipe.difficulty!),
+                  if (recipe.cuisine != null) _MetaChip(icon: Icons.public, text: recipe.cuisine!),
+                  for (final a in recipe.allergens)
+                    _MetaChip(icon: Icons.warning_amber, text: a),
+                ],
+              ),
+            ),
           _Section(
             title: 'Ingredienti',
             child: recipe.ingredients.isEmpty
@@ -338,6 +358,123 @@ class _VideoSectionState extends State<_VideoSection> {
                 ),
               ),
       ),
+    );
+  }
+}
+
+class _VeganizedBanner extends StatelessWidget {
+  final List<Map<String, dynamic>> substitutions;
+  const _VeganizedBanner({required this.substitutions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Text('🥑 ', style: TextStyle(fontSize: 18)),
+            Text('Ricetta veganizzata',
+                style: Theme.of(context).textTheme.titleSmall!
+                    .copyWith(color: Colors.green.shade800, fontWeight: FontWeight.bold)),
+          ]),
+          const SizedBox(height: 8),
+          for (final s in substitutions)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: RichText(
+                text: TextSpan(
+                  style: DefaultTextStyle.of(context).style.copyWith(fontSize: 13),
+                  children: [
+                    TextSpan(text: '${s['original']} ', style: const TextStyle(decoration: TextDecoration.lineThrough)),
+                    const TextSpan(text: '→ '),
+                    TextSpan(text: '${s['vegan']}', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+                    if ((s['note'] ?? '').toString().isNotEmpty)
+                      TextSpan(text: '  ·  ${s['note']}', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NutritionCard extends StatelessWidget {
+  final Map<String, dynamic> n;
+  const _NutritionCard({required this.n});
+
+  String _v(String k, String unit) {
+    final val = n[k];
+    return val == null ? '—' : '${(val as num).toStringAsFixed(val % 1 == 0 ? 0 : 1)}$unit';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      ('Calorie', _v('kcal', ' kcal')),
+      ('Proteine', _v('protein_g', ' g')),
+      ('Carboidrati', _v('carbs_g', ' g')),
+      ('Grassi', _v('fat_g', ' g')),
+      ('Fibre', _v('fiber_g', ' g')),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Valori nutrizionali (per porzione)',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final it in items)
+                Container(
+                  width: 96,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(it.$2, style: Theme.of(context).textTheme.titleMedium!
+                          .copyWith(fontWeight: FontWeight.bold)),
+                      Text(it.$1, style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _MetaChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: Icon(icon, size: 16),
+      label: Text(text, style: const TextStyle(fontSize: 12)),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }

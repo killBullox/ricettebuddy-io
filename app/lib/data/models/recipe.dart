@@ -30,6 +30,15 @@ class Recipe {
   final String? videoMp4;
   final List<String> stepGallery;
 
+  // Arricchimento AI (veganizzazione + nutrizione + classificazione).
+  final Map<String, dynamic>? nutrition; // per porzione: kcal, protein_g, ...
+  final List<Map<String, dynamic>> substitutions; // {original, vegan, note}
+  final bool? wasVegan; // false se la ricetta è stata veganizzata
+  final String? category;
+  final String? cuisine;
+  final String? difficulty;
+  final List<String> allergens;
+
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
 
@@ -54,6 +63,13 @@ class Recipe {
     this.videoId,
     this.videoMp4,
     this.stepGallery = const [],
+    this.nutrition,
+    this.substitutions = const [],
+    this.wasVegan,
+    this.category,
+    this.cuisine,
+    this.difficulty,
+    this.allergens = const [],
     this.ingredients = const [],
     this.steps = const [],
   });
@@ -101,6 +117,18 @@ class Recipe {
       videoId: m['video_id'] as String?,
       videoMp4: m['video_mp4'] as String?,
       stepGallery: (m['step_gallery'] as List?)?.cast<String>() ?? const [],
+      nutrition: m['nutrition'] == null
+          ? null
+          : Map<String, dynamic>.from(m['nutrition'] as Map),
+      substitutions: (m['substitutions'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const [],
+      wasVegan: m['was_vegan'] as bool?,
+      category: m['category'] as String?,
+      cuisine: m['cuisine'] as String?,
+      difficulty: m['difficulty'] as String?,
+      allergens: (m['allergens'] as List?)?.cast<String>() ?? const [],
       ingredients: ing,
       steps: st,
     );

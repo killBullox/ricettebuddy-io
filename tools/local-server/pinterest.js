@@ -1,8 +1,6 @@
 // Importatore Pinterest (logica BOARD/PROFILO): usa un browser headless per
 // elencare i pin della board, ne ricava il sito-ricetta collegato e importa la
 // ricetta con un parser JSON-LD generico (schema.org/Recipe).
-const { chromium } = require("playwright");
-
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
 
 function stripTags(s) {
@@ -44,8 +42,19 @@ function stepsFrom(v) {
   return out.map((text, i) => ({ position: i, text, image: null }));
 }
 
+async function fetchTextRetry(url, tries = 4) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, { headers: { "User-Agent": UA } });
+      return await r.text();
+    } catch (e) { last = e; await new Promise((res) => setTimeout(res, 1500)); }
+  }
+  throw last;
+}
+
 async function parseGenericRecipe(url) {
-  const html = await (await fetch(url, { headers: { "User-Agent": UA } })).text();
+  const html = await fetchTextRetry(url);
   const ld = jsonLdRecipe(html);
   if (!ld) return null;
   const ingredients = (ld.recipeIngredient || []).map((s) => stripTags(s)).filter(Boolean);
@@ -80,6 +89,7 @@ function extractSource(html) {
 }
 
 async function listPins(boardUrl, max = 25) {
+  const { chromium } = require("playwright");
   const browser = await chromium.launch({ headless: true });
   try {
     const ctx = await browser.newContext({ userAgent: UA, locale: "it-IT", viewport: { width: 1280, height: 1600 } });
