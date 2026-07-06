@@ -125,27 +125,39 @@ class _Detail extends ConsumerWidget {
   }
 }
 
-/// Riga ingrediente con iconcina: emoji se disponibile, altrimenti icona SVG
-/// generata dall'AI lato server (creata una volta e riusata dalla cache).
+/// Avatar ingrediente: emoji se disponibile, altrimenti icona SVG generata
+/// dall'AI (creata una volta e riusata dalla cache). Usato sia nella scheda
+/// ricetta sia nella lista della spesa.
+class IngredientAvatar extends StatelessWidget {
+  final String raw;
+  const IngredientAvatar({super.key, required this.raw});
+
+  @override
+  Widget build(BuildContext context) {
+    final emoji = ingredientEmoji(raw);
+    return Container(
+      width: 30,
+      height: 30,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFEDE6),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: emoji.isEmpty
+          ? _AiIngredientIcon(raw: raw)
+          : Text(emoji, style: const TextStyle(fontSize: 16)),
+    );
+  }
+}
+
+/// Riga ingrediente con iconcina.
 Widget ingredientRow(BuildContext context, String raw) {
-  final emoji = ingredientEmoji(raw);
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 30,
-          height: 30,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFEDE6),
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: emoji.isEmpty
-              ? _AiIngredientIcon(raw: raw)
-              : Text(emoji, style: const TextStyle(fontSize: 16)),
-        ),
+        IngredientAvatar(raw: raw),
         const SizedBox(width: 10),
         Expanded(child: Padding(
           padding: const EdgeInsets.only(top: 4),
@@ -393,16 +405,7 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
                   value: _selected.contains(i),
                   onChanged: (v) => setState(() =>
                       v == true ? _selected.add(i) : _selected.remove(i)),
-                  secondary: Container(
-                    width: 30, height: 30, alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFEDE6),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: ingredientEmoji(ings[i].rawText).isEmpty
-                        ? Icon(Icons.circle, size: 7, color: Theme.of(context).hintColor)
-                        : Text(ingredientEmoji(ings[i].rawText), style: const TextStyle(fontSize: 16)),
-                  ),
+                  secondary: IngredientAvatar(raw: ings[i].rawText),
                   title: Text(ings[i].rawText),
                   controlAffinity: ListTileControlAffinity.trailing,
                 ),
