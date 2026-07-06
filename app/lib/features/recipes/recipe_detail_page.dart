@@ -47,7 +47,7 @@ class _Detail extends ConsumerWidget {
         body: NestedScrollView(
           headerSliverBuilder: (context, _) => [
             SliverAppBar(
-              expandedHeight: recipe.imageUrl != null ? 250 : kToolbarHeight,
+              expandedHeight: recipe.imageUrl != null ? 320 : null,
               pinned: true,
               backgroundColor: const Color(0xFFB5326B),
               foregroundColor: Colors.white,
@@ -73,43 +73,46 @@ class _Detail extends ConsumerWidget {
                   },
                 ),
               ],
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 14, right: 16),
-                title: Text(recipe.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                background: recipe.imageUrl == null
-                    ? null
-                    : Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          RecipeImage(path: recipe.imageUrl, iconSize: 48),
-                          // scrim per rendere leggibile il titolo
-                          const DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.center,
-                                end: Alignment.bottomCenter,
-                                colors: [Colors.transparent, Color(0xCC000000)],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
+              // La foto è solo decorativa: nessun testo sopra (così non ci sono
+              // problemi di leggibilità con immagini chiare).
+              flexibleSpace: recipe.imageUrl == null
+                  ? null
+                  : FlexibleSpaceBar(
+                      background: RecipeImage(path: recipe.imageUrl, iconSize: 48),
+                    ),
+              // Titolo su banda beet solida + tab: sempre leggibili.
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48),
-                child: ColoredBox(
-                  color: const Color(0xFFFBFAF7),
-                  child: TabBar(
-                    labelColor: const Color(0xFFB5326B),
-                    unselectedLabelColor: const Color(0xFF898781),
-                    indicatorColor: const Color(0xFF2E7D32),
-                    indicatorWeight: 3,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                    tabs: const [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
-                  ),
+                preferredSize: const Size.fromHeight(112),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      color: const Color(0xFFB5326B),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      alignment: Alignment.centerLeft,
+                      constraints: const BoxConstraints(minHeight: 64),
+                      child: Text(recipe.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 19,
+                              height: 1.15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white)),
+                    ),
+                    ColoredBox(
+                      color: const Color(0xFFFBFAF7),
+                      child: TabBar(
+                        labelColor: const Color(0xFFB5326B),
+                        unselectedLabelColor: const Color(0xFF898781),
+                        indicatorColor: const Color(0xFF2E7D32),
+                        indicatorWeight: 3,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        tabs: const [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
