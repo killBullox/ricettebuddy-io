@@ -5,30 +5,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config.dart';
 import '../../data/models/diet.dart';
 import '../../data/prefs.dart';
+import '../../l10n/app_localizations.dart';
+import '../../locale.dart';
 import '../sources/sources_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
+  // Lingue con traduzione dell'interfaccia disponibile (crescono con gli .arb).
   static const _languages = [
     ('it', 'Italiano'),
     ('en', 'English'),
-    ('nl', 'Nederlands'),
+    ('es', 'Español'),
     ('fr', 'Français'),
     ('de', 'Deutsch'),
-    ('es', 'Español'),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final prefs = ref.watch(prefsProvider);
     final notifier = ref.read(prefsProvider.notifier);
+    final currentLocale = ref.watch(localeControllerProvider);
     final email = Config.demo
         ? 'demo (nessun account)'
         : Supabase.instance.client.auth.currentUser?.email;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Impostazioni')),
+      appBar: AppBar(title: Text(l.settingsTitle)),
       body: ListView(
         children: [
           // --- Sorgenti ---
@@ -73,18 +77,21 @@ class SettingsPage extends ConsumerWidget {
           ),
           const Divider(),
 
-          // --- Lingua ---
+          // --- Lingua dell'interfaccia (cambia subito tutta l'app) ---
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('Lingua preferita'),
-            trailing: DropdownButton<String>(
-              value: prefs.language,
+            title: Text(l.language),
+            trailing: DropdownButton<String?>(
+              value: currentLocale?.languageCode,
               underline: const SizedBox.shrink(),
               items: [
+                DropdownMenuItem(value: null, child: Text(l.systemLanguage)),
                 for (final (code, name) in _languages)
                   DropdownMenuItem(value: code, child: Text(name)),
               ],
-              onChanged: (v) => v == null ? null : notifier.setLanguage(v),
+              onChanged: (v) => ref
+                  .read(localeControllerProvider.notifier)
+                  .setLocale(v == null ? null : Locale(v)),
             ),
           ),
 

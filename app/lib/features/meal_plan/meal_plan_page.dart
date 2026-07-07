@@ -8,6 +8,7 @@ import '../../data/models/meal_plan_entry.dart';
 import '../../data/repositories/meal_plan_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
+import '../../l10n/app_localizations.dart';
 
 final _weekStartProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();
@@ -23,10 +24,11 @@ class MealPlanPage extends ConsumerWidget {
     final weekStart = ref.watch(_weekStartProvider);
     final entries = ref.watch(mealPlanWeekProvider(weekStart));
     final days = [for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i))];
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Piano pasti'),
+        title: Text(l.mealPlanTitle),
         leading: IconButton(
           icon: const Icon(Icons.chevron_left),
           onPressed: () => ref.read(_weekStartProvider.notifier).state =
@@ -42,7 +44,7 @@ class MealPlanPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.shopping_cart_checkout),
-        label: const Text('Genera spesa'),
+        label: Text(l.generateShopping),
         onPressed: () async {
           final n = await ref
               .read(mealPlanRepositoryProvider)

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'calendly_embed.dart';
 
 /// Sezione "Consulenza Nutrizionale": presenta il servizio e permette di
@@ -28,8 +29,9 @@ class ConsulenzaPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Consulenza')),
+      appBar: AppBar(title: Text(l.consulenzaTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -112,7 +114,7 @@ class ConsulenzaPage extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => _prenota(context),
               icon: const Icon(Icons.event_available),
-              label: const Text('Prenota una consulenza'),
+              label: Text(l.bookConsultation),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: _beet,

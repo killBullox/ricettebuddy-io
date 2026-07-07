@@ -7,6 +7,7 @@ import '../../common/cooking_loader.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
+import '../../l10n/app_localizations.dart';
 import 'diet_badges.dart';
 import 'recipe_detail_page.dart';
 import 'recipe_editor_page.dart';
@@ -18,6 +19,7 @@ class RecipeListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recipes = ref.watch(recipeListProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -44,7 +46,7 @@ class RecipeListPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: SearchBar(
-              hintText: 'Cerca ricette',
+              hintText: l.searchRecipes,
               leading: const Icon(Icons.search),
               onChanged: (v) =>
                   ref.read(recipeSearchProvider.notifier).state = v,
@@ -84,6 +86,7 @@ class _SwipeRecipeTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     return Slidable(
       key: ValueKey(recipe.id),
       endActionPane: ActionPane(
@@ -99,7 +102,7 @@ class _SwipeRecipeTile extends ConsumerWidget {
             backgroundColor: const Color(0xFFB5326B),
             foregroundColor: Colors.white,
             icon: recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
-            label: 'Preferiti',
+            label: l.actionFavorite,
           ),
           SlidableAction(
             onPressed: (_) async {
@@ -107,14 +110,14 @@ class _SwipeRecipeTile extends ConsumerWidget {
               ref.invalidate(shoppingListProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('"${recipe.title}" aggiunta alla lista della spesa'),
+                  content: Text(l.addedToShopping(recipe.title)),
                 ));
               }
             },
             backgroundColor: const Color(0xFF2E7D32),
             foregroundColor: Colors.white,
             icon: Icons.add_shopping_cart,
-            label: 'Spesa',
+            label: l.actionShopping,
           ),
           SlidableAction(
             onPressed: (_) async {
@@ -122,14 +125,14 @@ class _SwipeRecipeTile extends ConsumerWidget {
               ref.invalidate(recipeListProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('"${recipe.title}" eliminata'),
+                  content: Text(l.recipeDeleted(recipe.title)),
                 ));
               }
             },
             backgroundColor: const Color(0xFFD1495B),
             foregroundColor: Colors.white,
             icon: Icons.delete,
-            label: 'Elimina',
+            label: l.actionDelete,
           ),
         ],
       ),
@@ -212,19 +215,19 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final l = AppLocalizations.of(context);
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.menu_book, size: 48),
-            SizedBox(height: 12),
-            Text('Nessuna ricetta',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
-            Text('Importa la tua prima ricetta dalla scheda Importa.',
-                textAlign: TextAlign.center),
+            const Icon(Icons.menu_book, size: 48),
+            const SizedBox(height: 12),
+            Text(l.noRecipes,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(l.emptyRecipesBody, textAlign: TextAlign.center),
           ],
         ),
       ),

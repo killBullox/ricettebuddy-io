@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/pantry_item.dart';
 import '../../data/repositories/creative_repository.dart';
 import '../../data/repositories/pantry_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../recipes/ingredient_avatar.dart';
 import '../recipes/ingredient_icon.dart';
 
@@ -16,13 +17,14 @@ class PantryPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(pantryListProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dispensa')),
+      appBar: AppBar(title: Text(l.pantryTitle)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addDialog(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Aggiungi'),
+        label: Text(l.add),
       ),
       body: items.when(
         loading: () => const Center(child: CookingLoader(size: 96)),

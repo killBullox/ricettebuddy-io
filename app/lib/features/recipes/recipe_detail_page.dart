@@ -11,6 +11,7 @@ import '../../data/models/ingredient.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
+import '../../l10n/app_localizations.dart';
 import 'cook_mode_page.dart';
 import 'diet_badges.dart';
 import 'ingredient_avatar.dart';
@@ -111,7 +112,10 @@ class _Detail extends ConsumerWidget {
                         indicatorColor: const Color(0xFF2E7D32),
                         indicatorWeight: 3,
                         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                        tabs: const [Tab(text: 'RICETTA'), Tab(text: 'LISTA SPESA')],
+                        tabs: [
+                          Tab(text: AppLocalizations.of(context).tabRecipe),
+                          Tab(text: AppLocalizations.of(context).tabShopping),
+                        ],
                       ),
                     ),
                   ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
+import '../../l10n/app_localizations.dart';
 
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
@@ -19,6 +20,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<void> _import() async {
     final url = _url.text.trim();
     if (url.isEmpty) return;
+    final l = AppLocalizations.of(context);
     setState(() => _importing = true);
     // Loader animato a schermo intero, sfondo OPACO (coprente), durante l'attesa.
     showDialog(
@@ -26,8 +28,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
       useSafeArea: false,
-      builder: (_) => const Center(
-        child: CookingLoader(size: 230, message: 'Sto preparando la tua ricetta…'),
+      builder: (_) => Center(
+        child: CookingLoader(size: 230, message: l.preparingRecipe),
       ),
     );
     try {
@@ -37,15 +39,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       Navigator.of(context).pop(); // chiude il loader
       _url.clear();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(res.duplicate
-            ? 'Questa ricetta è già nella tua libreria 🌱'
-            : 'Ricetta importata!'),
+        content: Text(res.duplicate ? l.alreadyInLibrary : l.recipeImported),
       ));
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Import non riuscito: $e')),
+        SnackBar(content: Text(l.importFailed('$e'))),
       );
     } finally {
       if (mounted) setState(() => _importing = false);
@@ -60,21 +60,22 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Importa')),
+      appBar: AppBar(title: Text(l.importTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Da sito web o social',
+          Text(l.importFromWebOrSocial,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           TextField(
             controller: _url,
             keyboardType: TextInputType.url,
             autocorrect: false,
-            decoration: const InputDecoration(
-              hintText: 'Incolla un link…',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              hintText: l.pasteLinkHint,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 8),
@@ -86,25 +87,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     width: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.download),
-            label: const Text('Importa da link'),
+            label: Text(l.importFromLink),
           ),
           const Divider(height: 40),
-          Text('Da fotocamera',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(l.fromCamera, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             // TODO(F3): image_picker + google_mlkit_text_recognition (OCR)
             //           poi structuring AI via Edge Function.
             onPressed: null,
             icon: const Icon(Icons.camera_alt),
-            label: const Text('Scansiona ricetta (in arrivo)'),
+            label: Text(l.scanRecipeSoon),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Potrai anche importare dai social col tasto Condividi '
-            '(TikTok, Instagram, …) tramite la Share Extension.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(l.shareHint, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );

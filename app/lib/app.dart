@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/home/home_shell.dart';
 import 'features/import/share_receiver.dart';
+import 'l10n/app_localizations.dart';
+import 'locale.dart';
 
-class RicetteBuddyApp extends StatelessWidget {
+class RicetteBuddyApp extends ConsumerWidget {
   const RicetteBuddyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeControllerProvider);
     final scheme = ColorScheme.fromSeed(
       seedColor: const Color(0xFFB5326B), // barbabietola (identità BeetIt)
       primary: const Color(0xFFB5326B), // magenta barbabietola
@@ -54,19 +57,9 @@ class RicetteBuddyApp extends StatelessWidget {
         ),
       ),
       // F8 — localizzazione. Le lingue crescono aggiungendo file lib/l10n/*.arb.
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('it'),
-        Locale('en'),
-        Locale('nl'),
-        Locale('fr'),
-        Locale('de'),
-        Locale('es'),
-      ],
+      locale: locale, // null = lingua di sistema
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       // Con Supabase configurato → login reale; altrimenti modalità demo.
       // ShareReceiver intercetta i link condivisi da altre app (solo mobile).
       home: ShareReceiver(

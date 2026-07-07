@@ -29,6 +29,7 @@ dependencies:
   fl_chart: ^0.69.0
   flutter_svg: ^2.0.10
   flutter_slidable: ^3.1.1
+  shared_preferences: ^2.2.3
   # F1 — import dai social col tasto Condividi (Share Extension iOS / Intent Android)
   receive_sharing_intent: ^1.8.0
 
