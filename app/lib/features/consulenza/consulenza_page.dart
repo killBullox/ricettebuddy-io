@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'calendly_embed.dart';
 
 /// Sezione "Consulenza Nutrizionale": presenta il servizio e permette di
 /// prenotare una consulenza. La prenotazione avviene su Calendly.
@@ -93,20 +96,36 @@ class ConsulenzaPage extends StatelessWidget {
           ),
 
           const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: () => _prenota(context),
-            icon: const Icon(Icons.event_available),
-            label: const Text('Prenota una consulenza'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: _beet,
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          Text('Prenota', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          if (kIsWeb)
+            // Calendario Calendly incorporato: prenoti senza uscire dall'app.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                height: 720,
+                color: Colors.white,
+                child: buildCalendlyEmbed(kCalendlyUrl),
+              ),
+            )
+          else
+            FilledButton.icon(
+              onPressed: () => _prenota(context),
+              icon: const Icon(Icons.event_available),
+              label: const Text('Prenota una consulenza'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: _beet,
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Center(
-            child: Text('Prenotazione tramite Calendly',
-                style: Theme.of(context).textTheme.bodySmall),
+            child: TextButton.icon(
+              onPressed: () => _prenota(context),
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Apri Calendly a schermo intero'),
+            ),
           ),
         ],
       ),
