@@ -29,7 +29,8 @@ class MealPlanRepository {
         .toList();
   }
 
-  /// Assegna (o sostituisce) una ricetta a uno slot giorno/pasto.
+  /// Aggiunge una ricetta a uno slot giorno/pasto. Più ricette per pasto sono
+  /// permesse (es. primo + secondo + dolce).
   Future<void> setSlot({
     required DateTime date,
     required MealSlot slot,
@@ -38,13 +39,19 @@ class MealPlanRepository {
     int servings = 2,
   }) async {
     if (_demo) return _store.setSlot(date, slot, recipeId, servings, recipeTitle);
-    await _db!.from('meal_plan_entries').upsert({
+    await _db!.from('meal_plan_entries').insert({
       'user_id': _uid,
       'date': _fmt(_dateOnly(date)),
       'slot': slot.name,
       'recipe_id': recipeId,
       'servings': servings,
-    }, onConflict: 'user_id,date,slot');
+    });
+  }
+
+  /// Rimuove una singola voce (una ricetta) dal piano.
+  Future<void> removeEntry(String id) async {
+    if (_demo) return _store.removeEntry(id);
+    await _db!.from('meal_plan_entries').delete().eq('id', id);
   }
 
   Future<void> clearSlot({required DateTime date, required MealSlot slot}) async {

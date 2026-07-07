@@ -90,7 +90,11 @@ class DemoStore {
   void setSlot(DateTime date, MealSlot slot, String recipeId, int servings,
       String recipeTitle) {
     final d = DateTime(date.year, date.month, date.day);
-    mealPlan.removeWhere((e) => e.date == d && e.slot == slot);
+    // Più ricette per pasto: aggiunge senza rimuovere le altre. Evita solo il
+    // duplicato esatto (stessa ricetta nello stesso pasto).
+    final dup = mealPlan.any(
+        (e) => e.date == d && e.slot == slot && e.recipeId == recipeId);
+    if (dup) return;
     mealPlan.add(MealPlanEntry(
       id: _id(),
       date: d,
@@ -100,6 +104,8 @@ class DemoStore {
       recipeTitle: recipeTitle,
     ));
   }
+
+  void removeEntry(String id) => mealPlan.removeWhere((e) => e.id == id);
 
   void clearSlotByDaySlot(DateTime date, MealSlot slot) {
     final d = DateTime(date.year, date.month, date.day);

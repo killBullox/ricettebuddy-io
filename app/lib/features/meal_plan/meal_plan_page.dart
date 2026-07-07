@@ -81,17 +81,14 @@ class _DaySection extends ConsumerWidget {
     required this.weekStart,
   });
 
-  MealPlanEntry? _entry(MealSlot slot) {
-    for (final e in entries) {
-      if (e.date.year == day.year &&
-          e.date.month == day.month &&
-          e.date.day == day.day &&
-          e.slot == slot) {
-        return e;
-      }
-    }
-    return null;
-  }
+  List<MealPlanEntry> _entriesFor(MealSlot slot) => [
+        for (final e in entries)
+          if (e.date.year == day.year &&
+              e.date.month == day.month &&
+              e.date.day == day.day &&
+              e.slot == slot)
+            e,
+      ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -104,27 +101,69 @@ class _DaySection extends ConsumerWidget {
           child: Text(title, style: Theme.of(context).textTheme.titleSmall),
         ),
         for (final slot in MealSlot.values)
-          ListTile(
-            dense: true,
-            leading: SizedBox(
-              width: 90,
-              child: Text(slot.labelIt,
-                  style: TextStyle(color: Theme.of(context).hintColor)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: SizedBox(
+                    width: 82,
+                    child: Text(slot.labelIt,
+                        style: TextStyle(color: Theme.of(context).hintColor)),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final e in _entriesFor(slot))
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.only(left: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFEDE6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(e.recipeTitle ?? 'Ricetta',
+                                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: const Icon(Icons.close, size: 18),
+                                onPressed: () async {
+                                  await ref
+                                      .read(mealPlanRepositoryProvider)
+                                      .removeEntry(e.id!);
+                                  ref.invalidate(mealPlanWeekProvider(weekStart));
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Aggiungi'),
+                          onPressed: () => _pickRecipe(context, ref, slot),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            title: Text(_entry(slot)?.recipeTitle ?? '—'),
-            trailing: _entry(slot) != null
-                ? IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () async {
-                      await ref
-                          .read(mealPlanRepositoryProvider)
-                          .clearSlot(date: day, slot: slot);
-                      ref.invalidate(mealPlanWeekProvider(weekStart));
-                    },
-                  )
-                : const Icon(Icons.add, size: 18),
-            onTap: () => _pickRecipe(context, ref, slot),
           ),
+        const Divider(height: 12),
       ],
     );
   }
