@@ -36,7 +36,10 @@ const { iconSvg } = require("./icongen.js");
 
 const ROOT = process.env.WEB_ROOT || path.join(__dirname, "../../app/build/web");
 const DB = path.join(__dirname, "recipes.json");
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
+// Sul PC resta 127.0.0.1 (solo locale); sulla VPS si mette HOST=0.0.0.0 per
+// esporre l'API all'esterno (IP:porta).
+const HOST = process.env.HOST || "127.0.0.1";
 const FFMPEG = process.env.FFMPEG || "ffmpeg"; // per lo streaming video
 const crypto = require("crypto");
 const CACHE = path.join(__dirname, "video-cache");
@@ -385,6 +388,6 @@ http.createServer((req, res) => {
   }
   if (url.pathname.startsWith("/api/")) return handleApi(req, res, url);
   serveStatic(req, res, url);
-}).listen(PORT, "127.0.0.1", () => {
-  console.log(`RicetteBuddy server su http://localhost:${PORT} (${recipes.length} ricette salvate)`);
+}).listen(PORT, HOST, () => {
+  console.log(`RicetteBuddy server su http://${HOST}:${PORT} (${recipes.length} ricette salvate)`);
 });
