@@ -185,11 +185,11 @@ async function handleApi(req, res, url) {
     const { url: u } = await readBody(req);
     try {
       console.log("import-url:", u);
-      // CACHE: stessa ricetta (stessa fonte) -> stessa veganizzazione, sempre.
+      // DOPPIONE: stessa fonte già in libreria -> non re-importa, avvisa.
       const cached = recipes.find((x) => x.source_url === u);
       if (cached) {
-        console.log("cache hit:", cached.title);
-        return sendJson(res, 201, cached);
+        console.log("duplicate (url):", cached.title);
+        return sendJson(res, 200, { ...cached, duplicate: true });
       }
       let r = null;
       if (/instagram\.com/i.test(u)) {
@@ -230,6 +230,14 @@ async function handleApi(req, res, url) {
         }
       }
       if (!r) return sendJson(res, 422, { error: "Ricetta non riconosciuta su questo sito" });
+      // DOPPIONE (URL canonico): i social normalizzano la source_url togliendo i
+      // parametri, quindi ricontrolliamo qui PRIMA dell'enrich (per non sprecare
+      // la chiamata AI su una ricetta già presente).
+      const dup = recipes.find((x) => x.source_url === r.source_url);
+      if (dup) {
+        console.log("duplicate (canonico):", dup.title);
+        return sendJson(res, 200, { ...dup, duplicate: true });
+      }
       console.log("parsed:", r.title, "-> enrich...");
       try { r = await enrichRecipe(r); console.log("enriched. was_vegan:", r.was_vegan); }
       catch (e) { console.log("enrich ERR:", e.message, "| cause:", e.cause && (e.cause.code || e.cause.message)); }

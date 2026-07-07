@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../common/cooking_loader.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
+import '../../data/repositories/shopping_repository.dart';
 import 'diet_badges.dart';
 import 'recipe_detail_page.dart';
 import 'recipe_editor_page.dart';
@@ -50,7 +53,7 @@ class RecipeListPage extends ConsumerWidget {
           Expanded(
             child: recipes.when(
               loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+                  const Center(child: CookingLoader(size: 96)),
               error: (e, _) => Center(child: Text('Errore: $e')),
               data: (list) {
                 if (list.isEmpty) {
@@ -62,7 +65,7 @@ class RecipeListPage extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                     itemCount: list.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _RecipeTile(recipe: list[i]),
+                    itemBuilder: (_, i) => _SwipeRecipeTile(recipe: list[i]),
                   ),
                 );
               },
@@ -70,6 +73,67 @@ class RecipeListPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Tile con azioni a scorrimento (come le email): Preferiti, Spesa, Elimina.
+class _SwipeRecipeTile extends ConsumerWidget {
+  final Recipe recipe;
+  const _SwipeRecipeTile({required this.recipe});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Slidable(
+      key: ValueKey(recipe.id),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.75,
+        children: [
+          SlidableAction(
+            onPressed: (_) async {
+              await ref.read(recipeRepositoryProvider)
+                  .setFavorite(recipe.id!, !recipe.isFavorite);
+              ref.invalidate(recipeListProvider);
+            },
+            backgroundColor: const Color(0xFFB5326B),
+            foregroundColor: Colors.white,
+            icon: recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
+            label: 'Preferiti',
+          ),
+          SlidableAction(
+            onPressed: (_) async {
+              await ref.read(shoppingRepositoryProvider).addFromRecipe(recipe);
+              ref.invalidate(shoppingListProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('"${recipe.title}" aggiunta alla lista della spesa'),
+                ));
+              }
+            },
+            backgroundColor: const Color(0xFF2E7D32),
+            foregroundColor: Colors.white,
+            icon: Icons.add_shopping_cart,
+            label: 'Spesa',
+          ),
+          SlidableAction(
+            onPressed: (_) async {
+              await ref.read(recipeRepositoryProvider).delete(recipe.id!);
+              ref.invalidate(recipeListProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('"${recipe.title}" eliminata'),
+                ));
+              }
+            },
+            backgroundColor: const Color(0xFFD1495B),
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            label: 'Elimina',
+          ),
+        ],
+      ),
+      child: _RecipeTile(recipe: recipe),
     );
   }
 }

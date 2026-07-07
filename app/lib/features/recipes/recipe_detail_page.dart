@@ -1,5 +1,6 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import '../../common/cooking_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,7 +29,7 @@ class RecipeDetailPage extends ConsumerWidget {
 
     return Scaffold(
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CookingLoader(size: 96)),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (recipe) => _Detail(recipe: recipe),
       ),

@@ -52,14 +52,14 @@ class LocalApi {
       headers: _json,
       body: jsonEncode({'servings': servings}));
 
-  Future<Recipe> importUrl(String url) async {
+  Future<({Recipe recipe, bool duplicate})> importUrl(String url) async {
     final res = await http.post(_u('api/import-url'),
         headers: _json, body: jsonEncode({'url': url}));
     if (res.statusCode >= 400) {
       throw Exception((jsonDecode(res.body) as Map)['error'] ?? 'Import fallito');
     }
-    return Recipe.fromMap(
-        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+    final m = Map<String, dynamic>.from(jsonDecode(res.body) as Map);
+    return (recipe: Recipe.fromMap(m), duplicate: m['duplicate'] == true);
   }
 
   /// Analizza una sorgente e importa le ricette conformi ai regimi. Ritorna

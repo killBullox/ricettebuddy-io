@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../common/cooking_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/shopping_item.dart';
@@ -41,7 +42,7 @@ class ShoppingPage extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
       body: items.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CookingLoader(size: 96)),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (list) {
           if (list.isEmpty) {

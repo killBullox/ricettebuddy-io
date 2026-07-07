@@ -18,13 +18,17 @@ class ImportRepository {
   bool get _demo => Config.demo;
   String get _uid => _db!.auth.currentUser!.id;
 
-  /// Importa da un URL (web o social) e salva la ricetta. Ritorna l'id.
-  Future<String> importFromUrl(String url) async {
-    if (_demo) return (await localApi.importUrl(url)).id!;
+  /// Importa da un URL (web o social) e salva la ricetta. Ritorna l'id e se era
+  /// un doppione (ricetta già presente in libreria).
+  Future<({String id, bool duplicate})> importFromUrl(String url) async {
+    if (_demo) {
+      final r = await localApi.importUrl(url);
+      return (id: r.recipe.id!, duplicate: r.duplicate);
+    }
     final res = await _db!.functions.invoke('import-recipe', body: {'url': url});
     final data = res.data as Map<String, dynamic>;
     final recipe = _parse(data);
-    return _save(recipe);
+    return (id: await _save(recipe), duplicate: false);
   }
 
   Recipe _parse(Map<String, dynamic> m) => Recipe.fromMap(

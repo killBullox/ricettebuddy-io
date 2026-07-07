@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../common/cooking_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/feed_source.dart';
@@ -47,7 +48,7 @@ class SourcesPage extends ConsumerWidget {
           ),
           Expanded(
             child: sources.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CookingLoader(size: 96)),
               error: (e, _) => Center(child: Text('Errore: $e')),
               data: (list) {
                 if (list.isEmpty) {

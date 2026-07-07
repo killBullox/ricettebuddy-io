@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../common/cooking_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/creative_repository.dart';
@@ -42,7 +43,7 @@ class ChefPage extends ConsumerWidget {
             doable.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CookingLoader(size: 96)),
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),

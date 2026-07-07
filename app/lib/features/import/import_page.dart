@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 
@@ -16,22 +17,39 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   bool _importing = false;
 
   Future<void> _import() async {
+    final url = _url.text.trim();
+    if (url.isEmpty) return;
     setState(() => _importing = true);
+    // Loader animato a schermo intero durante l'attesa (import ~15-20s).
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CookingLoader(size: 150, message: 'Sto preparando la tua ricetta…'),
+        ),
+      ),
+    );
     try {
-      await ref.read(importRepositoryProvider).importFromUrl(_url.text.trim());
+      final res = await ref.read(importRepositoryProvider).importFromUrl(url);
       ref.invalidate(recipeListProvider);
+      if (!mounted) return;
+      Navigator.of(context).pop(); // chiude il loader
       _url.clear();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ricetta importata')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res.duplicate
+            ? 'Questa ricetta è già nella tua libreria 🌱'
+            : 'Ricetta importata!'),
+      ));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import non riuscito: $e')),
-        );
-      }
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Import non riuscito: $e')),
+      );
     } finally {
       if (mounted) setState(() => _importing = false);
     }
