@@ -162,4 +162,63 @@ async function importInstagram(reference) {
   return edges.map((e) => postToRecipe(e.node)).filter(Boolean);
 }
 
-module.exports = { importInstagram, parseCaption, handleOf };
+// --- Import del SINGOLO post/reel -------------------------------------------
+// L'HTML statico non contiene più la didascalia (caricata via JS), quindi
+// renderizziamo la pagina embed con un browser headless e leggiamo il testo.
+
+function shortcodeOf(url) {
+  const m = String(url).match(/instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i);
+  return m ? m[1] : null;
+}
+
+async function fetchPostCaption(shortcode) {
+  // require pigro: importare playwright in cima rompe la fetch globale.
+  const { chromium } = require("playwright");
+  const b = await chromium.launch({ headless: true });
+  try {
+    const ctx = await b.newContext({ userAgent: UAS[0], locale: "it-IT" });
+    const page = await ctx.newPage();
+    await page.goto(`https://www.instagram.com/p/${shortcode}/embed/captioned/`,
+      { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(1200);
+    return await page.evaluate(() => {
+      const cap = document.querySelector(".Caption");
+      const img = document.querySelector("img.EmbeddedMediaImage") ||
+        document.querySelector('img[src*="cdninstagram"], img[src*="fbcdn"]');
+      return { caption: cap ? cap.innerText : null, image: img ? img.src : null };
+    });
+  } finally {
+    await b.close();
+  }
+}
+
+async function importInstagramPost(url) {
+  const sc = shortcodeOf(url);
+  if (!sc) throw new Error("Link Instagram non riconosciuto.");
+  const { caption, image } = await fetchPostCaption(sc);
+  if (!caption || caption.trim().length < 40) {
+    throw new Error("Non riesco a leggere la didascalia (post privato, rimosso o senza testo).");
+  }
+  // L'embed antepone lo username come prima riga: rimuovilo.
+  const lines = caption.replace(/\r/g, "").split("\n");
+  while (lines.length && lines[0].trim() === "") lines.shift();
+  if (lines.length > 1 && /^[a-z0-9._]{2,30}$/i.test(lines[0].trim())) lines.shift();
+  const text = lines.join("\n").trim();
+  // Passiamo l'intera didascalia all'AI (enrich): estrae ingredienti e passi,
+  // veganizza, traduce, aggiunge le quantità. Più robusto del parsing a regex.
+  return {
+    title: extractTitle(captionLines(text)),
+    image_url: image || null,
+    source_url: `https://www.instagram.com/reel/${sc}/`,
+    source_type: "social",
+    cook_minutes: null,
+    diet_tags: [],
+    ingredients: [],
+    steps: [{ position: 0, text }],
+    video_url: null,
+    video_id: sc,
+    video_mp4: null,
+  };
+}
+
+module.exports = { importInstagram, importInstagramPost, parseCaption, handleOf };

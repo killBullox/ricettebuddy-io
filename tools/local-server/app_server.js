@@ -26,7 +26,7 @@ const { spawn } = require("child_process");
 })();
 
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
-const { importInstagram } = require("./instagram.js");
+const { importInstagram, importInstagramPost } = require("./instagram.js");
 const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
 const { enrichRecipe } = require("./enrich_server.js");
 const { iconSvg } = require("./icongen.js");
@@ -189,12 +189,21 @@ async function handleApi(req, res, url) {
         return sendJson(res, 201, cached);
       }
       let r = null;
-      // GialloZafferano -> parser ricco; altri siti -> parser JSON-LD generico.
-      if (/giallozafferano/i.test(u)) {
-        try { r = await parseRecipe(u); } catch (e) { console.log("gz parse:", e.message); }
-      }
-      if (!r) {
-        try { r = await parseGenericRecipe(u); } catch (e) { console.log("generic parse:", e.message); }
+      if (/instagram\.com/i.test(u)) {
+        // Singolo post/reel Instagram (didascalia via browser headless).
+        try { r = await importInstagramPost(u); }
+        catch (e) {
+          console.log("ig post:", e.message);
+          return sendJson(res, 422, { error: e.message || "Import Instagram non riuscito" });
+        }
+      } else {
+        // GialloZafferano -> parser ricco; altri siti -> parser JSON-LD generico.
+        if (/giallozafferano/i.test(u)) {
+          try { r = await parseRecipe(u); } catch (e) { console.log("gz parse:", e.message); }
+        }
+        if (!r) {
+          try { r = await parseGenericRecipe(u); } catch (e) { console.log("generic parse:", e.message); }
+        }
       }
       if (!r) return sendJson(res, 422, { error: "Ricetta non riconosciuta su questo sito" });
       console.log("parsed:", r.title, "-> enrich...");
