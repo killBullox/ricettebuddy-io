@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../config.dart';
 import 'models/diet.dart';
 import 'models/feed_source.dart';
 import 'models/recipe.dart';
@@ -9,8 +10,11 @@ import 'models/recipe.dart';
 /// Client per il backend locale (server Node): import reale da GialloZafferano
 /// con persistenza su file. Attivo in modalità locale/demo.
 class LocalApi {
-  /// Base URL: sul web usa la stessa origine da cui è servita l'app.
-  static Uri _u(String path) => Uri.base.resolve(path);
+  /// Base URL: su mobile usa `API_BASE` (backend pubblico); sul web la stessa
+  /// origine da cui è servita l'app.
+  static Uri _u(String path) => Config.apiBase.isNotEmpty
+      ? Uri.parse('${Config.apiBase}/$path')
+      : Uri.base.resolve(path);
 
   Future<List<Recipe>> listRecipes({String? search}) async {
     final res = await http.get(_u('api/recipes'));

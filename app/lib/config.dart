@@ -7,6 +7,11 @@ class Config {
   static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
+  /// Base URL del backend Node (import/AI/icone). Sul web resta vuoto -> stessa
+  /// origine da cui è servita l'app. Su mobile va impostato all'URL pubblico:
+  ///   --dart-define=API_BASE=https://beetit.tuodominio.it
+  static const apiBase = String.fromEnvironment('API_BASE');
+
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
