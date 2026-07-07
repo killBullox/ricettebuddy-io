@@ -172,11 +172,10 @@ function shortcodeOf(url) {
 }
 
 async function fetchPostCaption(shortcode) {
-  // require pigro: importare playwright in cima rompe la fetch globale.
-  const { chromium } = require("playwright");
-  const b = await chromium.launch({ headless: true });
+  const { getBrowser } = require("./browser.js"); // browser condiviso, riusato
+  const b = await getBrowser();
+  const ctx = await b.newContext({ userAgent: UAS[0], locale: "it-IT" });
   try {
-    const ctx = await b.newContext({ userAgent: UAS[0], locale: "it-IT" });
     const page = await ctx.newPage();
     await page.goto(`https://www.instagram.com/p/${shortcode}/embed/captioned/`,
       { waitUntil: "networkidle", timeout: 30000 });
@@ -188,7 +187,7 @@ async function fetchPostCaption(shortcode) {
       return { caption: cap ? cap.innerText : null, image: img ? img.src : null };
     });
   } finally {
-    await b.close();
+    await ctx.close(); // chiude solo il context; il browser resta vivo
   }
 }
 

@@ -7,10 +7,10 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120 Safari/537.36";
 
 async function fetchMeta(url) {
-  const { chromium } = require("playwright"); // require pigro
-  const b = await chromium.launch({ headless: true });
+  const { getBrowser } = require("./browser.js"); // browser condiviso, riusato
+  const b = await getBrowser();
+  const ctx = await b.newContext({ userAgent: UA, locale: "it-IT" });
   try {
-    const ctx = await b.newContext({ userAgent: UA, locale: "it-IT" });
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 40000 })
       .catch(() => {});
@@ -26,7 +26,7 @@ async function fetchMeta(url) {
       };
     });
   } finally {
-    await b.close();
+    await ctx.close(); // chiude solo il context; il browser resta vivo
   }
 }
 
