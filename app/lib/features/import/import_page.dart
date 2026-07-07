@@ -20,17 +20,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final url = _url.text.trim();
     if (url.isEmpty) return;
     setState(() => _importing = true);
-    // Loader animato a schermo intero durante l'attesa (import ~15-20s).
+    // Loader animato a schermo intero, sfondo OPACO (coprente), durante l'attesa.
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: CookingLoader(size: 150, message: 'Sto preparando la tua ricetta…'),
-        ),
+      barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
+      useSafeArea: false,
+      builder: (_) => const Center(
+        child: CookingLoader(size: 230, message: 'Sto preparando la tua ricetta…'),
       ),
     );
     try {

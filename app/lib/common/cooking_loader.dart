@@ -59,30 +59,70 @@ class _PotPainter extends CustomPainter {
   _PotPainter(this.t);
 
   void _beet(Canvas c, Offset o, double r, double op) {
-    final body = Paint()..color = const Color(0xFFC13B7A).withValues(alpha: op);
-    // corpo (goccia)
-    final p = Path()
-      ..moveTo(o.dx, o.dy - r)
-      ..cubicTo(o.dx + r * 1.15, o.dy - r, o.dx + r * 1.05, o.dy + r * 0.9,
-          o.dx, o.dy + r * 1.15)
-      ..cubicTo(o.dx - r * 1.05, o.dy + r * 0.9, o.dx - r * 1.15, o.dy - r,
-          o.dx, o.dy - r)
+    if (op <= 0) return;
+    // opacità di gruppo (per la dissolvenza quando entra in pentola)
+    c.saveLayer(Rect.fromCircle(center: o, radius: r * 4),
+        Paint()..color = Colors.black.withValues(alpha: op));
+
+    // --- Foglie (3, ben visibili: sono la firma della barbabietola) ---
+    final leaf = Paint()..color = const Color(0xFF2E7D32);
+    final leaf2 = Paint()..color = const Color(0xFF3E9142);
+    c.drawPath(
+        Path()
+          ..moveTo(o.dx - r * 0.2, o.dy - r * 0.5)
+          ..quadraticBezierTo(o.dx - r * 1.35, o.dy - r * 1.2, o.dx - r * 1.0, o.dy - r * 2.2)
+          ..quadraticBezierTo(o.dx - r * 0.28, o.dy - r * 1.35, o.dx + r * 0.05, o.dy - r * 0.5)
+          ..close(),
+        leaf);
+    c.drawPath(
+        Path()
+          ..moveTo(o.dx + r * 0.2, o.dy - r * 0.5)
+          ..quadraticBezierTo(o.dx + r * 1.35, o.dy - r * 1.2, o.dx + r * 1.0, o.dy - r * 2.2)
+          ..quadraticBezierTo(o.dx + r * 0.28, o.dy - r * 1.35, o.dx - r * 0.05, o.dy - r * 0.5)
+          ..close(),
+        leaf);
+    c.drawPath(
+        Path()
+          ..moveTo(o.dx - r * 0.13, o.dy - r * 0.55)
+          ..quadraticBezierTo(o.dx - r * 0.12, o.dy - r * 2.15, o.dx, o.dy - r * 2.7)
+          ..quadraticBezierTo(o.dx + r * 0.12, o.dy - r * 2.15, o.dx + r * 0.13, o.dy - r * 0.55)
+          ..close(),
+        leaf2);
+    // steli
+    c.drawLine(Offset(o.dx, o.dy - r * 0.4), Offset(o.dx - r * 0.55, o.dy - r * 1.6),
+        Paint()..color = const Color(0xFF2E7D32)..strokeWidth = r * 0.12..strokeCap = StrokeCap.round);
+    c.drawLine(Offset(o.dx, o.dy - r * 0.4), Offset(o.dx + r * 0.55, o.dy - r * 1.6),
+        Paint()..color = const Color(0xFF2E7D32)..strokeWidth = r * 0.12..strokeCap = StrokeCap.round);
+
+    // --- Bulbo tondo con gradiente ---
+    final body = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.45),
+        radius: 1.0,
+        colors: const [Color(0xFFE86BA6), Color(0xFF9E1E58)],
+      ).createShader(Rect.fromCircle(center: Offset(o.dx, o.dy + r * 0.15), radius: r * 1.35));
+    final bulb = Path()
+      ..moveTo(o.dx, o.dy - r * 0.78)
+      ..cubicTo(o.dx + r * 1.2, o.dy - r * 0.78, o.dx + r * 1.15, o.dy + r * 0.7,
+          o.dx + r * 0.3, o.dy + r * 1.15)
+      ..quadraticBezierTo(o.dx, o.dy + r * 1.55, o.dx - r * 0.3, o.dy + r * 1.15)
+      ..cubicTo(o.dx - r * 1.15, o.dy + r * 0.7, o.dx - r * 1.2, o.dy - r * 0.78,
+          o.dx, o.dy - r * 0.78)
       ..close();
-    c.drawPath(p, body);
-    // foglioline
-    final leaf = Paint()..color = const Color(0xFF2E7D32).withValues(alpha: op);
-    c.drawPath(
-        Path()
-          ..moveTo(o.dx - r * 0.15, o.dy - r * 0.9)
-          ..lineTo(o.dx - r * 0.5, o.dy - r * 1.7)
-          ..lineTo(o.dx + r * 0.05, o.dy - r),
-        leaf);
-    c.drawPath(
-        Path()
-          ..moveTo(o.dx + r * 0.15, o.dy - r * 0.9)
-          ..lineTo(o.dx + r * 0.5, o.dy - r * 1.7)
-          ..lineTo(o.dx - r * 0.05, o.dy - r),
-        leaf);
+    c.drawPath(bulb, body);
+    // radichetta
+    c.drawLine(Offset(o.dx, o.dy + r * 1.4), Offset(o.dx + r * 0.18, o.dy + r * 2.1),
+        Paint()
+          ..color = const Color(0xFF7C1642)
+          ..strokeWidth = r * 0.16
+          ..strokeCap = StrokeCap.round);
+    // riflesso
+    c.drawOval(
+        Rect.fromCenter(
+            center: Offset(o.dx - r * 0.35, o.dy - r * 0.05), width: r * 0.5, height: r * 0.75),
+        Paint()..color = Colors.white.withValues(alpha: 0.30));
+
+    c.restore();
   }
 
   @override
@@ -147,13 +187,13 @@ class _PotPainter extends CustomPainter {
         Paint()..color = const Color(0xFFB5326B));
 
     // --- Barbabietole che cadono ---
-    const xs = [-0.15, 0.11, -0.02];
+    const xs = [-0.16, 0.12, -0.02];
     for (var i = 0; i < 3; i++) {
       final p = (t + i / 3) % 1.0;
-      final by = _lerp(s * 0.05, rimY - s * 0.01, p);
+      final by = _lerp(s * 0.17, rimY - s * 0.02, p);
       final bx = cx + xs[i] * s + math.sin(p * math.pi) * s * 0.015;
       final op = p < 0.82 ? 1.0 : (1 - (p - 0.82) / 0.18).clamp(0.0, 1.0);
-      _beet(canvas, Offset(bx, by), s * 0.05, op);
+      _beet(canvas, Offset(bx, by), s * 0.052, op);
     }
 
     // --- Bordo frontale (dà profondità) ---
