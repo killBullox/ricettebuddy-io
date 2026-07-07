@@ -28,6 +28,8 @@ const { spawn } = require("child_process");
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 const { importInstagram, importInstagramPost } = require("./instagram.js");
 const { importFacebookPost } = require("./facebook.js");
+const { importTikTok } = require("./tiktok.js");
+const { importYouTube } = require("./youtube.js");
 const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
 const { enrichRecipe } = require("./enrich_server.js");
 const { iconSvg } = require("./icongen.js");
@@ -203,6 +205,20 @@ async function handleApi(req, res, url) {
         catch (e) {
           console.log("fb post:", e.message);
           return sendJson(res, 422, { error: e.message || "Import Facebook non riuscito" });
+        }
+      } else if (/youtube\.com|youtu\.be/i.test(u)) {
+        // Video/Shorts YouTube (ricetta dalla descrizione).
+        try { r = await importYouTube(u); }
+        catch (e) {
+          console.log("yt:", e.message);
+          return sendJson(res, 422, { error: e.message || "Import YouTube non riuscito" });
+        }
+      } else if (/tiktok\.com/i.test(u)) {
+        // Video TikTok (didascalia via browser headless).
+        try { r = await importTikTok(u); }
+        catch (e) {
+          console.log("tt:", e.message);
+          return sendJson(res, 422, { error: e.message || "Import TikTok non riuscito" });
         }
       } else {
         // GialloZafferano -> parser ricco; altri siti -> parser JSON-LD generico.
