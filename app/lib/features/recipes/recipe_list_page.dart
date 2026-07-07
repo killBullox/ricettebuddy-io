@@ -23,7 +23,7 @@ class RecipeListPage extends ConsumerWidget {
           children: [
             SvgPicture.asset('assets/branding/beet_mark.svg', width: 28, height: 28),
             const SizedBox(width: 8),
-            const Text('BeetIt'),
+            const Text('Beet-It'),
           ],
         ),
       ),

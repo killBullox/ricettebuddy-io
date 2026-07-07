@@ -18,7 +18,7 @@ class RicetteBuddyApp extends StatelessWidget {
       brightness: Brightness.light,
     );
     return MaterialApp(
-      title: 'BeetIt',
+      title: 'Beet-It Vegan Recipes',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: scheme,

@@ -36,6 +36,11 @@ class DemoStore {
 
   void deletePantry(String id) => pantry.removeWhere((p) => p.id == id);
 
+  void updatePantry(PantryItem item) {
+    final i = pantry.indexWhere((p) => p.id == item.id);
+    if (i >= 0) pantry[i] = item;
+  }
+
   // --- Spesa -----------------------------------------------------------------
 
   void addFreeShopping(String name) =>

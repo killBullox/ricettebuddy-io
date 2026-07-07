@@ -31,6 +31,23 @@ class PantryItem {
             : DateTime.tryParse(m['expiry_date'].toString()),
       );
 
+  PantryItem copyWith({
+    String? rawText,
+    String? normalizedName,
+    double? quantity,
+    String? unit,
+    DateTime? expiryDate,
+  }) =>
+      PantryItem(
+        id: id,
+        rawText: rawText ?? this.rawText,
+        normalizedName: normalizedName ?? this.normalizedName,
+        quantity: quantity ?? this.quantity,
+        unit: unit ?? this.unit,
+        aisleCategory: aisleCategory,
+        expiryDate: expiryDate ?? this.expiryDate,
+      );
+
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
         'raw_text': rawText,

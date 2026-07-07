@@ -31,6 +31,11 @@ class PantryRepository {
     if (_demo) return _store.deletePantry(id);
     await _db!.from('pantry_items').delete().eq('id', id);
   }
+
+  Future<void> update(PantryItem item) async {
+    if (_demo) return _store.updatePantry(item);
+    await _db!.from('pantry_items').update(item.toMap()).eq('id', item.id!);
+  }
 }
 
 final pantryRepositoryProvider = Provider<PantryRepository>(

@@ -12,6 +12,7 @@ import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
 import 'cook_mode_page.dart';
 import 'diet_badges.dart';
+import 'ingredient_avatar.dart';
 import 'ingredient_icon.dart';
 import 'nutrition_donut.dart';
 import 'recipe_editor_page.dart';
@@ -129,31 +130,6 @@ class _Detail extends ConsumerWidget {
   }
 }
 
-/// Avatar ingrediente: emoji se disponibile, altrimenti icona SVG generata
-/// dall'AI (creata una volta e riusata dalla cache). Usato sia nella scheda
-/// ricetta sia nella lista della spesa.
-class IngredientAvatar extends StatelessWidget {
-  final String raw;
-  const IngredientAvatar({super.key, required this.raw});
-
-  @override
-  Widget build(BuildContext context) {
-    final emoji = ingredientEmoji(raw);
-    return Container(
-      width: 30,
-      height: 30,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFEDE6),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: emoji.isEmpty
-          ? _AiIngredientIcon(raw: raw)
-          : Text(emoji, style: const TextStyle(fontSize: 16)),
-    );
-  }
-}
-
 /// Riga ingrediente con iconcina.
 Widget ingredientRow(BuildContext context, String raw) {
   return Padding(
@@ -170,27 +146,6 @@ Widget ingredientRow(BuildContext context, String raw) {
       ],
     ),
   );
-}
-
-/// Icona SVG dell'ingrediente servita da /api/ingredient-icon (cache-first).
-/// Mostra un pallino neutro mentre carica o se la generazione non riesce.
-class _AiIngredientIcon extends StatelessWidget {
-  final String raw;
-  const _AiIngredientIcon({required this.raw});
-
-  @override
-  Widget build(BuildContext context) {
-    final dot = Icon(Icons.circle, size: 7, color: Theme.of(context).hintColor);
-    final url = Uri.base
-        .resolve('/api/ingredient-icon?name=${Uri.encodeQueryComponent(raw)}')
-        .toString();
-    return SvgPicture.network(
-      url,
-      width: 22,
-      height: 22,
-      placeholderBuilder: (_) => dot,
-    );
-  }
 }
 
 class _RecipeTab extends ConsumerWidget {

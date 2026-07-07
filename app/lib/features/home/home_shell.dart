@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../consulenza/consulenza_page.dart';
 import '../creative/chef_page.dart';
 import '../import/import_page.dart';
 import '../meal_plan/meal_plan_page.dart';
@@ -25,6 +26,7 @@ class _HomeShellState extends State<HomeShell> {
     ChefPage(),
     MealPlanPage(),
     ShoppingPage(),
+    ConsulenzaPage(),
     SettingsPage(),
   ];
 
@@ -56,6 +58,10 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icon(Icons.shopping_cart_outlined),
               selectedIcon: Icon(Icons.shopping_cart),
               label: 'Spesa'),
+          NavigationDestination(
+              icon: Icon(Icons.health_and_safety_outlined),
+              selectedIcon: Icon(Icons.health_and_safety),
+              label: 'Consulenza'),
           NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
