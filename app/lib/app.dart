@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'config.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/home/home_shell.dart';
+import 'features/import/share_receiver.dart';
 
 class RicetteBuddyApp extends StatelessWidget {
   const RicetteBuddyApp({super.key});
@@ -67,7 +68,10 @@ class RicetteBuddyApp extends StatelessWidget {
         Locale('es'),
       ],
       // Con Supabase configurato → login reale; altrimenti modalità demo.
-      home: Config.isConfigured ? const AuthGate() : const HomeShell(),
+      // ShareReceiver intercetta i link condivisi da altre app (solo mobile).
+      home: ShareReceiver(
+        child: Config.isConfigured ? const AuthGate() : const HomeShell(),
+      ),
     );
   }
 }
