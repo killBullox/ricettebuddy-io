@@ -27,6 +27,7 @@ const { spawn } = require("child_process");
 
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 const { importInstagram, importInstagramPost } = require("./instagram.js");
+const { importFacebookPost } = require("./facebook.js");
 const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
 const { enrichRecipe } = require("./enrich_server.js");
 const { iconSvg } = require("./icongen.js");
@@ -195,6 +196,13 @@ async function handleApi(req, res, url) {
         catch (e) {
           console.log("ig post:", e.message);
           return sendJson(res, 422, { error: e.message || "Import Instagram non riuscito" });
+        }
+      } else if (/facebook\.com|fb\.watch/i.test(u)) {
+        // Reel/video/post Facebook (didascalia dal meta og:title).
+        try { r = await importFacebookPost(u); }
+        catch (e) {
+          console.log("fb post:", e.message);
+          return sendJson(res, 422, { error: e.message || "Import Facebook non riuscito" });
         }
       } else {
         // GialloZafferano -> parser ricco; altri siti -> parser JSON-LD generico.
