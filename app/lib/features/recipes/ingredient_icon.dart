@@ -87,9 +87,10 @@ String ingredientEmoji(String raw) {
   // semi (lino, chia, sesamo, zucca...): non sono frutta secca -> icona AI
   if (w(['semi di lino', 'semi di chia', 'semi di sesamo', 'semi di zucca',
         'semi di girasole', 'semi di papavero', 'lino', 'chia'])) return '';
-  if (w(['mandorl', 'anacard', 'noci', 'nocciol', 'pistacch', 'arachidi',
-        'tahin', 'pinoli'])) return '🥜';
-  // tofu/tempeh/seitan/lupini e spezie (pepe, lievito, curcuma, cumino, paprika,
-  // cannella...): niente emoji adatta -> l'UI usa un'icona SVG generata dall'AI.
+  if (w(['arachid'])) return '🥜'; // 🥜 è "peanut": solo le arachidi
+  // mandorle, anacardi, noci, nocciole, pistacchi, pinoli, tahin, semi e le
+  // spezie (pepe, lievito, curcuma...): nessuna emoji dedicata (l'unica per la
+  // frutta secca è l'arachide) -> icona SVG generata dall'AI, distinta per ognuno.
+  // Lo stesso per tofu/tempeh/seitan.
   return '';
 }

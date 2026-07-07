@@ -25,8 +25,13 @@ void main() {
       'pomodori pelati': '🍅',
       "2 spicchi d'aglio": '🧄',
       '200 g di ceci': '🫘',
-      'mandorle a lamelle': '🥜',
       'cioccolato fondente': '🍫',
+      // 🥜 è l'arachide: solo le arachidi. Gli altri frutti secchi -> icona AI.
+      'arachidi tostate': '🥜',
+      'anacardi ammollati': '',
+      'pistacchi non salati': '',
+      'mandorle a lamelle': '',
+      'noci sgusciate': '',
       'aceto balsamico': '🍷',
       // semi -> icona AI (stringa vuota)
       'semi di lino macinati': '',
