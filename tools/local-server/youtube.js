@@ -68,27 +68,48 @@ async function fetchTranscript(tracks) {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+// API UFFICIALE YouTube Data v3 (chiave gratuita in YT_API_KEY): stabile, senza
+// bot-gate. Restituisce titolo + descrizione + thumbnail. È la via preferita.
+const YT_API_KEY = (process.env.YT_API_KEY || "").trim();
+async function officialApi(id) {
+  const r = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${YT_API_KEY}`);
+  if (!r.ok) throw new Error(`YouTube API ${r.status}`);
+  const j = await r.json();
+  const sn = j.items && j.items[0] && j.items[0].snippet;
+  if (!sn) throw new Error("Video YouTube non trovato.");
+  const t = sn.thumbnails || {};
+  const image = (t.maxres || t.high || t.medium || t.default || {}).url ||
+    `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  return { title: sn.title || "Ricetta da YouTube", desc: sn.description || "", image, captions: [] };
+}
+
 async function importYouTube(url) {
   const id = videoId(url);
   if (!id) throw new Error("Link YouTube non riconosciuto.");
 
-  const j = await innertubePlayer(id);
-  const vd = j.videoDetails || {};
-  const title = vd.title || "Ricetta da YouTube";
-  const desc = vd.shortDescription || "";
-  const thumbs = (vd.thumbnail && vd.thumbnail.thumbnails) || [];
-  const image = thumbs.length ? thumbs[thumbs.length - 1].url
-    : `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  // 1) API ufficiale se configurata (stabile), altrimenti 2) InnerTube MWEB.
+  let title, desc, image, captions;
+  if (YT_API_KEY) {
+    ({ title, desc, image, captions } = await officialApi(id));
+  } else {
+    const j = await innertubePlayer(id);
+    const vd = j.videoDetails || {};
+    title = vd.title || "Ricetta da YouTube";
+    desc = vd.shortDescription || "";
+    const thumbs = (vd.thumbnail && vd.thumbnail.thumbnails) || [];
+    image = thumbs.length ? thumbs[thumbs.length - 1].url
+      : `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    captions = (j.captions && j.captions.playerCaptionsTracklistRenderer &&
+      j.captions.playerCaptionsTracklistRenderer.captionTracks) || [];
+  }
 
   let text;
   if (desc.trim().length >= 40) {
     text = `${title}\n\n${desc}`;
   } else {
     // Descrizione assente (Shorts): ripiega sui sottotitoli/trascrizione.
-    const caps = j.captions &&
-      j.captions.playerCaptionsTracklistRenderer &&
-      j.captions.playerCaptionsTracklistRenderer.captionTracks;
-    const transcript = await fetchTranscript(caps || []).catch(() => "");
+    const transcript = await fetchTranscript(captions).catch(() => "");
     if (transcript && transcript.length >= 80) {
       text = `${title}\n\n(Trascrizione parlata del video)\n${transcript}`;
     } else {
