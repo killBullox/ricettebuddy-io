@@ -25,19 +25,33 @@ function decodeEntities(s) {
     .replace(/&nbsp;/g, " ");
 }
 
+// Cookie di una sessione YouTube loggata (facoltativi): da IP datacenter YouTube
+// mostra "Accedi per confermare di non essere un bot"; i cookie lo evitano.
+// Impostare YT_COOKIE nel .env (stringa "NAME=VAL; NAME2=VAL2; ...").
+const YT_COOKIE = (process.env.YT_COOKIE || "").trim();
+
 // Chiama l'API player di YouTube col client MWEB (passa dal gate anti-bot).
 async function innertubePlayer(id) {
+  const headers = { "Content-Type": "application/json", "User-Agent": UA };
+  if (YT_COOKIE) headers["Cookie"] = YT_COOKIE;
   const r = await fetch(
     `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_KEY}&prettyPrint=false`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": UA },
+      headers,
       body: JSON.stringify({
         context: { client: { clientName: "MWEB", clientVersion: "2.20240726.00.00", hl: "it", gl: "IT" } },
         videoId: id,
       }),
     });
   if (!r.ok) throw new Error(`InnerTube ${r.status}`);
-  return r.json();
+  const j = await r.json();
+  const st = j.playabilityStatus && j.playabilityStatus.status;
+  if (st === "LOGIN_REQUIRED" || st === "ERROR") {
+    throw new Error(YT_COOKIE
+      ? "YouTube ha rifiutato la richiesta (cookie scaduti?)."
+      : "YouTube blocca le richieste da questo server (serve un cookie di sessione).");
+  }
+  return j;
 }
 
 // Scarica la trascrizione da una lista di captionTracks (preferenza it > en).
