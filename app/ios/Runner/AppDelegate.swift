@@ -13,9 +13,8 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    // Canale per leggere il link condiviso dall'App Group (scritto dalla Share
-    // Extension). Bypassa la consegna dell'URL al plugin: robusto col ciclo di
-    // vita a "scene" di Flutter, dove l'apertura via URL non sempre arriva.
+    // Canale per leggere il link condiviso catturato dallo schema URL nel
+    // SceneDelegate. Nessun App Group: solo lo schema URL registrato.
     if let messenger = engineBridge.pluginRegistry
         .registrar(forPlugin: "BeetItShare")?.messenger() {
       let channel = FlutterMethodChannel(name: "beetit/share", binaryMessenger: messenger)
@@ -23,15 +22,9 @@ import UIKit
         guard call.method == "getSharedUrl" else {
           result(FlutterMethodNotImplemented); return
         }
-        let ud = UserDefaults(suiteName: "group.io.beetit.recipes")
-        var found: String? = nil
-        if let data = ud?.data(forKey: "ShareKey"),
-           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-           let path = arr.first?["path"] as? String, !path.isEmpty {
-          found = path
-        }
-        ud?.removeObject(forKey: "ShareKey")   // consuma una sola volta
-        result(found)
+        let u = SceneDelegate.pendingSharedUrl
+        SceneDelegate.pendingSharedUrl = nil   // consuma una sola volta
+        result(u)
       }
     }
   }

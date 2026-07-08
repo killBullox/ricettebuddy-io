@@ -34,7 +34,7 @@ ext.build_configurations.each do |c|
   bs['PRODUCT_BUNDLE_IDENTIFIER'] = EXT_BUNDLE
   bs['PRODUCT_NAME'] = '$(TARGET_NAME)'
   bs['INFOPLIST_FILE'] = 'Share/Info.plist'
-  bs['CODE_SIGN_ENTITLEMENTS'] = 'Share/Share.entitlements'
+  # Nessuna entitlement: il link passa via schema URL, non via App Group.
   bs['CODE_SIGN_STYLE'] = 'Automatic'
   bs['DEVELOPMENT_TEAM'] = TEAM
   bs['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
@@ -66,15 +66,9 @@ else
   runner.build_phases << embed
 end
 
-# Runner dipende dall'extension + entitlements (App Group) + firma automatica
-# (serve per un archive FIRMATO in cui -allowProvisioningUpdates registra l'App
-# Group e la include nell'entitlement del binario).
+# Runner dipende dall'extension. Nessuna entitlement speciale: il flusso di
+# firma resta quello che funziona (export da archive --no-codesign).
 runner.add_dependency(ext)
-runner.build_configurations.each do |c|
-  c.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
-  c.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
-  c.build_settings['DEVELOPMENT_TEAM'] = TEAM
-end
 
 project.save
 puts 'XCODEPROJ_OK'
