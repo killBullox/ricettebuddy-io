@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
+import '../../features/import/social_extractor.dart';
 import '../local_api.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
@@ -20,8 +22,25 @@ class ImportRepository {
 
   /// Importa da un URL (web o social) e salva la ricetta. Ritorna l'id e se era
   /// un doppione (ricetta già presente in libreria).
+  static final _socialRe = RegExp(
+    r'instagram\.com|facebook\.com|fb\.watch|tiktok\.com|youtube\.com|youtu\.be|pinterest\.',
+    caseSensitive: false,
+  );
+
   Future<({String id, bool duplicate})> importFromUrl(String url) async {
     if (_demo) {
+      // Social su mobile: estraiamo SUL DISPOSITIVO (connessione/login utente),
+      // il server fa solo l'AI. Siti web e web-build: parsing lato server.
+      if (!kIsWeb && _socialRe.hasMatch(url)) {
+        final post = await SocialExtractor.extract(url);
+        final r = await localApi.enrichExtracted(
+          title: post.title,
+          text: post.text,
+          imageUrl: post.imageUrl,
+          sourceUrl: post.sourceUrl,
+        );
+        return (id: r.recipe.id!, duplicate: r.duplicate);
+      }
       final r = await localApi.importUrl(url);
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }

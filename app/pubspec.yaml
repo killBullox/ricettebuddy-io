@@ -32,6 +32,9 @@ dependencies:
   shared_preferences: ^2.2.3
   # F1 — import dai social col tasto Condividi (Share Extension iOS / Intent Android)
   receive_sharing_intent: ^1.8.0
+  # Estrazione contenuti social SUL DISPOSITIVO (connessione/login dell'utente):
+  # webview headless per leggere la didascalia di IG/FB/Pinterest senza bot-gate.
+  flutter_inappwebview: ^6.1.5
 
   # --- Feature che aggiungeremo (lasciate qui come promemoria) ---
   # receive_sharing_intent: ^1.8.0        # F1 import dai social (Share Extension)

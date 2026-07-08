@@ -249,6 +249,34 @@ async function handleApi(req, res, url) {
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
+  // POST /api/enrich {title, text, image_url, source_url}
+  // L'app estrae il contenuto SUL DISPOSITIVO (connessione e login dell'utente,
+  // così i social non bloccano) e qui il server fa SOLO l'AI (veganizza,
+  // struttura ingredienti+passi, traduce, quantità). Niente scraping centrale.
+  if (req.method === "POST" && url.pathname === "/api/enrich") {
+    const { title = "", text = "", image_url = null, source_url = "" } =
+      await readBody(req);
+    try {
+      if (!text || String(text).trim().length < 30) {
+        return sendJson(res, 422, { error: "Testo insufficiente per una ricetta." });
+      }
+      if (source_url) {
+        const dup = recipes.find((x) => x.source_url === source_url);
+        if (dup) { console.log("duplicate (enrich):", dup.title); return sendJson(res, 200, { ...dup, duplicate: true }); }
+      }
+      let r = {
+        title: (title || "Ricetta").slice(0, 80),
+        image_url, source_url, source_type: "social",
+        cook_minutes: null, diet_tags: [], ingredients: [],
+        steps: [{ position: 0, text: String(text) }],
+      };
+      console.log("enrich (device-extracted):", r.title);
+      try { r = await enrichRecipe(r); } catch (e) { console.log("enrich ERR:", e.message); }
+      const saved = { ...r, id: String(++seq) };
+      recipes.unshift(saved); save();
+      return sendJson(res, 201, saved);
+    } catch (e) { return sendJson(res, 500, { error: String(e) }); }
+  }
   // POST /api/analyze {type, reference, diets, limit, pages}
   if (req.method === "POST" && url.pathname === "/api/analyze") {
     const { type = "web", reference = "", diets = [], limit = 30, pages = 15 } =

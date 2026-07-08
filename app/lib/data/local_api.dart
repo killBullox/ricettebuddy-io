@@ -64,6 +64,31 @@ class LocalApi {
     return (recipe: Recipe.fromMap(m), duplicate: m['duplicate'] == true);
   }
 
+  /// Enrich AI su testo GIÀ estratto sul dispositivo (social). Il server non
+  /// scarica nulla: fa solo veganizzazione/struttura/quantità.
+  Future<({Recipe recipe, bool duplicate})> enrichExtracted({
+    required String title,
+    required String text,
+    String? imageUrl,
+    required String sourceUrl,
+  }) async {
+    final res = await http
+        .post(_u('api/enrich'),
+            headers: _json,
+            body: jsonEncode({
+              'title': title,
+              'text': text,
+              'image_url': imageUrl,
+              'source_url': sourceUrl,
+            }))
+        .timeout(const Duration(seconds: 120));
+    if (res.statusCode >= 400) {
+      throw Exception((jsonDecode(res.body) as Map)['error'] ?? 'Import fallito');
+    }
+    final m = Map<String, dynamic>.from(jsonDecode(res.body) as Map);
+    return (recipe: Recipe.fromMap(m), duplicate: m['duplicate'] == true);
+  }
+
   /// Analizza una sorgente e importa le ricette conformi ai regimi. Ritorna
   /// le ricette importate. Lancia un'eccezione col messaggio se la sorgente
   /// non è supportata (es. social).
