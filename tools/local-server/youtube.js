@@ -1,7 +1,7 @@
-// Importatore YouTube (video e Shorts). La descrizione completa è nell'HTML
-// della pagina watch (campo "shortDescription" del player), accessibile senza
-// login. La passiamo all'enrich per estrarre ingredienti+passi, veganizzare,
-// tradurre e mettere le quantità.
+// Importatore YouTube (video e Shorts). La ricetta si prende dalla descrizione
+// (campo "shortDescription" del player). Se la descrizione è vuota — tipico
+// negli Shorts, dove la ricetta è PARLATA — si ripiega sui SOTTOTITOLI
+// (trascrizione), che poi l'enrich AI trasforma in ingredienti+passi.
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120 Safari/537.36";
@@ -14,6 +14,38 @@ function videoId(url) {
 
 function jsonStr(raw) {
   try { return JSON.parse('"' + raw + '"'); } catch { return raw; }
+}
+
+function decodeEntities(s) {
+  return String(s)
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'").replace(/&#039;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/&nbsp;/g, " ");
+}
+
+// Estrae la trascrizione (sottotitoli) dal player HTML. Preferisce IT, poi EN,
+// poi la prima traccia disponibile (anche auto-generata).
+async function fetchTranscript(html) {
+  const m = html.match(/"captionTracks":(\[[\s\S]*?\}\])/);
+  if (!m) return "";
+  let tracks;
+  try {
+    tracks = JSON.parse(m[1].replace(/\\u0026/g, "&").replace(/\\"/g, '"').replace(/\\\//g, "/"));
+  } catch { return ""; }
+  if (!Array.isArray(tracks) || !tracks.length) return "";
+  const pick = tracks.find((t) => /^it/i.test(t.languageCode)) ||
+    tracks.find((t) => /^en/i.test(t.languageCode)) || tracks[0];
+  let baseUrl = pick && pick.baseUrl;
+  if (!baseUrl) return "";
+  baseUrl = baseUrl.replace(/\\u0026/g, "&").replace(/\\\//g, "/");
+  const r = await fetch(baseUrl, { headers: { "User-Agent": UA } });
+  const xml = await r.text();
+  const parts = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)]
+    .map((x) => decodeEntities(x[1]));
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 async function importYouTube(url) {
@@ -31,12 +63,22 @@ async function importYouTube(url) {
 
   const title = tm ? jsonStr(tm[1]) : "Ricetta da YouTube";
   const desc = dm ? jsonStr(dm[1]) : "";
-  if (desc.trim().length < 40) {
-    throw new Error("La descrizione del video YouTube è troppo corta o assente " +
-      "(il creator non ha scritto la ricetta nella descrizione).");
+
+  let text;
+  if (desc.trim().length >= 40) {
+    // Titolo + descrizione: entrambi utili all'AI per ricostruire la ricetta.
+    text = `${title}\n\n${desc}`;
+  } else {
+    // Descrizione assente (Shorts): ripiego sui sottotitoli/trascrizione.
+    const transcript = await fetchTranscript(html).catch(() => "");
+    if (transcript && transcript.length >= 80) {
+      text = `${title}\n\n(Trascrizione parlata del video)\n${transcript}`;
+    } else {
+      throw new Error("Il video YouTube non ha una ricetta nella descrizione " +
+        "né sottotitoli leggibili da cui ricavarla.");
+    }
   }
-  // Titolo + descrizione: entrambi utili all'AI per ricostruire la ricetta.
-  const text = `${title}\n\n${desc}`;
+
   return {
     title: title.slice(0, 80),
     image_url: im ? im[1] : `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
