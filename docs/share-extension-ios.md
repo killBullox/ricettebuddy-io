@@ -8,29 +8,38 @@ link tramite `receive_sharing_intent` e lo importa (vedi
 Su **iOS** l'estensione è integrata in modo **scriptato e riproducibile** (niente
 passaggi manuali in Xcode). Vive in `app/ios/Share/` + `app/ios/scripts/`.
 
-## Perché autonoma (Swift puro)
+## Meccanismo (niente App Group, niente plugin)
 
-`receive_sharing_intent` 1.9.0 usa **Swift Package Manager** e **non ha podspec**.
-Agganciare quel package a una *nuova* app-extension via script è impraticabile.
-Quindi la nostra `ShareExtension` è **autonoma**: nessuna dipendenza, solo
-`Share/ShareViewController.swift`. Scrive il contenuto condiviso nell'**App Group**
-`group.io.beetit.recipes` sotto la chiave `ShareKey`, nello **stesso formato**
-`SharedMediaFile` (JSON `[{path,type,…}]`, `type` = `url`/`text`) che il lato
-Flutter del plugin legge, poi riapre l'app con lo schema
-`ShareMedia-io.beetit.recipes:share`.
+`receive_sharing_intent` 1.9.0 usa **Swift Package Manager** e non ha podspec:
+agganciarlo a una nuova app-extension è impraticabile. E l'App Group non è
+utilizzabile: l'entitlement `application-groups` non entra nel binario firmato
+(`-allowProvisioningUpdates` non registra l'App Group, e l'archive firmato con
+firma automatica fallisce sull'auth della API key). Quindi:
+
+1. La `ShareExtension` (Swift puro, `Share/ShareViewController.swift`) estrae il
+   link condiviso (`public.url` / `public.plain-text`) e **riapre l'app con il
+   link dentro l'URL**: `ShareMedia-io.beetit.recipes://import?u=<link-encoded>`.
+2. Flutter usa lo **scene lifecycle**: il `Runner/SceneDelegate.swift`
+   (sottoclasse di `FlutterSceneDelegate`) fa override di `willConnectTo` e
+   `openURLContexts`, cattura il link in `SceneDelegate.pendingSharedUrl`.
+3. `Runner/AppDelegate.swift` espone il link via `MethodChannel("beetit/share")`.
+4. `lib/features/import/share_receiver.dart` (montato come `home`) chiama il
+   canale su launch e ad ogni **resume** dell'app → importa e apre la ricetta.
+
+L'unico requisito iOS è lo **schema URL** `ShareMedia-io.beetit.recipes` in
+`Runner/Info.plist` (nessun entitlement, nessun profilo speciale).
 
 ## Pezzi nel repo
 
-- `app/ios/Share/ShareViewController.swift` — extension autonoma (`@objc(ShareViewController)`).
+- `app/ios/Share/ShareViewController.swift` — extension autonoma (`@objc`).
 - `app/ios/Share/Info.plist` — `NSExtensionActivationRule` (WebURL + Text),
   `NSExtensionPrincipalClass = ShareViewController`, point `com.apple.share-services`.
-- `app/ios/Share/Share.entitlements` — App Group `group.io.beetit.recipes`.
-- `app/ios/Runner/Runner.entitlements` — stessa App Group.
+- `app/ios/Runner/SceneDelegate.swift` — cattura il link dallo schema URL.
+- `app/ios/Runner/AppDelegate.swift` — `MethodChannel("beetit/share")`.
 - `app/ios/Runner/Info.plist` — `CFBundleURLScheme = ShareMedia-io.beetit.recipes`
-  (usato per riaprire l'app) + `CFBundleDisplayName = Beet-It Recipes`.
-- `app/ios/scripts/add_share_target.rb` — aggiunge il target app-extension al
-  `.xcodeproj` (target, build settings, embed in Runner, dipendenza, entitlements).
-- `app/ios/scripts/build_with_share.sh` — pipeline completa sul Mac di build.
+  + `CFBundleDisplayName = Beet-It Recipes`.
+- `app/ios/scripts/add_share_target.rb` — aggiunge il target app-extension.
+- `app/ios/scripts/build_with_share.sh` — pipeline di build sul Mac.
 
 ## Build (sul Mac, progetto in modalità SPM)
 
@@ -41,21 +50,15 @@ cd app/ios && fastlane sign && fastlane upload # export firmato + upload TestFli
 
 ### Dettagli critici risolti
 
-1. **SPM, non CocoaPods.** Il progetto integra i plugin via
-   `FlutterGeneratedPluginSwiftPackage`. Nessun `Podfile`: lo script lo rimuove.
-2. **Ordine delle build phase.** La fase *Embed App Extensions* deve stare
-   **prima** del Run Script *Thin Binary* di Flutter, altrimenti Xcode segnala un
-   *dependency cycle* e l'archive fallisce. Lo fa `add_share_target.rb`.
-3. **App Group provisioning.** L'export con firma automatica
-   (`-allowProvisioningUpdates` + App Store Connect API key) registra da solo
-   l'App ID dell'extension (`io.beetit.recipes.ShareExtension`) e l'App Group su
-   entrambi i profili. `CodeSignOnCopy` sull'appex embeddato.
+1. **SPM, non CocoaPods.** Nessun `Podfile`: lo script lo rimuove.
+2. **Ordine build phase.** *Embed App Extensions* deve stare **prima** del Run
+   Script *Thin Binary* di Flutter, altrimenti Xcode segnala un dependency cycle.
+3. **Firma.** Export da archive `--no-codesign` (lane `sign`): nessuna entitlement
+   speciale, così il signing non richiede provisioning di capability.
 
-## Lato Flutter — già fatto
+## Lato Android
 
-`ShareReceiver` (montato come `home` in `app.dart`) ascolta
-`getInitialMedia()` / `getMediaStream()`, estrae l'URL e chiama l'import mostrando
-il loader.
+`ShareReceiver` usa il plugin `receive_sharing_intent` (intent `ACTION_SEND`).
 
-> Nota: la Share Extension si testa solo su un **device/simulatore iOS** (o
-> Android), non sul build web.
+> La Share Extension si testa solo su un **device/simulatore iOS** (o Android),
+> non sul build web.
