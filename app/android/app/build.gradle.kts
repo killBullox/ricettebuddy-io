@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "io.ricettebuddy.ricettebuddy"
-    compileSdk = flutter.compileSdkVersion
+    // receive_sharing_intent 1.9.0 richiede compileSdk >= 37. Flutter di default
+    // usa 36, quindi lo forziamo a 37 (platform android-37 installata sul Mac).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
