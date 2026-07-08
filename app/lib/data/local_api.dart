@@ -12,9 +12,7 @@ import 'models/recipe.dart';
 class LocalApi {
   /// Base URL: su mobile usa `API_BASE` (backend pubblico); sul web la stessa
   /// origine da cui è servita l'app.
-  static Uri _u(String path) => Config.apiBase.isNotEmpty
-      ? Uri.parse('${Config.apiBase}/$path')
-      : Uri.base.resolve(path);
+  static Uri _u(String path) => Config.backendUri(path);
 
   Future<List<Recipe>> listRecipes({String? search}) async {
     final res = await http.get(_u('api/recipes'));

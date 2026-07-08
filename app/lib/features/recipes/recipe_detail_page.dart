@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../config.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/ingredient.dart';
 import '../../data/models/recipe.dart';
@@ -466,7 +467,7 @@ class _VideoSectionState extends State<_VideoSection> {
     // Riproduce tramite l'endpoint /video del server locale, che rimuxa al volo
     // in MP4 frammentato (gli MP4 di GZ non sono faststart) -> parte subito.
     final playUrl =
-        Uri.base.resolve('video?u=${Uri.encodeQueryComponent(widget.mp4!)}');
+        Config.backendUri('video?u=${Uri.encodeQueryComponent(widget.mp4!)}');
     final c = VideoPlayerController.networkUrl(playUrl);
     try {
       await c.initialize().timeout(const Duration(seconds: 30));

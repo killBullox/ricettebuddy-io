@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../config.dart';
 import 'ingredient_icon.dart';
 
 /// Avatar ingrediente: emoji se disponibile, altrimenti icona SVG generata
@@ -39,8 +40,8 @@ class _AiIngredientIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dot = Icon(Icons.circle, size: size * 0.32, color: Theme.of(context).hintColor);
-    final url = Uri.base
-        .resolve('/api/ingredient-icon?name=${Uri.encodeQueryComponent(raw)}')
+    final url = Config
+        .backendUri('api/ingredient-icon?name=${Uri.encodeQueryComponent(raw)}')
         .toString();
     return SvgPicture.network(
       url,

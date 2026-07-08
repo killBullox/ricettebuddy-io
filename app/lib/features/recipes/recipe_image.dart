@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../config.dart';
+
 /// Immagine di una ricetta: gestisce sia asset locali ('assets/...') sia URL
 /// remoti, con fallback grazioso all'icona se manca o non carica.
 class RecipeImage extends StatelessWidget {
@@ -42,7 +44,7 @@ class RecipeImage extends StatelessWidget {
     // Le immagini remote (es. GialloZafferano) non hanno header CORS: su Flutter
     // web fallirebbero. Le carichiamo attraverso il proxy same-origin del
     // server locale (/img?u=...).
-    final url = Uri.base.resolve('img?u=${Uri.encodeQueryComponent(p)}').toString();
+    final url = Config.backendUri('img?u=${Uri.encodeQueryComponent(p)}').toString();
     return CachedNetworkImage(
       imageUrl: url,
       width: width,

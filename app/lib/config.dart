@@ -12,6 +12,16 @@ class Config {
   ///   --dart-define=API_BASE=https://beetit.tuodominio.it
   static const apiBase = String.fromEnvironment('API_BASE');
 
+  /// Risolve un percorso del backend: su mobile usa `API_BASE`, sul web la
+  /// stessa origine. Usato per API, proxy immagini (/img), video (/video) e
+  /// icone (/api/ingredient-icon).
+  static Uri backendUri(String path) {
+    final p = path.startsWith('/') ? path.substring(1) : path;
+    return apiBase.isNotEmpty
+        ? Uri.parse('$apiBase/$p')
+        : Uri.base.resolve(p);
+  }
+
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
