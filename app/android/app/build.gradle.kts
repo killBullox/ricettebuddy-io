@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "io.ricettebuddy.ricettebuddy"
-    // Fissato a 36 (stabile/scaricabile): il default di Flutter punta ad android-37
-    // che non e' ancora pubblicato come pacchetto SDK stabile.
-    compileSdk = 36
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -22,7 +20,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
