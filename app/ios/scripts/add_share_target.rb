@@ -66,10 +66,14 @@ else
   runner.build_phases << embed
 end
 
-# Runner dipende dall'extension + entitlements (App Group)
+# Runner dipende dall'extension + entitlements (App Group) + firma automatica
+# (serve per un archive FIRMATO in cui -allowProvisioningUpdates registra l'App
+# Group e la include nell'entitlement del binario).
 runner.add_dependency(ext)
 runner.build_configurations.each do |c|
   c.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
+  c.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+  c.build_settings['DEVELOPMENT_TEAM'] = TEAM
 end
 
 project.save
