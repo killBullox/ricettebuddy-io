@@ -10,6 +10,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../recipes/recipe_detail_page.dart';
 
 /// Riceve i contenuti condivisi da altre app (Share Extension iOS / Intent
@@ -96,13 +97,14 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
     if (_importing) return; // evita import doppi (resume multipli)
     _importing = true;
     final ctx = context;
+    final l = AppLocalizations.of(ctx);
     showDialog(
       context: ctx,
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7),
       useSafeArea: false,
-      builder: (_) => const Center(
-        child: CookingLoader(size: 230, phases: kImportPhases),
+      builder: (_) => Center(
+        child: CookingLoader(size: 230, phases: importPhases(l)),
       ),
     );
     try {

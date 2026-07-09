@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
+import '../../l10n/app_localizations.dart';
+import 'recipe_labels.dart';
 
 /// Pannello filtri per la ricerca ricette: allergeni da escludere (glutine,
 /// soia, …), etichette nutrizionali (HIGH PROTEIN, LOW CARB…) e soglie
-/// nutrizionali PER PORZIONE (calorie max, proteine min).
+/// nutrizionali PER PORZIONE (calorie max, proteine min). Localizzato.
 class RecipeFilterSheet extends ConsumerStatefulWidget {
   const RecipeFilterSheet({super.key});
 
@@ -19,14 +21,6 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
   late Set<String> _labels;
   int? _maxKcal;
   int? _minProtein;
-
-  // etichetta mostrata -> chiave allergene cercata (minuscolo, "contains")
-  static const _allergens = {
-    'Senza glutine': 'glutine',
-    'Senza soia': 'soia',
-    'Senza frutta a guscio': 'frutta a guscio',
-    'Senza lattosio': 'lattosio',
-  };
 
   @override
   void initState() {
@@ -43,6 +37,14 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    // etichetta localizzata -> chiave allergene (minuscolo, "contains")
+    final allergens = {
+      l.allergenGluten: 'glutine',
+      l.allergenSoy: 'soia',
+      l.allergenNuts: 'frutta a guscio',
+      l.allergenLactose: 'lattosio',
+    };
     return Padding(
       padding: EdgeInsets.only(
           left: 16,
@@ -53,40 +55,40 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Filtri',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            _title('Senza allergeni'),
+            Text(l.filtersTitle,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            _title(l.filterNoAllergens),
             Wrap(spacing: 8, children: [
-              for (final e in _allergens.entries)
+              for (final e in allergens.entries)
                 FilterChip(
                   label: Text(e.key),
                   selected: _excl.contains(e.value),
                   onSelected: (_) => _toggle(_excl, e.value),
                 ),
             ]),
-            _title('Etichette'),
+            _title(l.filterLabels),
             Wrap(spacing: 8, children: [
-              for (final l in Recipe.nutritionLabelKeys)
+              for (final key in Recipe.nutritionLabelKeys)
                 FilterChip(
-                  label: Text(l),
-                  selected: _labels.contains(l),
-                  onSelected: (_) => _toggle(_labels, l),
+                  label: Text(nutritionLabelText(l, key)),
+                  selected: _labels.contains(key),
+                  onSelected: (_) => _toggle(_labels, key),
                 ),
             ]),
-            _title('Calorie max (a porzione)'),
+            _title(l.filterMaxKcal),
             Wrap(spacing: 8, children: [
               for (final k in [300, 500, 700])
                 ChoiceChip(
-                  label: Text('≤ $k kcal'),
+                  label: Text(l.filterMaxKcalChip('$k')),
                   selected: _maxKcal == k,
                   onSelected: (_) => setState(() => _maxKcal = _maxKcal == k ? null : k),
                 ),
             ]),
-            _title('Proteine min (a porzione)'),
+            _title(l.filterMinProtein),
             Wrap(spacing: 8, children: [
               for (final p in [10, 20, 30])
                 ChoiceChip(
-                  label: Text('≥ $p g'),
+                  label: Text(l.filterMinProteinChip('$p')),
                   selected: _minProtein == p,
                   onSelected: (_) => setState(() => _minProtein = _minProtein == p ? null : p),
                 ),
@@ -99,7 +101,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
                       const RecipeFilters();
                   Navigator.of(context).pop();
                 },
-                child: const Text('Azzera'),
+                child: Text(l.filterReset),
               ),
               const Spacer(),
               FilledButton(
@@ -112,7 +114,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
                   );
                   Navigator.of(context).pop();
                 },
-                child: const Text('Applica'),
+                child: Text(l.filterApply),
               ),
             ]),
           ],

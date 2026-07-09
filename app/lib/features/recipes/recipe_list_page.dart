@@ -63,7 +63,7 @@ class RecipeListPage extends ConsumerWidget {
                   label: Text('${filters.count}'),
                   child: IconButton.filledTonal(
                     icon: const Icon(Icons.tune),
-                    tooltip: 'Filtri',
+                    tooltip: l.filtersTitle,
                     onPressed: () => showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,

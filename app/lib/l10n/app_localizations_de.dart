@@ -155,4 +155,98 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get systemLanguage => 'System';
+
+  @override
+  String get phaseAnalyzing => 'Rezept wird analysiert…';
+
+  @override
+  String get phaseVeganizing => 'Zutaten werden veganisiert…';
+
+  @override
+  String get phaseInstructions => 'Zubereitungsschritte werden erstellt…';
+
+  @override
+  String get phaseNutrition => 'Nährwerte werden berechnet…';
+
+  @override
+  String get phaseCo2 => 'Umweltbilanz wird geschätzt (CO₂)…';
+
+  @override
+  String get navMore => 'Mehr';
+
+  @override
+  String get badgeVeganized => 'Veganisiert';
+
+  @override
+  String get labelVegan => 'Vegan';
+
+  @override
+  String get labelHighProtein => 'PROTEINREICH';
+
+  @override
+  String get labelLowCarb => 'LOW CARB';
+
+  @override
+  String get labelLight => 'LEICHT';
+
+  @override
+  String get labelHighFiber => 'BALLASTSTOFFE';
+
+  @override
+  String get filtersTitle => 'Filter';
+
+  @override
+  String get filterNoAllergens => 'Ohne Allergene';
+
+  @override
+  String get allergenGluten => 'Glutenfrei';
+
+  @override
+  String get allergenSoy => 'Ohne Soja';
+
+  @override
+  String get allergenNuts => 'Ohne Nüsse';
+
+  @override
+  String get allergenLactose => 'Laktosefrei';
+
+  @override
+  String get filterLabels => 'Labels';
+
+  @override
+  String get filterMaxKcal => 'Max. Kalorien (pro Portion)';
+
+  @override
+  String get filterMinProtein => 'Min. Protein (pro Portion)';
+
+  @override
+  String filterMaxKcalChip(Object k) {
+    return '≤ $k kcal';
+  }
+
+  @override
+  String filterMinProteinChip(Object p) {
+    return '≥ $p g';
+  }
+
+  @override
+  String get filterReset => 'Zurücksetzen';
+
+  @override
+  String get filterApply => 'Anwenden';
+
+  @override
+  String co2Saved(Object kg) {
+    return '$kg kg CO₂ pro Portion gespart';
+  }
+
+  @override
+  String co2SubVeganized(Object km) {
+    return 'durch Veganisieren dieses Rezepts — wie $km km weniger mit dem Auto 🚗';
+  }
+
+  @override
+  String co2SubChosen(Object km) {
+    return 'durch diese pflanzliche Version — wie $km km weniger mit dem Auto 🚗';
+  }
 }

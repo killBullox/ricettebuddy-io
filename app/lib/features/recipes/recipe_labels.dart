@@ -2,15 +2,30 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/diet.dart';
 import '../../data/models/recipe.dart';
+import '../../l10n/app_localizations.dart';
+
+/// Testo localizzato di una label nutrizionale (chiave stabile → testo lingua).
+String nutritionLabelText(AppLocalizations l, String key) => switch (key) {
+      'HIGH PROTEIN' => l.labelHighProtein,
+      'LOW CARB' => l.labelLowCarb,
+      'LIGHT' => l.labelLight,
+      'HIGH FIBER' => l.labelHighFiber,
+      _ => key,
+    };
+
+/// Testo localizzato di un regime (per ora gestiamo il caso comune "vegan").
+String dietLabelText(AppLocalizations l, Diet d) =>
+    d == Diet.vegan ? l.labelVegan : d.label;
 
 /// Etichette di una ricetta: badge "Veganized" (se veganizzata), i regimi
-/// (Vegano, Senza glutine, …) e le label nutrizionali (HIGH PROTEIN, LOW CARB…).
+/// (Vegano, …) e le label nutrizionali (HIGH PROTEIN, LOW CARB…). Localizzate.
 class RecipeLabels extends StatelessWidget {
   final Recipe recipe;
   const RecipeLabels({super.key, required this.recipe});
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final diets = Diet.fromNames(recipe.dietTags).toList();
     final nutri = recipe.nutritionLabels;
     if (!recipe.isVeganized && diets.isEmpty && nutri.isEmpty) {
@@ -21,19 +36,19 @@ class RecipeLabels extends StatelessWidget {
       runSpacing: 4,
       children: [
         if (recipe.isVeganized)
-          const _Pill(
-              text: 'Veganized',
+          _Pill(
+              text: l.badgeVeganized,
               icon: Icons.eco,
-              bg: Color(0xFF2E7D32),
+              bg: const Color(0xFF2E7D32),
               fg: Colors.white),
         for (final d in diets)
           _Pill(
-              text: d.label,
+              text: dietLabelText(l, d),
               bg: const Color(0xFFEFEDE6),
               fg: const Color(0xFF3A0E2A)),
         for (final n in nutri)
           _Pill(
-              text: n,
+              text: nutritionLabelText(l, n),
               bg: const Color(0xFFFFF0D6),
               fg: const Color(0xFF9A6B00)),
       ],

@@ -28,8 +28,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
       useSafeArea: false,
-      builder: (_) => const Center(
-        child: CookingLoader(size: 230, phases: kImportPhases),
+      builder: (_) => Center(
+        child: CookingLoader(size: 230, phases: importPhases(l)),
       ),
     );
     try {

@@ -163,6 +163,7 @@ class _Co2Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final km = (kg / 0.12).round(); // ~0.12 kg CO2e per km in auto
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -187,7 +188,7 @@ class _Co2Card extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${kg.toStringAsFixed(1)} kg CO₂ risparmiati a porzione',
+                  Text(l.co2Saved(kg.toStringAsFixed(1)),
                       style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
@@ -195,8 +196,8 @@ class _Co2Card extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     veganized
-                        ? 'veganizzando questa ricetta — come $km km in meno in auto 🚗'
-                        : 'scegliendo questa versione vegetale — come $km km in meno in auto 🚗',
+                        ? l.co2SubVeganized('$km')
+                        : l.co2SubChosen('$km'),
                     style: const TextStyle(
                         fontSize: 12.5, color: Color(0xFF2E7D32)),
                   ),

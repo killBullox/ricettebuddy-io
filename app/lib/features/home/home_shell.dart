@@ -91,10 +91,10 @@ class _HomeShellState extends State<HomeShell> {
               icon: const Icon(Icons.health_and_safety_outlined),
               selectedIcon: const Icon(Icons.health_and_safety),
               label: l.navConsulenza),
-          const NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
-              label: 'Altro'),
+          NavigationDestination(
+              icon: const Icon(Icons.grid_view_outlined),
+              selectedIcon: const Icon(Icons.grid_view),
+              label: l.navMore),
         ],
       ),
     );

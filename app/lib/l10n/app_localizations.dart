@@ -379,6 +379,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get systemLanguage;
+
+  /// No description provided for @phaseAnalyzing.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing the recipe…'**
+  String get phaseAnalyzing;
+
+  /// No description provided for @phaseVeganizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Veganizing the ingredients…'**
+  String get phaseVeganizing;
+
+  /// No description provided for @phaseInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing the cooking steps…'**
+  String get phaseInstructions;
+
+  /// No description provided for @phaseNutrition.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating nutrition facts…'**
+  String get phaseNutrition;
+
+  /// No description provided for @phaseCo2.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimating the environmental impact (CO₂)…'**
+  String get phaseCo2;
+
+  /// No description provided for @navMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get navMore;
+
+  /// No description provided for @badgeVeganized.
+  ///
+  /// In en, this message translates to:
+  /// **'Veganized'**
+  String get badgeVeganized;
+
+  /// No description provided for @labelVegan.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegan'**
+  String get labelVegan;
+
+  /// No description provided for @labelHighProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'HIGH PROTEIN'**
+  String get labelHighProtein;
+
+  /// No description provided for @labelLowCarb.
+  ///
+  /// In en, this message translates to:
+  /// **'LOW CARB'**
+  String get labelLowCarb;
+
+  /// No description provided for @labelLight.
+  ///
+  /// In en, this message translates to:
+  /// **'LIGHT'**
+  String get labelLight;
+
+  /// No description provided for @labelHighFiber.
+  ///
+  /// In en, this message translates to:
+  /// **'HIGH FIBER'**
+  String get labelHighFiber;
+
+  /// No description provided for @filtersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get filtersTitle;
+
+  /// No description provided for @filterNoAllergens.
+  ///
+  /// In en, this message translates to:
+  /// **'Without allergens'**
+  String get filterNoAllergens;
+
+  /// No description provided for @allergenGluten.
+  ///
+  /// In en, this message translates to:
+  /// **'Gluten-free'**
+  String get allergenGluten;
+
+  /// No description provided for @allergenSoy.
+  ///
+  /// In en, this message translates to:
+  /// **'Soy-free'**
+  String get allergenSoy;
+
+  /// No description provided for @allergenNuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Nut-free'**
+  String get allergenNuts;
+
+  /// No description provided for @allergenLactose.
+  ///
+  /// In en, this message translates to:
+  /// **'Lactose-free'**
+  String get allergenLactose;
+
+  /// No description provided for @filterLabels.
+  ///
+  /// In en, this message translates to:
+  /// **'Labels'**
+  String get filterLabels;
+
+  /// No description provided for @filterMaxKcal.
+  ///
+  /// In en, this message translates to:
+  /// **'Max calories (per serving)'**
+  String get filterMaxKcal;
+
+  /// No description provided for @filterMinProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'Min protein (per serving)'**
+  String get filterMinProtein;
+
+  /// No description provided for @filterMaxKcalChip.
+  ///
+  /// In en, this message translates to:
+  /// **'≤ {k} kcal'**
+  String filterMaxKcalChip(Object k);
+
+  /// No description provided for @filterMinProteinChip.
+  ///
+  /// In en, this message translates to:
+  /// **'≥ {p} g'**
+  String filterMinProteinChip(Object p);
+
+  /// No description provided for @filterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get filterReset;
+
+  /// No description provided for @filterApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get filterApply;
+
+  /// No description provided for @co2Saved.
+  ///
+  /// In en, this message translates to:
+  /// **'{kg} kg CO₂ saved per serving'**
+  String co2Saved(Object kg);
+
+  /// No description provided for @co2SubVeganized.
+  ///
+  /// In en, this message translates to:
+  /// **'by veganizing this recipe — like {km} km less by car 🚗'**
+  String co2SubVeganized(Object km);
+
+  /// No description provided for @co2SubChosen.
+  ///
+  /// In en, this message translates to:
+  /// **'by choosing this plant-based version — like {km} km less by car 🚗'**
+  String co2SubChosen(Object km);
 }
 
 class _AppLocalizationsDelegate

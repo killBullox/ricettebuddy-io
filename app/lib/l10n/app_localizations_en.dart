@@ -154,4 +154,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get systemLanguage => 'System';
+
+  @override
+  String get phaseAnalyzing => 'Analyzing the recipe…';
+
+  @override
+  String get phaseVeganizing => 'Veganizing the ingredients…';
+
+  @override
+  String get phaseInstructions => 'Writing the cooking steps…';
+
+  @override
+  String get phaseNutrition => 'Calculating nutrition facts…';
+
+  @override
+  String get phaseCo2 => 'Estimating the environmental impact (CO₂)…';
+
+  @override
+  String get navMore => 'More';
+
+  @override
+  String get badgeVeganized => 'Veganized';
+
+  @override
+  String get labelVegan => 'Vegan';
+
+  @override
+  String get labelHighProtein => 'HIGH PROTEIN';
+
+  @override
+  String get labelLowCarb => 'LOW CARB';
+
+  @override
+  String get labelLight => 'LIGHT';
+
+  @override
+  String get labelHighFiber => 'HIGH FIBER';
+
+  @override
+  String get filtersTitle => 'Filters';
+
+  @override
+  String get filterNoAllergens => 'Without allergens';
+
+  @override
+  String get allergenGluten => 'Gluten-free';
+
+  @override
+  String get allergenSoy => 'Soy-free';
+
+  @override
+  String get allergenNuts => 'Nut-free';
+
+  @override
+  String get allergenLactose => 'Lactose-free';
+
+  @override
+  String get filterLabels => 'Labels';
+
+  @override
+  String get filterMaxKcal => 'Max calories (per serving)';
+
+  @override
+  String get filterMinProtein => 'Min protein (per serving)';
+
+  @override
+  String filterMaxKcalChip(Object k) {
+    return '≤ $k kcal';
+  }
+
+  @override
+  String filterMinProteinChip(Object p) {
+    return '≥ $p g';
+  }
+
+  @override
+  String get filterReset => 'Reset';
+
+  @override
+  String get filterApply => 'Apply';
+
+  @override
+  String co2Saved(Object kg) {
+    return '$kg kg CO₂ saved per serving';
+  }
+
+  @override
+  String co2SubVeganized(Object km) {
+    return 'by veganizing this recipe — like $km km less by car 🚗';
+  }
+
+  @override
+  String co2SubChosen(Object km) {
+    return 'by choosing this plant-based version — like $km km less by car 🚗';
+  }
 }
