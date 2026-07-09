@@ -41,3 +41,45 @@ Future<({String id, bool duplicate})?> runImport(
     live.dispose();
   }
 }
+
+/// Import da una CONDIVISIONE: se l'app social loggata ha passato anche la
+/// didascalia ([caption]), la elaboriamo direttamente (contenuto autenticato,
+/// come fa il concorrente). Altrimenti si estrae dall'[url].
+Future<({String id, bool duplicate})?> runImportShared(
+    BuildContext context, WidgetRef ref,
+    {required String url, required String caption}) async {
+  final l = AppLocalizations.of(context);
+  final cap = caption.trim();
+  // Deve esserci testo VERO oltre a eventuali link (non una didascalia = solo URL).
+  final capNoUrl = cap.replaceAll(RegExp(r'https?://\S+'), '').trim();
+  if (capNoUrl.length < 40) return runImport(context, ref, url);
+
+  final live = ValueNotifier<String>(l.phaseReading);
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: const Color(0xFFFBFAF7),
+    useSafeArea: false,
+    builder: (_) => Center(
+      child: CookingLoader(size: 230, liveMessage: live, payoff: kPayoff),
+    ),
+  );
+  try {
+    final post = ExtractedPost(
+      title: cap.split('\n').firstWhere((s) => s.trim().isNotEmpty, orElse: () => 'Ricetta'),
+      text: cap,
+      sourceUrl: url.isEmpty ? 'shared' : url,
+    );
+    final res = await ref.read(importRepositoryProvider).importFromExtracted(
+          post,
+          onPhase: (p) => live.value = phaseText(l, p),
+        );
+    if (context.mounted) Navigator.of(context).pop();
+    return res;
+  } catch (_) {
+    if (context.mounted) Navigator.of(context).pop();
+    rethrow;
+  } finally {
+    live.dispose();
+  }
+}

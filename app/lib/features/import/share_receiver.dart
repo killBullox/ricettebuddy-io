@@ -77,28 +77,33 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
 
   Future<void> _checkIosShare() async {
     try {
-      final url = await _iosChannel.invokeMethod<String>('getSharedUrl');
-      if (url != null && url.isNotEmpty) _handleText(url);
+      // Ritorna {url, caption}: la didascalia arriva dall'app social loggata.
+      final res = await _iosChannel.invokeMethod('getSharedUrl');
+      if (res is Map) {
+        _importShared(
+          (res['url'] ?? '').toString(),
+          (res['caption'] ?? '').toString(),
+        );
+      }
     } catch (_) {/* canale non disponibile */}
   }
 
   void _handleFiles(List<SharedMediaFile> files) {
     if (files.isEmpty) return;
-    _handleText(files.map((f) => f.path).join(' '));
+    final text = files.map((f) => f.path).join(' ').trim();
+    final url = RegExp(r'https?://[^\s]+').firstMatch(text)?.group(0) ?? '';
+    // Se la condivisione porta un testo ricco (didascalia), passalo.
+    _importShared(url, text.length >= 40 ? text : '');
   }
 
-  void _handleText(String text) {
-    final m = RegExp(r'https?://[^\s]+').firstMatch(text);
-    if (m != null) _import(m.group(0)!);
-  }
-
-  Future<void> _import(String url) async {
+  Future<void> _importShared(String url, String caption) async {
     if (_importing) return; // evita import doppi (resume multipli)
+    if (url.isEmpty && caption.trim().length < 40) return;
     _importing = true;
     final ctx = context;
     final l = AppLocalizations.of(ctx);
     try {
-      final res = await runImport(ctx, ref, url);
+      final res = await runImportShared(ctx, ref, url: url, caption: caption);
       if (res == null) return; // annullato
       ref.invalidate(recipeListProvider);
       if (!ctx.mounted) return;

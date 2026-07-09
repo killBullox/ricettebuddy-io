@@ -23,8 +23,14 @@ import UIKit
           result(FlutterMethodNotImplemented); return
         }
         let u = SceneDelegate.pendingSharedUrl
-        SceneDelegate.pendingSharedUrl = nil   // consuma una sola volta
-        result(u)
+        let c = SceneDelegate.pendingSharedCaption
+        SceneDelegate.pendingSharedUrl = nil       // consuma una sola volta
+        SceneDelegate.pendingSharedCaption = nil
+        if u == nil && c == nil {
+          result(nil)
+        } else {
+          result(["url": u ?? "", "caption": c ?? ""])
+        }
       }
     }
   }

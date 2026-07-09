@@ -3,9 +3,10 @@ import UIKit
 
 class SceneDelegate: FlutterSceneDelegate {
 
-  // Link condiviso catturato dallo schema URL (ShareMedia-io.beetit.recipes://import?u=…),
-  // letto poi da Flutter via il canale "beetit/share".
+  // Link + didascalia condivisi (catturati dallo schema URL), letti da Flutter
+  // via il canale "beetit/share".
   static var pendingSharedUrl: String?
+  static var pendingSharedCaption: String?
 
   // App aperta a freddo da una condivisione.
   override func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
@@ -22,8 +23,12 @@ class SceneDelegate: FlutterSceneDelegate {
 
   static func capture(_ url: URL) {
     guard let comps = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-    if let u = comps.queryItems?.first(where: { $0.name == "u" })?.value, !u.isEmpty {
+    let items = comps.queryItems
+    if let u = items?.first(where: { $0.name == "u" })?.value, !u.isEmpty {
       pendingSharedUrl = u
+    }
+    if let c = items?.first(where: { $0.name == "cap" })?.value, !c.isEmpty {
+      pendingSharedCaption = c
     }
   }
 }
