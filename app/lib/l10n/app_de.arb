@@ -51,6 +51,8 @@
   "phaseInstructions": "Zubereitungsschritte werden erstellt…",
   "phaseNutrition": "Nährwerte werden berechnet…",
   "phaseCo2": "Umweltbilanz wird geschätzt (CO₂)…",
+  "phaseReading": "Rezept wird gelesen…",
+  "phaseProcessing": "Dein Rezept wird vorbereitet…",
   "navMore": "Mehr",
   "badgeVeganized": "Veganisiert",
   "labelVegan": "Vegan",

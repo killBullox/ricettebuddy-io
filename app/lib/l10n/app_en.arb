@@ -54,6 +54,8 @@
   "phaseInstructions": "Writing the cooking steps…",
   "phaseNutrition": "Calculating nutrition facts…",
   "phaseCo2": "Estimating the environmental impact (CO₂)…",
+  "phaseReading": "Reading the recipe…",
+  "phaseProcessing": "Preparing your recipe…",
   "navMore": "More",
   "badgeVeganized": "Veganized",
   "labelVegan": "Vegan",

@@ -410,6 +410,18 @@ abstract class AppLocalizations {
   /// **'Estimating the environmental impact (CO₂)…'**
   String get phaseCo2;
 
+  /// No description provided for @phaseReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the recipe…'**
+  String get phaseReading;
+
+  /// No description provided for @phaseProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your recipe…'**
+  String get phaseProcessing;
+
   /// No description provided for @navMore.
   ///
   /// In en, this message translates to:

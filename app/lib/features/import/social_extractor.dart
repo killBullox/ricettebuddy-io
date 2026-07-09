@@ -137,8 +137,11 @@ class SocialExtractor {
   }
 
   // ---- IG / FB / Pinterest / generico: webview headless sul dispositivo ----
-  // Carica la pagina con l'IP e le sessioni loggate dell'utente e ne estrae la
-  // didascalia dal DOM (og:description/og:title + testo visibile).
+  // Usa uno User-Agent da CRAWLER (Twitterbot): Facebook/Instagram servono i
+  // meta og: (per le anteprime dei link) SENZA muro di login né banner cookie.
+  // Così estraiamo la didascalia dai meta, non da testo di pagina spurio.
+  static const _crawlerUA = 'Mozilla/5.0 (compatible; Twitterbot/1.0)';
+
   static Future<ExtractedPost> _viaWebView(String url) async {
     final completer = Completer<ExtractedPost>();
     HeadlessInAppWebView? hw;
@@ -147,16 +150,13 @@ class SocialExtractor {
       final raw = await c.evaluateJavascript(source: r'''
         (function () {
           function meta(p){var e=document.querySelector('meta[property="'+p+'"]')||document.querySelector('meta[name="'+p+'"]');return e?e.content:null;}
-          var title = meta('og:title') || document.title || '';
-          var desc  = meta('og:description') || '';
-          var img   = meta('og:image') || '';
-          // Testo visibile più lungo (didascalia del post) come fallback.
           var best = '';
-          document.querySelectorAll('h1,h2,p,span,div[dir="auto"]').forEach(function(n){
-            var t = (n.innerText||'').trim();
-            if (t.length > best.length && t.length < 4000) best = t;
+          document.querySelectorAll('p,span,div[dir="auto"],li').forEach(function(n){
+            var t=(n.innerText||'').trim(); if(t.length>best.length && t.length<4000) best=t;
           });
-          return JSON.stringify({title:title, desc:desc, img:img, best:best, href:location.href});
+          return JSON.stringify({title:meta('og:title'), desc:meta('og:description'),
+            img:meta('og:image'), ogurl:meta('og:url'), ptitle:document.title,
+            best:best, href:location.href});
         })();
       ''');
       if (raw == null) return;
@@ -164,9 +164,17 @@ class SocialExtractor {
       final title = (m['title'] ?? '').toString().trim();
       final desc = (m['desc'] ?? '').toString().trim();
       final best = (m['best'] ?? '').toString().trim();
-      // La didascalia migliore: og:description, o il testo visibile più lungo.
-      final caption = (desc.length >= best.length ? desc : best).trim();
-      if (caption.length < 40 && !completer.isCompleted) return; // riprova
+
+      // Didascalia: prima og:description, poi il testo visibile più lungo, poi
+      // lo slug dell'og:url (Facebook ci mette l'inizio della didascalia).
+      var caption = (desc.length >= best.length ? desc : best).trim();
+      if (_looksLikeWall(caption)) caption = '';
+      if (caption.length < 40) {
+        final slug = _deslug((m['ogurl'] ?? '').toString());
+        if (slug.length > caption.length) caption = slug;
+      }
+      if (caption.length < 40) return; // non ancora pronto → riprova / scade
+
       if (!completer.isCompleted) {
         completer.complete(ExtractedPost(
           title: title.isNotEmpty ? title : 'Ricetta',
@@ -180,16 +188,15 @@ class SocialExtractor {
     hw = HeadlessInAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(url)),
       initialSettings: InAppWebViewSettings(
-        userAgent: _iosUA,
+        userAgent: _crawlerUA,
         javaScriptEnabled: true,
-        clearCache: false, // mantiene i cookie di sessione dell'utente
+        clearCache: false,
       ),
       onLoadStop: (controller, _) async {
-        // Un paio di tentativi: alcune pagine popolano la didascalia dopo il load.
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 1));
         await tryExtract(controller);
         if (!completer.isCompleted) {
-          await Future.delayed(const Duration(seconds: 3));
+          await Future.delayed(const Duration(seconds: 2));
           await tryExtract(controller);
         }
       },
@@ -197,11 +204,33 @@ class SocialExtractor {
 
     await hw.run();
     try {
-      return await completer.future.timeout(const Duration(seconds: 25));
+      return await completer.future.timeout(const Duration(seconds: 20));
     } on TimeoutException {
-      throw 'Non riesco a leggere la didascalia del post.';
+      throw 'Non riesco a leggere la ricetta da questo link '
+          '(il social non mostra la didascalia completa senza login).';
     } finally {
       await hw.dispose();
+    }
+  }
+
+  static bool _looksLikeWall(String s) {
+    final t = s.toLowerCase();
+    return t.contains('accedi a facebook') ||
+        t.contains('log in') ||
+        t.contains('cookie') ||
+        t.contains('consenti') ||
+        t.contains('accetta e chiudi');
+  }
+
+  static String _deslug(String ogUrl) {
+    try {
+      final segs = Uri.parse(ogUrl)
+          .pathSegments
+          .where((s) => s.contains('-') && s.length > 10)
+          .toList();
+      return segs.isEmpty ? '' : segs.last.replaceAll('-', ' ');
+    } catch (_) {
+      return '';
     }
   }
 

@@ -172,6 +172,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get phaseCo2 => 'Sto stimando l\'impatto ambientale (CO₂)…';
 
   @override
+  String get phaseReading => 'Sto leggendo la ricetta…';
+
+  @override
+  String get phaseProcessing => 'Sto preparando la tua ricetta…';
+
+  @override
   String get navMore => 'Altro';
 
   @override

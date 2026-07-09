@@ -51,6 +51,8 @@
   "phaseInstructions": "Sto scrivendo le istruzioni di preparazione…",
   "phaseNutrition": "Sto calcolando i valori nutrizionali…",
   "phaseCo2": "Sto stimando l'impatto ambientale (CO₂)…",
+  "phaseReading": "Sto leggendo la ricetta…",
+  "phaseProcessing": "Sto preparando la tua ricetta…",
   "navMore": "Altro",
   "badgeVeganized": "Veganized",
   "labelVegan": "Vegano",

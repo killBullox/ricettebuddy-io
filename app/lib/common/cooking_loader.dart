@@ -1,30 +1,20 @@
-import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
-import '../l10n/app_localizations.dart';
-
-/// Fasi mostrate durante l'import (scorrono nel loader), localizzate.
-List<String> importPhases(AppLocalizations l) => [
-      l.phaseAnalyzing,
-      l.phaseVeganizing,
-      l.phaseInstructions,
-      l.phaseNutrition,
-      l.phaseCo2,
-    ];
-
 /// Loader animato Beet-It: una pentola in ghisa smaltata (stile Le Creuset) con
-/// un cucchiaio di legno che mescola DENTRO e due barbabietole che sobbollono
-/// nel sugo. Da usare ovunque ci sia un'attesa.
+/// vapore che sale, un cucchiaio di legno che mescola appena (dentro, senza mai
+/// toccare le pareti) e due barbabietole che sobbolliscono nel sugo.
 ///
-/// Se [phases] è valorizzato, il testo sotto scorre tra le fasi; altrimenti
-/// mostra [message].
+/// Il testo sotto: [liveMessage] (cambia in tempo reale, pilotato dai passi
+/// EFFETTIVI dell'import) ha la precedenza; altrimenti [message] statico.
 class CookingLoader extends StatefulWidget {
   final double size;
   final String? message;
-  final List<String>? phases;
-  const CookingLoader({super.key, this.size = 120, this.message, this.phases});
+  final ValueListenable<String>? liveMessage;
+  const CookingLoader(
+      {super.key, this.size = 120, this.message, this.liveMessage});
 
   @override
   State<CookingLoader> createState() => _CookingLoaderState();
@@ -34,34 +24,36 @@ class _CookingLoaderState extends State<CookingLoader>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2600),
+    duration: const Duration(milliseconds: 3000),
   )..repeat();
-
-  Timer? _phaseTimer;
-  int _phase = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    if ((widget.phases?.length ?? 0) > 1) {
-      _phaseTimer = Timer.periodic(const Duration(milliseconds: 2300), (_) {
-        if (mounted) setState(() => _phase = (_phase + 1) % widget.phases!.length);
-      });
-    }
-  }
 
   @override
   void dispose() {
-    _phaseTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
 
+  Widget _label(String? text) {
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        child: Text(
+          text,
+          key: ValueKey(text),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+              color: Color(0xFF8B1A4A),
+              fontWeight: FontWeight.w800,
+              fontSize: 15),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final label = widget.phases != null && widget.phases!.isNotEmpty
-        ? widget.phases![_phase]
-        : widget.message;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -73,21 +65,13 @@ class _CookingLoaderState extends State<CookingLoader>
             builder: (_, __) => CustomPaint(painter: _PotPainter(_c.value)),
           ),
         ),
-        if (label != null) ...[
-          const SizedBox(height: 18),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 350),
-            child: Text(
-              label,
-              key: ValueKey(label),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: Color(0xFF8B1A4A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15),
-            ),
-          ),
-        ],
+        if (widget.liveMessage != null)
+          ValueListenableBuilder<String>(
+            valueListenable: widget.liveMessage!,
+            builder: (_, v, __) => _label(v),
+          )
+        else
+          _label(widget.message),
       ],
     );
   }
@@ -105,7 +89,6 @@ class _PotPainter extends CustomPainter {
     c.rotate(rot);
     c.translate(-o.dx, -o.dy);
 
-    // Foglie (la firma della barbabietola)
     final leaf = Paint()..color = const Color(0xFF2E7D32);
     final leaf2 = Paint()..color = const Color(0xFF43A047);
     c.drawPath(
@@ -169,16 +152,38 @@ class _PotPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final s = size.width;
     final cx = s / 2;
-    final rimY = s * 0.52;
+    final rimY = s * 0.54;
     final rimRx = s * 0.34, rimRy = s * 0.085;
     final botY = s * 0.90, botRx = s * 0.25;
     final ang = t * 2 * math.pi;
 
-    // Bocca (sugo) della pentola.
     final mouth = Rect.fromCenter(
         center: Offset(cx, rimY), width: rimRx * 2, height: rimRy * 2);
     final sauce = Rect.fromCenter(
         center: Offset(cx, rimY + s * 0.012), width: rimRx * 1.7, height: rimRy * 1.5);
+
+    // --- Vapore che sale (dietro la pentola, fade verso l'alto) ---
+    for (final i in const [-1, 1]) {
+      final baseX = cx + i * s * 0.08;
+      final drift = math.sin(ang + i) * s * 0.02;
+      final path = Path()..moveTo(baseX, rimY - s * 0.05);
+      for (var seg = 1; seg <= 6; seg++) {
+        final yy = rimY - s * 0.05 - seg * s * 0.05;
+        final xx = baseX + drift + math.sin(seg * 0.9 + ang + i * 1.5) * s * 0.028;
+        path.lineTo(xx, yy);
+      }
+      canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = s * 0.02
+            ..strokeCap = StrokeCap.round
+            ..shader = const LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [Color(0x66C98FB0), Color(0x00C98FB0)],
+            ).createShader(Rect.fromLTRB(0, rimY - s * 0.35, s, rimY)));
+    }
 
     // --- Manici (orecchie) ---
     final ear = Paint()
@@ -193,17 +198,7 @@ class _PotPainter extends CustomPainter {
         Rect.fromCircle(center: Offset(cx + rimRx + s * 0.01, rimY + s * 0.09), radius: s * 0.055),
         -math.pi * 0.75, math.pi * 1.1, false, ear);
 
-    // --- Barbabietole DIETRO il corpo, ritagliate alla colonna della bocca:
-    // sobbollono nel sugo (mezze immerse), non escono mai dai lati. ---
-    canvas.save();
-    canvas.clipRect(Rect.fromLTRB(cx - rimRx * 0.82, 0, cx + rimRx * 0.82, rimY + rimRy));
-    _beet(canvas, Offset(cx - s * 0.10, rimY - s * 0.05 + math.sin(ang) * s * 0.012),
-        s * 0.072, math.sin(ang + 0.6) * 0.14);
-    _beet(canvas, Offset(cx + s * 0.11, rimY - s * 0.03 + math.sin(ang + 2.4) * s * 0.015),
-        s * 0.064, math.sin(ang) * -0.12);
-    canvas.restore();
-
-    // --- Corpo pentola (copre la parte immersa delle barbabietole) ---
+    // --- Corpo pentola ---
     final body = Path()
       ..moveTo(cx - rimRx, rimY)
       ..cubicTo(cx - rimRx, rimY + (botY - rimY) * 0.45, cx - botRx - s * 0.02,
@@ -229,32 +224,44 @@ class _PotPainter extends CustomPainter {
           ..close(),
         Paint()..color = Colors.white.withValues(alpha: 0.12));
 
-    // --- Interno scuro + superficie del sugo (copre le barbabietole al pelo) ---
+    // --- Interno scuro + superficie del sugo ---
     canvas.drawOval(mouth, Paint()..color = const Color(0xFF3A0A2A));
     canvas.drawOval(sauce, Paint()..color = const Color(0xFFB5326B));
 
-    // --- Cucchiaio di legno: impugnatura in alto al centro, la parte immersa
-    // fa un'orbita PICCOLA e centrale nel sugo → non tocca mai le pareti. ---
-    final grip = Offset(cx + math.sin(ang) * s * 0.03, rimY - s * 0.26);
-    final bowl = Offset(cx + math.cos(ang) * rimRx * 0.30,
-        rimY + s * 0.005 + math.sin(ang) * rimRy * 0.5);
+    // --- Contenuto DENTRO la pentola (ritagliato ai lati → non esce mai) ---
+    canvas.save();
+    canvas.clipRect(
+        Rect.fromLTRB(cx - rimRx * 0.92, 0, cx + rimRx * 0.92, rimY + rimRy * 0.85));
+
+    // Cucchiaio: corto, impugnatura poco sopra il bordo, punta con orbita
+    // MINIMA e centrale → mescola appena e non tocca mai le pareti.
+    final grip = Offset(cx + math.sin(ang) * s * 0.02, rimY - s * 0.19);
+    final bowl = Offset(cx + math.cos(ang) * rimRx * 0.16,
+        rimY - s * 0.02 + math.sin(ang) * rimRy * 0.4);
     canvas.drawLine(
         grip, bowl,
         Paint()
           ..color = const Color(0xFFC8965A)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = s * 0.042
+          ..strokeWidth = s * 0.04
           ..strokeCap = StrokeCap.round);
     canvas.save();
     canvas.translate(bowl.dx, bowl.dy);
     canvas.rotate(math.atan2(bowl.dy - grip.dy, bowl.dx - grip.dx));
     canvas.drawOval(
-        Rect.fromCenter(center: Offset.zero, width: s * 0.12, height: s * 0.075),
+        Rect.fromCenter(center: Offset.zero, width: s * 0.11, height: s * 0.07),
         Paint()..color = const Color(0xFFB67B3F));
     canvas.restore();
 
-    // --- Labbro frontale: davanti al cucchiaio e alle barbabietole, così tutto
-    // "entra" nella pentola (dà profondità e nasconde ciò che tocca il bordo). ---
+    // Barbabietole ben visibili sopra il sugo, che ondeggiano (bob ampio) e
+    // ruotano leggermente, sfasate tra loro.
+    _beet(canvas, Offset(cx - s * 0.105, rimY - s * 0.085 + math.sin(ang) * s * 0.03),
+        s * 0.075, math.sin(ang + 0.6) * 0.18);
+    _beet(canvas, Offset(cx + s * 0.11, rimY - s * 0.075 + math.sin(ang + 2.3) * s * 0.03),
+        s * 0.068, math.sin(ang) * -0.16);
+    canvas.restore();
+
+    // --- Labbro frontale: davanti a cucchiaio e barbabietole (profondità) ---
     final front = Path()
       ..addArc(mouth, 0, math.pi)
       ..addArc(sauce.translate(0, s * 0.006), math.pi, math.pi)

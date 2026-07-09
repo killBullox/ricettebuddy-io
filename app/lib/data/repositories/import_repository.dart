@@ -27,12 +27,17 @@ class ImportRepository {
     caseSensitive: false,
   );
 
-  Future<({String id, bool duplicate})> importFromUrl(String url) async {
+  /// [onPhase] riceve i passi REALI: 'reading' (estrazione sul dispositivo),
+  /// poi 'processing' (elaborazione AI). Serve al loader per mostrare fasi vere.
+  Future<({String id, bool duplicate})> importFromUrl(String url,
+      {void Function(String phase)? onPhase}) async {
     if (_demo) {
       // Social su mobile: estraiamo SUL DISPOSITIVO (connessione/login utente),
       // il server fa solo l'AI. Siti web e web-build: parsing lato server.
       if (!kIsWeb && _socialRe.hasMatch(url)) {
+        onPhase?.call('reading');
         final post = await SocialExtractor.extract(url);
+        onPhase?.call('processing');
         final r = await localApi.enrichExtracted(
           title: post.title,
           text: post.text,
@@ -41,9 +46,11 @@ class ImportRepository {
         );
         return (id: r.recipe.id!, duplicate: r.duplicate);
       }
+      onPhase?.call('processing');
       final r = await localApi.importUrl(url);
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
+    onPhase?.call('processing');
     final res = await _db!.functions.invoke('import-recipe', body: {'url': url});
     final data = res.data as Map<String, dynamic>;
     final recipe = _parse(data);
