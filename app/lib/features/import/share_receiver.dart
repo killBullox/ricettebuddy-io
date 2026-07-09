@@ -7,11 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
-import '../../common/cooking_loader.dart';
-import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../recipes/recipe_detail_page.dart';
+import 'import_flow.dart';
 
 /// Riceve i contenuti condivisi da altre app (Share Extension iOS / Intent
 /// Android): quando arriva un link (reel IG/FB/TikTok, video YouTube, ...) lo
@@ -98,35 +97,20 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
     _importing = true;
     final ctx = context;
     final l = AppLocalizations.of(ctx);
-    final live = ValueNotifier<String>(l.phaseReading);
-    showDialog(
-      context: ctx,
-      barrierDismissible: false,
-      barrierColor: const Color(0xFFFBFAF7),
-      useSafeArea: false,
-      builder: (_) => Center(
-        child: CookingLoader(size: 230, liveMessage: live, payoff: kPayoff),
-      ),
-    );
     try {
-      final res = await ref.read(importRepositoryProvider).importFromUrl(
-            url,
-            onPhase: (p) => live.value = phaseText(l, p),
-          );
+      final res = await runImport(ctx, ref, url);
+      if (res == null) return; // annullato
       ref.invalidate(recipeListProvider);
       if (!ctx.mounted) return;
-      Navigator.of(ctx).pop(); // chiude il loader
       Navigator.of(ctx).push(MaterialPageRoute(
         builder: (_) => RecipeDetailPage(recipeId: res.id),
       ));
     } catch (e) {
       if (!ctx.mounted) return;
-      Navigator.of(ctx).pop();
       ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(content: Text(l.importFailed('$e'))),
       );
     } finally {
-      live.dispose();
       _importing = false;
     }
   }

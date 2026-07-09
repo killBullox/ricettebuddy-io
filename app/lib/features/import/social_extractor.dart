@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 
 /// Contenuto estratto da un post social, PRIMA dell'AI.
@@ -18,14 +17,19 @@ class ExtractedPost {
   });
 }
 
-/// Estrae il contenuto di un post social **sul dispositivo dell'utente**
-/// (connessione e sessioni loggate dell'utente): così YouTube/Facebook/…
-/// non bloccano come farebbero verso un IP da datacenter. Al backend arriva
-/// solo il testo, che fa l'AI (veganizzazione, ingredienti, quantità, ecc.).
+/// Facebook richiede login per leggere la didascalia dei reel: segnala che
+/// serve collegare l'account (gestito nella UI con una webview di login).
+class FacebookLoginNeeded implements Exception {}
+
+/// Estrae il contenuto di un post social **sul dispositivo dell'utente** con una
+/// semplice fetch HTTP (User-Agent da crawler): veloce, niente webview. YouTube
+/// e TikTok usano le loro API pubbliche. Facebook è gestito a parte (login).
 class SocialExtractor {
   static const _iosUA =
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) '
       'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile Safari/604.1';
+  // Gli UA da crawler ricevono i meta og: (anteprime link) senza muri.
+  static const _crawlerUA = 'Mozilla/5.0 (compatible; Twitterbot/1.0)';
 
   static Future<ExtractedPost> extract(String url) async {
     final u = url.trim();
@@ -35,11 +39,54 @@ class SocialExtractor {
     if (RegExp(r'tiktok\.com', caseSensitive: false).hasMatch(u)) {
       return _tiktok(u);
     }
-    // Instagram / Facebook / Pinterest / generico → webview (DOM + og:meta).
-    return _viaWebView(u);
+    // Instagram / Pinterest / siti generici: fetch HTTP + meta og:.
+    return _viaHttp(u);
   }
 
-  // ---- YouTube: API interna InnerTube (client MWEB) via http dal device ----
+  static bool isFacebook(String url) =>
+      RegExp(r'facebook\.com|fb\.watch', caseSensitive: false).hasMatch(url);
+
+  // ---- Fetch HTTP + parsing meta og: (veloce) ----
+  static String? _meta(String html, String prop) {
+    final a = RegExp(
+            '<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]+content=["\']([^"\']*)["\']',
+            caseSensitive: false)
+        .firstMatch(html);
+    if (a != null) return a.group(1);
+    final b = RegExp(
+            '<meta[^>]+content=["\']([^"\']*)["\'][^>]+(?:property|name)=["\']' + prop + '["\']',
+            caseSensitive: false)
+        .firstMatch(html);
+    return b?.group(1);
+  }
+
+  static Future<ExtractedPost> _viaHttp(String url) async {
+    final r = await http
+        .get(Uri.parse(url), headers: {'User-Agent': _crawlerUA})
+        .timeout(const Duration(seconds: 15));
+    final html = r.body;
+    final title = _htmlDecode(_meta(html, 'og:title') ?? '');
+    final desc = _htmlDecode(_meta(html, 'og:description') ?? '');
+    final img = _meta(html, 'og:image');
+    final ogUrl = _meta(html, 'og:url') ?? url;
+
+    var caption = desc.trim();
+    if (caption.length < 40) {
+      final slug = _deslug(ogUrl);
+      if (slug.length > caption.length) caption = slug;
+    }
+    if (caption.length < 40) {
+      throw 'Non riesco a leggere la ricetta da questo link.';
+    }
+    return ExtractedPost(
+      title: title.isNotEmpty ? title : 'Ricetta',
+      text: '$title\n\n$caption',
+      imageUrl: (img == null || img.isEmpty) ? null : img,
+      sourceUrl: ogUrl,
+    );
+  }
+
+  // ---- YouTube: API interna InnerTube (client MWEB) ----
   static String? _ytId(String url) {
     final m = RegExp(
       r'(?:youtu\.be/|youtube\.com/(?:watch\?v=|shorts/|embed/|live/))([A-Za-z0-9_-]{6,})',
@@ -66,7 +113,7 @@ class SocialExtractor {
         },
         'videoId': id,
       }),
-    );
+    ).timeout(const Duration(seconds: 15));
     final j = jsonDecode(r.body) as Map<String, dynamic>;
     final vd = (j['videoDetails'] as Map?) ?? const {};
     final title = (vd['title'] ?? 'Ricetta da YouTube').toString();
@@ -76,7 +123,6 @@ class SocialExtractor {
     final image = thumbs.isNotEmpty
         ? thumbs.last['url']?.toString()
         : 'https://i.ytimg.com/vi/$id/hqdefault.jpg';
-
     if (desc.trim().length < 40) {
       final caps = ((j['captions'] as Map?)?['playerCaptionsTracklistRenderer']
               as Map?)?['captionTracks'] as List? ??
@@ -97,29 +143,31 @@ class SocialExtractor {
   static Future<String> _ytTranscript(List caps) async {
     if (caps.isEmpty) return '';
     final pick = caps.firstWhere(
-          (c) => RegExp(r'^it', caseSensitive: false)
-              .hasMatch((c['languageCode'] ?? '').toString()),
-          orElse: () => caps.firstWhere(
-            (c) => RegExp(r'^en', caseSensitive: false)
-                .hasMatch((c['languageCode'] ?? '').toString()),
-            orElse: () => caps.first,
-          ),
-        );
+      (c) => RegExp(r'^it', caseSensitive: false)
+          .hasMatch((c['languageCode'] ?? '').toString()),
+      orElse: () => caps.firstWhere(
+        (c) => RegExp(r'^en', caseSensitive: false)
+            .hasMatch((c['languageCode'] ?? '').toString()),
+        orElse: () => caps.first,
+      ),
+    );
     final baseUrl = pick['baseUrl']?.toString();
     if (baseUrl == null) return '';
     final r = await http.get(Uri.parse(baseUrl), headers: {'User-Agent': _iosUA});
-    final parts = RegExp(r'<text[^>]*>([\s\S]*?)</text>')
+    return RegExp(r'<text[^>]*>([\s\S]*?)</text>')
         .allMatches(r.body)
-        .map((m) => _decode(m.group(1) ?? ''));
-    return parts.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+        .map((m) => _htmlDecode(m.group(1) ?? ''))
+        .join(' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
-  // ---- TikTok: oEmbed pubblico via http ----
+  // ---- TikTok: oEmbed pubblico ----
   static Future<ExtractedPost> _tiktok(String url) async {
     final r = await http.get(
       Uri.parse('https://www.tiktok.com/oembed?url=${Uri.encodeComponent(url)}'),
       headers: {'User-Agent': _iosUA},
-    );
+    ).timeout(const Duration(seconds: 15));
     if (!r.body.trimLeft().startsWith('{')) {
       throw 'TikTok non raggiungibile o video non pubblico.';
     }
@@ -136,97 +184,11 @@ class SocialExtractor {
     );
   }
 
-  // ---- IG / FB / Pinterest / generico: webview headless sul dispositivo ----
-  // Usa uno User-Agent da CRAWLER (Twitterbot): Facebook/Instagram servono i
-  // meta og: (per le anteprime dei link) SENZA muro di login né banner cookie.
-  // Così estraiamo la didascalia dai meta, non da testo di pagina spurio.
-  static const _crawlerUA = 'Mozilla/5.0 (compatible; Twitterbot/1.0)';
-
-  static Future<ExtractedPost> _viaWebView(String url) async {
-    final completer = Completer<ExtractedPost>();
-    HeadlessInAppWebView? hw;
-
-    Future<void> tryExtract(InAppWebViewController c) async {
-      final raw = await c.evaluateJavascript(source: r'''
-        (function () {
-          function meta(p){var e=document.querySelector('meta[property="'+p+'"]')||document.querySelector('meta[name="'+p+'"]');return e?e.content:null;}
-          var best = '';
-          document.querySelectorAll('p,span,div[dir="auto"],li').forEach(function(n){
-            var t=(n.innerText||'').trim(); if(t.length>best.length && t.length<4000) best=t;
-          });
-          return JSON.stringify({title:meta('og:title'), desc:meta('og:description'),
-            img:meta('og:image'), ogurl:meta('og:url'), ptitle:document.title,
-            best:best, href:location.href});
-        })();
-      ''');
-      if (raw == null) return;
-      final m = jsonDecode(raw.toString()) as Map<String, dynamic>;
-      final title = (m['title'] ?? '').toString().trim();
-      final desc = (m['desc'] ?? '').toString().trim();
-      final best = (m['best'] ?? '').toString().trim();
-
-      // Didascalia: prima og:description, poi il testo visibile più lungo, poi
-      // lo slug dell'og:url (Facebook ci mette l'inizio della didascalia).
-      var caption = (desc.length >= best.length ? desc : best).trim();
-      if (_looksLikeWall(caption)) caption = '';
-      if (caption.length < 40) {
-        final slug = _deslug((m['ogurl'] ?? '').toString());
-        if (slug.length > caption.length) caption = slug;
-      }
-      if (caption.length < 40) return; // non ancora pronto → riprova / scade
-
-      if (!completer.isCompleted) {
-        completer.complete(ExtractedPost(
-          title: title.isNotEmpty ? title : 'Ricetta',
-          text: '$title\n\n$caption',
-          imageUrl: (m['img'] ?? '').toString().isEmpty ? null : m['img'].toString(),
-          sourceUrl: (m['href'] ?? url).toString(),
-        ));
-      }
-    }
-
-    hw = HeadlessInAppWebView(
-      initialUrlRequest: URLRequest(url: WebUri(url)),
-      initialSettings: InAppWebViewSettings(
-        userAgent: _crawlerUA,
-        javaScriptEnabled: true,
-        clearCache: false,
-      ),
-      onLoadStop: (controller, _) async {
-        await Future.delayed(const Duration(seconds: 1));
-        await tryExtract(controller);
-        if (!completer.isCompleted) {
-          await Future.delayed(const Duration(seconds: 2));
-          await tryExtract(controller);
-        }
-      },
-    );
-
-    await hw.run();
-    try {
-      return await completer.future.timeout(const Duration(seconds: 20));
-    } on TimeoutException {
-      throw 'Non riesco a leggere la ricetta da questo link '
-          '(il social non mostra la didascalia completa senza login).';
-    } finally {
-      await hw.dispose();
-    }
-  }
-
-  static bool _looksLikeWall(String s) {
-    final t = s.toLowerCase();
-    return t.contains('accedi a facebook') ||
-        t.contains('log in') ||
-        t.contains('cookie') ||
-        t.contains('consenti') ||
-        t.contains('accetta e chiudi');
-  }
-
   static String _deslug(String ogUrl) {
     try {
       final segs = Uri.parse(ogUrl)
           .pathSegments
-          .where((s) => s.contains('-') && s.length > 10)
+          .where((s) => s.contains('-') && s.length > 12)
           .toList();
       return segs.isEmpty ? '' : segs.last.replaceAll('-', ' ');
     } catch (_) {
@@ -234,13 +196,15 @@ class SocialExtractor {
     }
   }
 
-  static String _decode(String s) => s
+  static String _htmlDecode(String s) => s
       .replaceAll('&amp;', '&')
       .replaceAll('&#39;', "'")
       .replaceAll('&#039;', "'")
+      .replaceAll('&apos;', "'")
       .replaceAll('&quot;', '"')
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
+      .replaceAll('&nbsp;', ' ')
       .replaceAllMapped(RegExp(r'&#(\d+);'),
           (m) => String.fromCharCode(int.parse(m.group(1)!)));
 }

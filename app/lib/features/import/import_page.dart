@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../common/cooking_loader.dart';
-import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
+import 'import_flow.dart';
 
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
@@ -24,37 +23,21 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     setState(() => _importing = true);
     // Fase REALE mostrata nel loader: cambia man mano che il processo avanza
     // davvero (estrazione sul dispositivo → stream dell'AI).
-    final live = ValueNotifier<String>(l.phaseReading);
-    // Loader animato a schermo intero, sfondo OPACO (coprente), durante l'attesa.
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
-      useSafeArea: false,
-      builder: (_) => Center(
-        child: CookingLoader(size: 230, liveMessage: live, payoff: kPayoff),
-      ),
-    );
     try {
-      final res = await ref.read(importRepositoryProvider).importFromUrl(
-            url,
-            onPhase: (p) => live.value = phaseText(l, p),
-          );
+      final res = await runImport(context, ref, url);
+      if (res == null) return; // annullato (es. webview Facebook chiusa)
       ref.invalidate(recipeListProvider);
       if (!mounted) return;
-      Navigator.of(context).pop(); // chiude il loader
       _url.clear();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(res.duplicate ? l.alreadyInLibrary : l.recipeImported),
       ));
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.importFailed('$e'))),
       );
     } finally {
-      live.dispose();
       if (mounted) setState(() => _importing = false);
     }
   }

@@ -27,9 +27,34 @@ class ImportRepository {
     caseSensitive: false,
   );
 
-  /// True se l'URL è un social (per cui usiamo l'estrazione sul dispositivo e,
-  /// se non leggibile, il fallback "incolla il testo").
+  /// True se l'URL è un social (estrazione sul dispositivo).
   static bool isSocial(String url) => _socialRe.hasMatch(url);
+
+  /// True se è un link Facebook (gestito con webview di login dedicata).
+  static bool isFacebook(String url) =>
+      RegExp(r'facebook\.com|fb\.watch', caseSensitive: false).hasMatch(url);
+
+  /// Enrich AI a partire da un post GIÀ estratto (es. reel Facebook letto dalla
+  /// webview loggata). Streamma le fasi reali via [onPhase].
+  Future<({String id, bool duplicate})> importFromExtracted(
+    ExtractedPost post, {
+    void Function(String phase)? onPhase,
+  }) async {
+    if (_demo) {
+      final r = await localApi.enrichExtracted(
+        title: post.title,
+        text: post.text,
+        imageUrl: post.imageUrl,
+        sourceUrl: post.sourceUrl,
+        onPhase: onPhase,
+      );
+      return (id: r.recipe.id!, duplicate: r.duplicate);
+    }
+    final res =
+        await _db!.functions.invoke('import-recipe', body: {'text': post.text});
+    final recipe = _parse(res.data as Map<String, dynamic>);
+    return (id: await _save(recipe), duplicate: false);
+  }
 
   /// Importa da testo GIÀ disponibile (fallback: l'utente incolla la ricetta,
   /// es. da un reel Facebook non leggibile senza login).
