@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../config.dart';
+
 /// Contenuto estratto da un post social, PRIMA dell'AI.
 class ExtractedPost {
   final String title;
@@ -39,12 +41,36 @@ class SocialExtractor {
     if (RegExp(r'tiktok\.com', caseSensitive: false).hasMatch(u)) {
       return _tiktok(u);
     }
+    if (isFacebook(u)) {
+      // FB non è leggibile dal dispositivo: estrazione server-side (yt-dlp,
+      // didascalia completa senza login).
+      return _viaServer(u);
+    }
     // Instagram / Pinterest / siti generici: fetch HTTP + meta og:.
     return _viaHttp(u);
   }
 
   static bool isFacebook(String url) =>
       RegExp(r'facebook\.com|fb\.watch', caseSensitive: false).hasMatch(url);
+
+  // ---- Estrazione server-side (yt-dlp sul backend) ----
+  static Future<ExtractedPost> _viaServer(String url) async {
+    final r = await http
+        .post(Config.backendUri('api/extract-social'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'url': url}))
+        .timeout(const Duration(seconds: 100));
+    final m = Map<String, dynamic>.from(jsonDecode(r.body) as Map);
+    if (r.statusCode >= 400) {
+      throw (m['error'] ?? 'Estrazione non riuscita').toString();
+    }
+    return ExtractedPost(
+      title: (m['title'] ?? 'Ricetta').toString(),
+      text: (m['text'] ?? '').toString(),
+      imageUrl: m['image_url']?.toString(),
+      sourceUrl: (m['source_url'] ?? url).toString(),
+    );
+  }
 
   // ---- Fetch HTTP + parsing meta og: (veloce) ----
   static String? _meta(String html, String prop) {

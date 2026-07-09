@@ -27,7 +27,7 @@ const { spawn } = require("child_process");
 
 const { parseRecipe, listVeganUrls } = require("./gz_parser.js");
 const { importInstagram, importInstagramPost } = require("./instagram.js");
-const { importFacebookPost } = require("./facebook.js");
+const { importFacebookPost, extractFacebook } = require("./facebook.js");
 const { importTikTok } = require("./tiktok.js");
 const { importYouTube } = require("./youtube.js");
 const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
@@ -254,6 +254,20 @@ async function handleApi(req, res, url) {
       recipes.unshift(saved); save();
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
+  }
+  // POST /api/extract-social {url} — estrazione server-side via yt-dlp
+  // (Facebook e altri social che il dispositivo non può leggere): ritorna
+  // {title, text, image_url, source_url} senza fare l'enrich.
+  if (req.method === "POST" && url.pathname === "/api/extract-social") {
+    const { url: u } = await readBody(req);
+    try {
+      console.log("extract-social:", u);
+      const p = await extractFacebook(u); // yt-dlp è generico, non solo FB
+      return sendJson(res, 200, p);
+    } catch (e) {
+      console.log("extract-social ERR:", e.message);
+      return sendJson(res, 422, { error: e.message || "Estrazione non riuscita" });
+    }
   }
   // POST /api/debug-log — diagnostica: appende il payload ricevuto a debug.log.
   if (req.method === "POST" && url.pathname === "/api/debug-log") {
