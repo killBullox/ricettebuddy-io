@@ -16,7 +16,7 @@ Rispondi SOLO con JSON valido:
   "servings": number,
   "prep_minutes": number|null,
   "cook_minutes": number|null,
-  "ingredients": [ {"name": string, "quantity": number|null, "unit": "g"|"ml"|"pz"|null, "raw": string} ],
+  "ingredients": [ {"name": string, "quantity": number|null, "unit": "g"|"ml"|"pz"|null, "raw": string, "img": string} ],
   "steps": [string],
   "nutrition_per_serving": {"kcal": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number},
   "co2_saved_kg": number,
@@ -25,6 +25,8 @@ Rispondi SOLO con JSON valido:
 
 IMPATTO CO2: "co2_saved_kg" = stima dei kg di CO2e RISPARMIATI PER PORZIONE scegliendo questa versione vegetale invece di un equivalente tradizionale a base animale. Usa fattori realistici (per kg di alimento): manzo ~20, agnello ~20, formaggio ~9, maiale ~7, pollo ~6, uova ~4.5, pesce ~5, latte/panna ~1.5; legumi/tofu/verdure/cereali ~0.5-2. Calcola la differenza sulle porzioni animali sostituite. Se la ricetta era GIÀ vegana, stima comunque il risparmio rispetto a un piatto analogo a base animale. Numero positivo con 1-2 decimali (es. 1.8).
 Regole sostituzioni: credibili (uova->aquafaba/lino; guanciale->tempeh/funghi affumicati; pecorino/parmigiano->lievito alimentare/parmigiano vegetale; panna->panna di soia/anacardi; burro->margarina/olio; miele->sciroppo d'acero). Adatta i passi. diet_tags sempre includa "vegan".
+
+FOTO INGREDIENTE ("img"): per OGNI ingrediente metti il nome INGLESE comune per la foto, minuscolo, SINGOLARE, con trattini tra le parole, nello stile della libreria Spoonacular (es. cipolla rossa->"red-onion", olio d'oliva->"olive-oil", pomodori->"tomato", farina->"flour", aglio->"garlic", zucchine->"zucchini", ceci->"chickpeas", basilico->"basil", menta->"mint", tofu->"tofu", latte di soia->"soy-milk", lievito alimentare->"nutritional-yeast", passata di pomodoro->"tomato-sauce"). Usa il termine generico più comune (non marche). Se è una preparazione composta, scegli l'ingrediente principale.
 
 LINGUA: scrivi TUTTO in ITALIANO — titolo, nomi ingredienti (sia "name" sia "raw"), passi, note delle sostituzioni, category, cuisine, tags. Se la ricetta di partenza è in un'altra lingua, TRADUCILA in italiano naturale e scorrevole (non lasciare parole in inglese o altre lingue).
 
@@ -76,7 +78,8 @@ function mapEnrich(recipe, v) {
     prep_minutes: v.prep_minutes,
     cook_minutes: v.cook_minutes ?? recipe.cook_minutes,
     ingredients: (v.ingredients || []).map((i, k) => ({
-      position: k, raw_text: i.raw || i.name, quantity: i.quantity, unit: i.unit, normalized_name: i.name,
+      position: k, raw_text: i.raw || i.name, quantity: i.quantity, unit: i.unit,
+      normalized_name: i.name, img: i.img || null,
     })),
     steps: (v.steps || []).map((text, k) => ({ position: k, text })),
     diet_tags: (v.classification?.diet_tags || []),

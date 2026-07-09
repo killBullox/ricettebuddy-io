@@ -137,18 +137,18 @@ class _Detail extends ConsumerWidget {
   }
 }
 
-/// Riga ingrediente con iconcina.
-Widget ingredientRow(BuildContext context, String raw) {
+/// Riga ingrediente con foto realistica.
+Widget ingredientRow(BuildContext context, Ingredient ing) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        IngredientAvatar(raw: raw),
+        IngredientAvatar(raw: ing.rawText, img: ing.img, size: 38),
         const SizedBox(width: 10),
         Expanded(child: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(raw),
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(ing.rawText),
         )),
       ],
     ),
@@ -296,7 +296,7 @@ class _RecipeTab extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (final ing in recipe.ingredients)
-                        ingredientRow(context, ing.rawText),
+                        ingredientRow(context, ing),
                     ],
                   ),
           ),
@@ -455,7 +455,7 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
                   value: _selected.contains(i),
                   onChanged: (v) => setState(() =>
                       v == true ? _selected.add(i) : _selected.remove(i)),
-                  secondary: IngredientAvatar(raw: ings[i].rawText),
+                  secondary: IngredientAvatar(raw: ings[i].rawText, img: ings[i].img, size: 38),
                   title: Text(_product(ings[i]),
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: _amount(ings[i]).isEmpty

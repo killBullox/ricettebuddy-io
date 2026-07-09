@@ -10,6 +10,7 @@ class Ingredient {
   final String? unit; // "g"
   final String? normalizedName; // "farina"
   final String? aisleCategory; // corsia supermercato
+  final String? img; // slug foto ingrediente (Spoonacular), es. "red-onion"
 
   const Ingredient({
     this.id,
@@ -20,6 +21,7 @@ class Ingredient {
     this.unit,
     this.normalizedName,
     this.aisleCategory,
+    this.img,
   });
 
   factory Ingredient.fromMap(Map<String, dynamic> m) => Ingredient(
@@ -31,6 +33,7 @@ class Ingredient {
         unit: m['unit'] as String?,
         normalizedName: m['normalized_name'] as String?,
         aisleCategory: m['aisle_category'] as String?,
+        img: m['img'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -42,5 +45,6 @@ class Ingredient {
         'unit': unit,
         'normalized_name': normalizedName,
         'aisle_category': aisleCategory,
+        'img': img,
       };
 }

@@ -1,11 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../l10n/app_localizations.dart';
-import 'facebook_import.dart';
 import 'social_extractor.dart';
 
 /// Import completo con UI. Per Facebook apre la webview (login una-tantum +
@@ -14,11 +12,9 @@ import 'social_extractor.dart';
 Future<({String id, bool duplicate})?> runImport(
     BuildContext context, WidgetRef ref, String url) async {
   final l = AppLocalizations.of(context);
-  ExtractedPost? fbPost;
-  if (!kIsWeb && ImportRepository.isFacebook(url)) {
-    fbPost = await importFacebookInteractive(context, url);
-    if (fbPost == null || !context.mounted) return null; // annullato
-  }
+  // NB: i reel Facebook non sono leggibili lato app (FB nasconde didascalia e
+  // video senza login). Verranno gestiti da un servizio server dedicato.
+  const ExtractedPost? fbPost = null;
   final live = ValueNotifier<String>(l.phaseReading);
   showDialog(
     context: context,
