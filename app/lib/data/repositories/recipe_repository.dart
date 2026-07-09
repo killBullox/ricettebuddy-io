@@ -127,6 +127,93 @@ final recipeListProvider = FutureProvider.autoDispose<List<Recipe>>((ref) {
   return ref.watch(recipeRepositoryProvider).list(search: search);
 });
 
+/// Filtri avanzati per la ricerca ricette: regimi (glutine/soia/lattosio…),
+/// label nutrizionali (HIGH PROTEIN, LOW CARB…) e soglie nutrizionali PER
+/// PORZIONE (kcal max, proteine min).
+class RecipeFilters {
+  final Set<String> diets; // Diet.name richiesti
+  final Set<String> excludeAllergens; // allergeni da escludere (es. "soia")
+  final Set<String> labels; // label nutrizionali richieste
+  final int? maxKcal; // per porzione
+  final int? minProtein; // g per porzione
+
+  const RecipeFilters({
+    this.diets = const {},
+    this.excludeAllergens = const {},
+    this.labels = const {},
+    this.maxKcal,
+    this.minProtein,
+  });
+
+  bool get isEmpty =>
+      diets.isEmpty &&
+      excludeAllergens.isEmpty &&
+      labels.isEmpty &&
+      maxKcal == null &&
+      minProtein == null;
+
+  int get count =>
+      diets.length +
+      excludeAllergens.length +
+      labels.length +
+      (maxKcal != null ? 1 : 0) +
+      (minProtein != null ? 1 : 0);
+
+  RecipeFilters copyWith({
+    Set<String>? diets,
+    Set<String>? excludeAllergens,
+    Set<String>? labels,
+    int? maxKcal,
+    int? minProtein,
+    bool clearMaxKcal = false,
+    bool clearMinProtein = false,
+  }) =>
+      RecipeFilters(
+        diets: diets ?? this.diets,
+        excludeAllergens: excludeAllergens ?? this.excludeAllergens,
+        labels: labels ?? this.labels,
+        maxKcal: clearMaxKcal ? null : (maxKcal ?? this.maxKcal),
+        minProtein: clearMinProtein ? null : (minProtein ?? this.minProtein),
+      );
+
+  bool matches(Recipe r) {
+    for (final d in diets) {
+      if (!r.dietTags.contains(d)) return false;
+    }
+    if (excludeAllergens.isNotEmpty) {
+      final all = r.allergens.map((a) => a.toLowerCase()).toList();
+      for (final ex in excludeAllergens) {
+        if (all.any((a) => a.contains(ex))) return false;
+      }
+    }
+    if (labels.isNotEmpty) {
+      final have = r.nutritionLabels.toSet();
+      for (final l in labels) {
+        if (!have.contains(l)) return false;
+      }
+    }
+    final kcal = (r.nutrition?['kcal'] as num?)?.toDouble();
+    if (maxKcal != null && (kcal == null || kcal > maxKcal!)) return false;
+    final protein = (r.nutrition?['protein_g'] as num?)?.toDouble();
+    if (minProtein != null && (protein == null || protein < minProtein!)) {
+      return false;
+    }
+    return true;
+  }
+}
+
+final recipeFiltersProvider =
+    StateProvider<RecipeFilters>((ref) => const RecipeFilters());
+
+/// Lista finale mostrata: testo (server) + filtri avanzati (client).
+final filteredRecipeListProvider =
+    FutureProvider.autoDispose<List<Recipe>>((ref) async {
+  final list = await ref.watch(recipeListProvider.future);
+  final f = ref.watch(recipeFiltersProvider);
+  if (f.isEmpty) return list;
+  return list.where(f.matches).toList();
+});
+
 final recipeDetailProvider =
     FutureProvider.autoDispose.family<Recipe, String>((ref, id) {
   return ref.watch(recipeRepositoryProvider).getFull(id);

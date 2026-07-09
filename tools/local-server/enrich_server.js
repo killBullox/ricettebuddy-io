@@ -19,8 +19,11 @@ Rispondi SOLO con JSON valido:
   "ingredients": [ {"name": string, "quantity": number|null, "unit": "g"|"ml"|"pz"|null, "raw": string} ],
   "steps": [string],
   "nutrition_per_serving": {"kcal": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number},
+  "co2_saved_kg": number,
   "classification": {"category": string, "cuisine": string, "difficulty": "facile"|"media"|"difficile", "diet_tags": string[], "allergens": string[], "tags": string[]}
 }
+
+IMPATTO CO2: "co2_saved_kg" = stima dei kg di CO2e RISPARMIATI PER PORZIONE scegliendo questa versione vegetale invece di un equivalente tradizionale a base animale. Usa fattori realistici (per kg di alimento): manzo ~20, agnello ~20, formaggio ~9, maiale ~7, pollo ~6, uova ~4.5, pesce ~5, latte/panna ~1.5; legumi/tofu/verdure/cereali ~0.5-2. Calcola la differenza sulle porzioni animali sostituite. Se la ricetta era GIÀ vegana, stima comunque il risparmio rispetto a un piatto analogo a base animale. Numero positivo con 1-2 decimali (es. 1.8).
 Regole sostituzioni: credibili (uova->aquafaba/lino; guanciale->tempeh/funghi affumicati; pecorino/parmigiano->lievito alimentare/parmigiano vegetale; panna->panna di soia/anacardi; burro->margarina/olio; miele->sciroppo d'acero). Adatta i passi. diet_tags sempre includa "vegan".
 
 LINGUA: scrivi TUTTO in ITALIANO — titolo, nomi ingredienti (sia "name" sia "raw"), passi, note delle sostituzioni, category, cuisine, tags. Se la ricetta di partenza è in un'altra lingua, TRADUCILA in italiano naturale e scorrevole (non lasciare parole in inglese o altre lingue).
@@ -82,6 +85,7 @@ async function enrichRecipe(recipe) {
     cuisine: v.classification?.cuisine || null,
     difficulty: v.classification?.difficulty || null,
     nutrition: v.nutrition_per_serving || null,
+    co2_saved_kg: typeof v.co2_saved_kg === "number" ? v.co2_saved_kg : null,
     was_vegan: v.was_vegan,
     substitutions: v.substitutions || [],
   };

@@ -102,7 +102,7 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
       barrierColor: const Color(0xFFFBFAF7),
       useSafeArea: false,
       builder: (_) => const Center(
-        child: CookingLoader(size: 230, message: 'Sto preparando la tua ricetta…'),
+        child: CookingLoader(size: 230, phases: kImportPhases),
       ),
     );
     try {

@@ -8,17 +8,19 @@ import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
 import '../../l10n/app_localizations.dart';
-import 'diet_badges.dart';
 import 'recipe_detail_page.dart';
 import 'recipe_editor_page.dart';
+import 'recipe_filter_sheet.dart';
 import 'recipe_image.dart';
+import 'recipe_labels.dart';
 
 class RecipeListPage extends ConsumerWidget {
   const RecipeListPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recipes = ref.watch(recipeListProvider);
+    final recipes = ref.watch(filteredRecipeListProvider);
+    final filters = ref.watch(recipeFiltersProvider);
     final l = AppLocalizations.of(context);
 
     return Scaffold(
@@ -45,11 +47,32 @@ class RecipeListPage extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: SearchBar(
-              hintText: l.searchRecipes,
-              leading: const Icon(Icons.search),
-              onChanged: (v) =>
-                  ref.read(recipeSearchProvider.notifier).state = v,
+            child: Row(
+              children: [
+                Expanded(
+                  child: SearchBar(
+                    hintText: l.searchRecipes,
+                    leading: const Icon(Icons.search),
+                    onChanged: (v) =>
+                        ref.read(recipeSearchProvider.notifier).state = v,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Badge(
+                  isLabelVisible: filters.count > 0,
+                  label: Text('${filters.count}'),
+                  child: IconButton.filledTonal(
+                    icon: const Icon(Icons.tune),
+                    tooltip: 'Filtri',
+                    onPressed: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      showDragHandle: true,
+                      builder: (_) => const RecipeFilterSheet(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -189,11 +212,10 @@ class _RecipeTile extends StatelessWidget {
                             style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
                       ],
                     ]),
-                    if (recipe.dietTags.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: DietBadges(dietTags: recipe.dietTags),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: RecipeLabels(recipe: recipe),
+                    ),
                   ],
                 ),
               ),

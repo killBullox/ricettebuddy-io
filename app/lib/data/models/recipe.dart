@@ -32,6 +32,7 @@ class Recipe {
 
   // Arricchimento AI (veganizzazione + nutrizione + classificazione).
   final Map<String, dynamic>? nutrition; // per porzione: kcal, protein_g, ...
+  final double? co2Saved; // kg CO2e risparmiati per porzione vs versione animale
   final List<Map<String, dynamic>> substitutions; // {original, vegan, note}
   final bool? wasVegan; // false se la ricetta è stata veganizzata
   final String? category;
@@ -64,6 +65,7 @@ class Recipe {
     this.videoMp4,
     this.stepGallery = const [],
     this.nutrition,
+    this.co2Saved,
     this.substitutions = const [],
     this.wasVegan,
     this.category,
@@ -77,6 +79,31 @@ class Recipe {
   int? get totalMinutes {
     final t = (prepMinutes ?? 0) + (cookMinutes ?? 0);
     return t > 0 ? t : null;
+  }
+
+  /// True se la ricetta è stata veganizzata (di partenza non era vegana).
+  bool get isVeganized => wasVegan == false;
+
+  /// Tutte le etichette nutrizionali possibili (usate anche per i filtri).
+  static const nutritionLabelKeys = [
+    'HIGH PROTEIN',
+    'LOW CARB',
+    'LIGHT',
+    'HIGH FIBER',
+  ];
+
+  /// Etichette derivate dai valori nutrizionali PER PORZIONE.
+  List<String> get nutritionLabels {
+    final n = nutrition;
+    if (n == null) return const [];
+    double? v(String k) => (n[k] as num?)?.toDouble();
+    final out = <String>[];
+    final p = v('protein_g'), c = v('carbs_g'), k = v('kcal'), f = v('fiber_g');
+    if (p != null && p >= 20) out.add('HIGH PROTEIN');
+    if (c != null && c <= 20) out.add('LOW CARB');
+    if (k != null && k <= 400) out.add('LIGHT');
+    if (f != null && f >= 8) out.add('HIGH FIBER');
+    return out;
   }
 
   factory Recipe.fromMap(
@@ -120,6 +147,7 @@ class Recipe {
       nutrition: m['nutrition'] == null
           ? null
           : Map<String, dynamic>.from(m['nutrition'] as Map),
+      co2Saved: (m['co2_saved_kg'] as num?)?.toDouble(),
       substitutions: (m['substitutions'] as List?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
@@ -149,6 +177,7 @@ class Recipe {
         'diet_tags': dietTags,
         'is_favorite': isFavorite,
         'cooked_count': cookedCount,
+        'co2_saved_kg': co2Saved,
         'video_url': videoUrl,
         'video_id': videoId,
         'video_mp4': videoMp4,

@@ -14,12 +14,12 @@ import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'cook_mode_page.dart';
-import 'diet_badges.dart';
 import 'ingredient_avatar.dart';
 import 'ingredient_icon.dart';
 import 'nutrition_donut.dart';
 import 'recipe_editor_page.dart';
 import 'recipe_image.dart';
+import 'recipe_labels.dart';
 
 class RecipeDetailPage extends ConsumerWidget {
   final String recipeId;
@@ -154,6 +154,62 @@ Widget ingredientRow(BuildContext context, String raw) {
   );
 }
 
+/// Card impatto ambientale: CO₂ risparmiata veganizzando/scegliendo la ricetta,
+/// con un'equivalenza intuitiva (km in auto).
+class _Co2Card extends StatelessWidget {
+  final double kg;
+  final bool veganized;
+  const _Co2Card({required this.kg, required this.veganized});
+
+  @override
+  Widget build(BuildContext context) {
+    final km = (kg / 0.12).round(); // ~0.12 kg CO2e per km in auto
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF5EA),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x402E7D32)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                  color: Color(0xFF2E7D32), shape: BoxShape.circle),
+              child: const Icon(Icons.eco, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${kg.toStringAsFixed(1)} kg CO₂ risparmiati a porzione',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: Color(0xFF1B5E20))),
+                  const SizedBox(height: 2),
+                  Text(
+                    veganized
+                        ? 'veganizzando questa ricetta — come $km km in meno in auto 🚗'
+                        : 'scegliendo questa versione vegetale — come $km km in meno in auto 🚗',
+                    style: const TextStyle(
+                        fontSize: 12.5, color: Color(0xFF2E7D32)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RecipeTab extends ConsumerWidget {
   final Recipe recipe;
   const _RecipeTab({required this.recipe});
@@ -204,11 +260,12 @@ class _RecipeTab extends ConsumerWidget {
               ],
             ),
           ),
-          if (recipe.dietTags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: DietBadges(dietTags: recipe.dietTags),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: RecipeLabels(recipe: recipe),
+          ),
+          if (recipe.co2Saved != null && recipe.co2Saved! > 0)
+            _Co2Card(kg: recipe.co2Saved!, veganized: recipe.isVeganized),
           if (recipe.wasVegan == false)
             _VeganizedBanner(substitutions: recipe.substitutions),
           if (recipe.nutrition != null) NutritionDonut(n: recipe.nutrition!),
