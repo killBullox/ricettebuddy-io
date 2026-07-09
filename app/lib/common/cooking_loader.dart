@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../l10n/app_localizations.dart';
 
 /// Stile del loader Beet-It.
 enum BeetLoaderStyle {
@@ -11,15 +14,35 @@ enum BeetLoaderStyle {
   bounce,
 }
 
-/// Loader animato Beet-It. [message] (payoff/brand) va sotto l'animazione.
+/// Payoff del brand mostrato sotto il loader (in inglese, identità Beet-It).
+const kPayoff = 'Plant-based nutrition that rocks';
+
+/// Fasi dell'import mostrate nel loader. Avanzano UNA volta sola (niente loop):
+/// niente ripetizioni, riflettono i passi reali dell'elaborazione.
+List<String> importPhases(AppLocalizations l) => [
+      l.phaseReading,
+      l.phaseVeganizing,
+      l.phaseInstructions,
+      l.phaseNutrition,
+      l.phaseCo2,
+    ];
+
+/// Loader animato Beet-It.
+/// - [phases]: voci di progresso che avanzano una volta e si fermano sull'ultima.
+/// - [message]: testo statico (se non ci sono [phases]).
+/// - [payoff]: riga brand secondaria, sotto, in tono tenue.
 class CookingLoader extends StatefulWidget {
   final double size;
   final String? message;
+  final List<String>? phases;
+  final String? payoff;
   final BeetLoaderStyle style;
   const CookingLoader({
     super.key,
     this.size = 120,
     this.message,
+    this.phases,
+    this.payoff,
     this.style = BeetLoaderStyle.ring,
   });
 
@@ -34,14 +57,38 @@ class _CookingLoaderState extends State<CookingLoader>
     duration: const Duration(milliseconds: 2200),
   )..repeat();
 
+  Timer? _phaseTimer;
+  int _phase = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final n = widget.phases?.length ?? 0;
+    if (n > 1) {
+      // Avanza UNA sola volta lungo le fasi e si ferma sull'ultima.
+      _phaseTimer = Timer.periodic(const Duration(milliseconds: 2400), (t) {
+        if (!mounted) return;
+        if (_phase < n - 1) {
+          setState(() => _phase++);
+        } else {
+          t.cancel();
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _phaseTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final label = (widget.phases != null && widget.phases!.isNotEmpty)
+        ? widget.phases![_phase]
+        : widget.message;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -57,17 +104,34 @@ class _CookingLoaderState extends State<CookingLoader>
             ),
           ),
         ),
-        if (widget.message != null && widget.message!.isNotEmpty)
+        if (label != null && label.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 18),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              child: Text(
+                label,
+                key: ValueKey(label),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Color(0xFF8B1A4A),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    letterSpacing: 0.2),
+              ),
+            ),
+          ),
+        if (widget.payoff != null && widget.payoff!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
             child: Text(
-              widget.message!,
+              widget.payoff!,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: Color(0xFF8B1A4A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  letterSpacing: 0.2),
+              style: TextStyle(
+                  color: const Color(0xFF8B1A4A).withValues(alpha: 0.55),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  letterSpacing: 0.3),
             ),
           ),
       ],

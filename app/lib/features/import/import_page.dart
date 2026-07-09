@@ -5,7 +5,6 @@ import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
-import 'paste_fallback.dart';
 
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
@@ -29,8 +28,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
       useSafeArea: false,
-      builder: (_) => const Center(
-        child: CookingLoader(size: 230, message: kPayoff),
+      builder: (_) => Center(
+        child: CookingLoader(
+            size: 230, phases: importPhases(l), payoff: kPayoff),
       ),
     );
     try {
@@ -45,20 +45,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      // Social non leggibile (es. reel FB senza login): offri di incollare.
-      if (ImportRepository.isSocial(url)) {
-        final id = await showPasteFallback(context, ref, url);
-        if (id != null && mounted) {
-          _url.clear();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l.recipeImported)),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.importFailed('$e'))),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.importFailed('$e'))),
+      );
     } finally {
       if (mounted) setState(() => _importing = false);
     }
