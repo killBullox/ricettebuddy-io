@@ -177,6 +177,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phaseProcessing => 'Preparing your recipe…';
 
   @override
+  String get pasteRecipeTitle => 'Paste the recipe';
+
+  @override
+  String get pasteRecipeBody =>
+      'Facebook won\'t let us read this reel without logging in. Paste the recipe text (ingredients and steps) and we\'ll veganize and organize it for you.';
+
+  @override
+  String get pasteRecipeHint => 'Paste ingredients and steps here…';
+
+  @override
   String get navMore => 'More';
 
   @override

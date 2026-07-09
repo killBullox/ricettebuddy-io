@@ -422,6 +422,24 @@ abstract class AppLocalizations {
   /// **'Preparing your recipe…'**
   String get phaseProcessing;
 
+  /// No description provided for @pasteRecipeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the recipe'**
+  String get pasteRecipeTitle;
+
+  /// No description provided for @pasteRecipeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Facebook won\'t let us read this reel without logging in. Paste the recipe text (ingredients and steps) and we\'ll veganize and organize it for you.'**
+  String get pasteRecipeBody;
+
+  /// No description provided for @pasteRecipeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste ingredients and steps here…'**
+  String get pasteRecipeHint;
+
   /// No description provided for @navMore.
   ///
   /// In en, this message translates to:

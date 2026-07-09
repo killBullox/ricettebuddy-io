@@ -27,6 +27,32 @@ class ImportRepository {
     caseSensitive: false,
   );
 
+  /// True se l'URL è un social (per cui usiamo l'estrazione sul dispositivo e,
+  /// se non leggibile, il fallback "incolla il testo").
+  static bool isSocial(String url) => _socialRe.hasMatch(url);
+
+  /// Importa da testo GIÀ disponibile (fallback: l'utente incolla la ricetta,
+  /// es. da un reel Facebook non leggibile senza login).
+  Future<({String id, bool duplicate})> importFromText({
+    required String text,
+    String? title,
+    String? imageUrl,
+    String? sourceUrl,
+  }) async {
+    if (_demo) {
+      final r = await localApi.enrichExtracted(
+        title: title ?? '',
+        text: text,
+        imageUrl: imageUrl,
+        sourceUrl: sourceUrl ?? '',
+      );
+      return (id: r.recipe.id!, duplicate: r.duplicate);
+    }
+    final res = await _db!.functions.invoke('import-recipe', body: {'text': text});
+    final recipe = _parse(res.data as Map<String, dynamic>);
+    return (id: await _save(recipe), duplicate: false);
+  }
+
   /// [onPhase] riceve i passi REALI: 'reading' (estrazione sul dispositivo),
   /// poi 'processing' (elaborazione AI). Serve al loader per mostrare fasi vere.
   Future<({String id, bool duplicate})> importFromUrl(String url,

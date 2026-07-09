@@ -31,7 +31,8 @@ class RecipeDetailPage extends ConsumerWidget {
 
     return Scaffold(
       body: async.when(
-        loading: () => const Center(child: CookingLoader(size: 96)),
+        loading: () => const Center(
+            child: CookingLoader(size: 96, style: BeetLoaderStyle.bounce)),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (recipe) => _Detail(recipe: recipe),
       ),

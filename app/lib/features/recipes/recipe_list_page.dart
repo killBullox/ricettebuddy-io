@@ -77,8 +77,8 @@ class RecipeListPage extends ConsumerWidget {
           ),
           Expanded(
             child: recipes.when(
-              loading: () =>
-                  const Center(child: CookingLoader(size: 96)),
+              loading: () => const Center(
+                  child: CookingLoader(size: 96, style: BeetLoaderStyle.bounce)),
               error: (e, _) => Center(child: Text('Errore: $e')),
               data: (list) {
                 if (list.isEmpty) {

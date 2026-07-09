@@ -178,6 +178,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get phaseProcessing => 'Dein Rezept wird vorbereitet…';
 
   @override
+  String get pasteRecipeTitle => 'Rezept einfügen';
+
+  @override
+  String get pasteRecipeBody =>
+      'Facebook lässt uns dieses Reel ohne Login nicht lesen. Füge den Rezepttext (Zutaten und Schritte) ein — wir veganisieren und ordnen ihn für dich.';
+
+  @override
+  String get pasteRecipeHint => 'Zutaten und Schritte hier einfügen…';
+
+  @override
   String get navMore => 'Mehr';
 
   @override

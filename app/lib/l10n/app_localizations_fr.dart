@@ -178,6 +178,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get phaseProcessing => 'Préparation de votre recette…';
 
   @override
+  String get pasteRecipeTitle => 'Colle la recette';
+
+  @override
+  String get pasteRecipeBody =>
+      'Facebook ne nous laisse pas lire ce reel sans connexion. Colle le texte de la recette (ingrédients et étapes) et on la véganise et on l\'organise pour toi.';
+
+  @override
+  String get pasteRecipeHint => 'Colle ici les ingrédients et les étapes…';
+
+  @override
   String get navMore => 'Plus';
 
   @override

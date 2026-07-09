@@ -11,6 +11,7 @@ import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
+import 'paste_fallback.dart';
 import '../recipes/recipe_detail_page.dart';
 
 /// Riceve i contenuti condivisi da altre app (Share Extension iOS / Intent
@@ -98,22 +99,17 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
     _importing = true;
     final ctx = context;
     final l = AppLocalizations.of(ctx);
-    final live = ValueNotifier<String>(l.phaseReading);
     showDialog(
       context: ctx,
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7),
       useSafeArea: false,
-      builder: (_) => Center(
-        child: CookingLoader(size: 230, liveMessage: live),
+      builder: (_) => const Center(
+        child: CookingLoader(size: 230, message: kPayoff),
       ),
     );
     try {
-      final res = await ref.read(importRepositoryProvider).importFromUrl(
-        url,
-        onPhase: (p) =>
-            live.value = p == 'reading' ? l.phaseReading : l.phaseProcessing,
-      );
+      final res = await ref.read(importRepositoryProvider).importFromUrl(url);
       ref.invalidate(recipeListProvider);
       if (!ctx.mounted) return;
       Navigator.of(ctx).pop(); // chiude il loader
@@ -123,11 +119,20 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
     } catch (e) {
       if (!ctx.mounted) return;
       Navigator.of(ctx).pop();
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('Import non riuscito: $e')),
-      );
+      // Social non leggibile (es. reel FB): offri di incollare la ricetta.
+      final id = ImportRepository.isSocial(url)
+          ? await showPasteFallback(ctx, ref, url)
+          : null;
+      if (id != null && ctx.mounted) {
+        Navigator.of(ctx).push(MaterialPageRoute(
+          builder: (_) => RecipeDetailPage(recipeId: id),
+        ));
+      } else if (id == null && ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(content: Text(l.importFailed('$e'))),
+        );
+      }
     } finally {
-      live.dispose();
       _importing = false;
     }
   }

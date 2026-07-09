@@ -5,6 +5,7 @@ import '../../common/cooking_loader.dart';
 import '../../data/repositories/import_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
+import 'paste_fallback.dart';
 
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
@@ -22,24 +23,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     if (url.isEmpty) return;
     final l = AppLocalizations.of(context);
     setState(() => _importing = true);
-    // Messaggio pilotato dai passi REALI dell'import (lettura → elaborazione).
-    final live = ValueNotifier<String>(l.phaseReading);
     // Loader animato a schermo intero, sfondo OPACO (coprente), durante l'attesa.
     showDialog(
       context: context,
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
       useSafeArea: false,
-      builder: (_) => Center(
-        child: CookingLoader(size: 230, liveMessage: live),
+      builder: (_) => const Center(
+        child: CookingLoader(size: 230, message: kPayoff),
       ),
     );
     try {
-      final res = await ref.read(importRepositoryProvider).importFromUrl(
-        url,
-        onPhase: (p) =>
-            live.value = p == 'reading' ? l.phaseReading : l.phaseProcessing,
-      );
+      final res = await ref.read(importRepositoryProvider).importFromUrl(url);
       ref.invalidate(recipeListProvider);
       if (!mounted) return;
       Navigator.of(context).pop(); // chiude il loader
@@ -50,11 +45,21 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.importFailed('$e'))),
-      );
+      // Social non leggibile (es. reel FB senza login): offri di incollare.
+      if (ImportRepository.isSocial(url)) {
+        final id = await showPasteFallback(context, ref, url);
+        if (id != null && mounted) {
+          _url.clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.recipeImported)),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.importFailed('$e'))),
+        );
+      }
     } finally {
-      live.dispose();
       if (mounted) setState(() => _importing = false);
     }
   }
