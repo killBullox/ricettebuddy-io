@@ -122,10 +122,15 @@ async function enrichRecipeStream(recipe, onPhase) {
     ['"nutrition_per_serving"', "nutrition"],
     ['"co2_saved_kg"', "co2"],
   ];
-  let acc = "";
+  let acc = "";       // testo JSON della ricetta (dai delta)
+  let sseBuf = "";    // buffer per righe SSE spezzate tra chunk
   const seen = new Set();
   for await (const chunk of res.body) {
-    for (const line of chunk.toString().split("\n")) {
+    sseBuf += Buffer.isBuffer(chunk) ? chunk.toString() : Buffer.from(chunk).toString();
+    let nl;
+    while ((nl = sseBuf.indexOf("\n")) >= 0) {
+      const line = sseBuf.slice(0, nl);
+      sseBuf = sseBuf.slice(nl + 1);
       if (!line.startsWith("data:")) continue;
       const d = line.slice(5).trim();
       if (!d || d === "[DONE]") continue;
