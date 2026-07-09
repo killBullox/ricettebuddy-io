@@ -20,6 +20,10 @@ class ShareViewController: UIViewController {
         process()
     }
 
+    // Diagnostica del payload grezzo (debug con singolo utente).
+    private var diagUTIs: [String] = []
+    private var diagAttr: [String] = []
+
     private func process() {
         let urlUTI = "public.url"
         let textUTIs = ["public.plain-text", "public.utf8-plain-text", "public.text"]
@@ -30,11 +34,12 @@ class ShareViewController: UIViewController {
 
         for case let item as NSExtensionItem in extensionContext?.inputItems ?? [] {
             // La didascalia condivisa dall'app loggata spesso è qui.
-            if let attr = item.attributedContentText?.string,
-               attr.count > caption.count {
-                caption = attr
+            if let attr = item.attributedContentText?.string {
+                diagAttr.append(attr)
+                if attr.count > caption.count { caption = attr }
             }
             for provider in item.attachments ?? [] {
+                diagUTIs.append(contentsOf: provider.registeredTypeIdentifiers)
                 if provider.hasItemConformingToTypeIdentifier(urlUTI) {
                     group.enter()
                     provider.loadItem(forTypeIdentifier: urlUTI, options: nil) { data, _ in
@@ -62,7 +67,35 @@ class ShareViewController: UIViewController {
         }
     }
 
+    // Manda il payload grezzo al server di debug, poi prosegue (fire, breve attesa).
+    private func postDebug(link: String?, caption: String, then: @escaping () -> Void) {
+        guard let u = URL(string: "http://185.218.126.96:8090/api/debug-log") else { return then() }
+        let body: [String: Any] = [
+            "src": "iosShareExt",
+            "utis": diagUTIs,
+            "attrTexts": diagAttr,
+            "loadedUrl": link ?? "",
+            "loadedCaptionLen": caption.count,
+            "loadedCaption": String(caption.prefix(4000)),
+        ]
+        var req = URLRequest(url: u)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        req.timeoutInterval = 4
+        var done = false
+        let finish = { if !done { done = true; DispatchQueue.main.async { then() } } }
+        URLSession.shared.dataTask(with: req) { _, _, _ in finish() }.resume()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) { finish() } // safety
+    }
+
     private func complete(link: String?, caption: String) {
+        postDebug(link: link, caption: caption) { [weak self] in
+            self?.doComplete(link: link, caption: caption)
+        }
+    }
+
+    private func doComplete(link: String?, caption: String) {
         // Se non abbiamo un URL esplicito ma la didascalia contiene un link, usalo.
         var finalLink = link
         if finalLink == nil,

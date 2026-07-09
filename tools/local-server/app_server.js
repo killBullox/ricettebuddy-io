@@ -255,6 +255,16 @@ async function handleApi(req, res, url) {
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
+  // POST /api/debug-log — diagnostica: appende il payload ricevuto a debug.log.
+  if (req.method === "POST" && url.pathname === "/api/debug-log") {
+    try {
+      const body = await readBody(req);
+      const line = new Date().toISOString() + " " + JSON.stringify(body) + "\n";
+      require("fs").appendFileSync(require("path").join(__dirname, "debug.log"), line);
+      console.log("DEBUG-LOG:", line.slice(0, 500));
+    } catch (e) { console.log("debug-log err:", e.message); }
+    return sendJson(res, 200, { ok: true });
+  }
   // POST /api/enrich {title, text, image_url, source_url}
   // L'app estrae il contenuto SUL DISPOSITIVO (connessione e login dell'utente,
   // così i social non bloccano) e qui il server fa SOLO l'AI (veganizza,
