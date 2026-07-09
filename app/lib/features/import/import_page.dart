@@ -22,6 +22,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     if (url.isEmpty) return;
     final l = AppLocalizations.of(context);
     setState(() => _importing = true);
+    // Fase REALE mostrata nel loader: cambia man mano che il processo avanza
+    // davvero (estrazione sul dispositivo → stream dell'AI).
+    final live = ValueNotifier<String>(l.phaseReading);
     // Loader animato a schermo intero, sfondo OPACO (coprente), durante l'attesa.
     showDialog(
       context: context,
@@ -29,12 +32,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       barrierColor: const Color(0xFFFBFAF7), // opaco: copre tutta la schermata
       useSafeArea: false,
       builder: (_) => Center(
-        child: CookingLoader(
-            size: 230, phases: importPhases(l), payoff: kPayoff),
+        child: CookingLoader(size: 230, liveMessage: live, payoff: kPayoff),
       ),
     );
     try {
-      final res = await ref.read(importRepositoryProvider).importFromUrl(url);
+      final res = await ref.read(importRepositoryProvider).importFromUrl(
+            url,
+            onPhase: (p) => live.value = phaseText(l, p),
+          );
       ref.invalidate(recipeListProvider);
       if (!mounted) return;
       Navigator.of(context).pop(); // chiude il loader
@@ -49,6 +54,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         SnackBar(content: Text(l.importFailed('$e'))),
       );
     } finally {
+      live.dispose();
       if (mounted) setState(() => _importing = false);
     }
   }

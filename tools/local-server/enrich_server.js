@@ -64,10 +64,11 @@ function cleanTitle(t) {
   return String(t || "").replace(/\s*[\(\[][^)\]]*[\)\]]\s*$/g, "").trim() || String(t || "").trim();
 }
 
-async function enrichRecipe(recipe) {
-  if (!KEY) return recipe; // senza chiave, passa liscia
-  const input = `Titolo: ${recipe.title}\n\nIngredienti:\n${(recipe.ingredients || []).map((i) => "- " + i.raw_text).join("\n")}\n\nProcedimento:\n${(recipe.steps || []).map((s, i) => `${i + 1}. ${s.text}`).join("\n")}`;
-  const v = await callClaude(input);
+function buildInput(recipe) {
+  return `Titolo: ${recipe.title}\n\nIngredienti:\n${(recipe.ingredients || []).map((i) => "- " + i.raw_text).join("\n")}\n\nProcedimento:\n${(recipe.steps || []).map((s, i) => `${i + 1}. ${s.text}`).join("\n")}`;
+}
+
+function mapEnrich(recipe, v) {
   return {
     ...recipe,
     title: cleanTitle(v.title || recipe.title),
@@ -91,4 +92,54 @@ async function enrichRecipe(recipe) {
   };
 }
 
-module.exports = { enrichRecipe };
+async function enrichRecipe(recipe) {
+  if (!KEY) return recipe; // senza chiave, passa liscia
+  const v = await callClaude(buildInput(recipe));
+  return mapEnrich(recipe, v);
+}
+
+// Come enrichRecipe ma in STREAMING: chiama [onPhase] mano a mano che i campi
+// vengono davvero generati dall'AI (was_vegan -> ingredients -> steps ->
+// nutrition -> co2), così le fasi mostrate seguono il processo REALE.
+async function enrichRecipeStream(recipe, onPhase) {
+  if (!KEY) return recipe;
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({
+      model: MODEL, max_tokens: 8192, system: SYSTEM, stream: true,
+      messages: [{ role: "user", content: buildInput(recipe) }],
+    }),
+  });
+  if (!res.ok || !res.body) {
+    // fallback non-streaming
+    return enrichRecipe(recipe);
+  }
+  const KEYS = [
+    ['"was_vegan"', "analyzing"],
+    ['"ingredients"', "ingredients"],
+    ['"steps"', "steps"],
+    ['"nutrition_per_serving"', "nutrition"],
+    ['"co2_saved_kg"', "co2"],
+  ];
+  let acc = "";
+  const seen = new Set();
+  for await (const chunk of res.body) {
+    for (const line of chunk.toString().split("\n")) {
+      if (!line.startsWith("data:")) continue;
+      const d = line.slice(5).trim();
+      if (!d || d === "[DONE]") continue;
+      let ev; try { ev = JSON.parse(d); } catch { continue; }
+      const t = ev.type === "content_block_delta" && ev.delta && ev.delta.text;
+      if (!t) continue;
+      acc += t;
+      for (const [tok, phase] of KEYS) {
+        if (!seen.has(tok) && acc.includes(tok)) { seen.add(tok); try { onPhase(phase); } catch {} }
+      }
+    }
+  }
+  const v = JSON.parse(acc.slice(acc.indexOf("{"), acc.lastIndexOf("}") + 1));
+  return mapEnrich(recipe, v);
+}
+
+module.exports = { enrichRecipe, enrichRecipeStream };

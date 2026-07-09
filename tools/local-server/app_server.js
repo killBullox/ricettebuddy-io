@@ -31,7 +31,13 @@ const { importFacebookPost } = require("./facebook.js");
 const { importTikTok } = require("./tiktok.js");
 const { importYouTube } = require("./youtube.js");
 const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
-const { enrichRecipe } = require("./enrich_server.js");
+const { enrichRecipe, enrichRecipeStream } = require("./enrich_server.js");
+const SSE_HEADERS = {
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache",
+  "Connection": "keep-alive",
+  "X-Accel-Buffering": "no",
+};
 const { iconSvg } = require("./icongen.js");
 
 const ROOT = process.env.WEB_ROOT || path.join(__dirname, "../../app/build/web");
@@ -256,13 +262,21 @@ async function handleApi(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/enrich") {
     const { title = "", text = "", image_url = null, source_url = "" } =
       await readBody(req);
+    // Streaming SSE se richiesto: le fasi arrivano MENTRE l'AI genera davvero.
+    const wantStream = String(req.headers.accept || "").includes("text/event-stream");
+    const sse = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     try {
       if (!text || String(text).trim().length < 30) {
+        if (wantStream) { res.writeHead(200, SSE_HEADERS); sse("error", { error: "Testo insufficiente per una ricetta." }); return res.end(); }
         return sendJson(res, 422, { error: "Testo insufficiente per una ricetta." });
       }
       if (source_url) {
         const dup = recipes.find((x) => x.source_url === source_url);
-        if (dup) { console.log("duplicate (enrich):", dup.title); return sendJson(res, 200, { ...dup, duplicate: true }); }
+        if (dup) {
+          console.log("duplicate (enrich):", dup.title);
+          if (wantStream) { res.writeHead(200, SSE_HEADERS); sse("done", { ...dup, duplicate: true }); return res.end(); }
+          return sendJson(res, 200, { ...dup, duplicate: true });
+        }
       }
       let r = {
         title: (title || "Ricetta").slice(0, 80),
@@ -270,12 +284,29 @@ async function handleApi(req, res, url) {
         cook_minutes: null, diet_tags: [], ingredients: [],
         steps: [{ position: 0, text: String(text) }],
       };
-      console.log("enrich (device-extracted):", r.title);
+      console.log("enrich (device-extracted):", r.title, wantStream ? "[stream]" : "");
+      if (wantStream) {
+        res.writeHead(200, SSE_HEADERS);
+        try {
+          r = await enrichRecipeStream(r, (phase) => sse("phase", { phase }));
+        } catch (e) {
+          console.log("enrich stream ERR:", e.message);
+          sse("error", { error: String(e.message || e) });
+          return res.end();
+        }
+        const saved = { ...r, id: String(++seq) };
+        recipes.unshift(saved); save();
+        sse("done", saved);
+        return res.end();
+      }
       try { r = await enrichRecipe(r); } catch (e) { console.log("enrich ERR:", e.message); }
       const saved = { ...r, id: String(++seq) };
       recipes.unshift(saved); save();
       return sendJson(res, 201, saved);
-    } catch (e) { return sendJson(res, 500, { error: String(e) }); }
+    } catch (e) {
+      if (wantStream) { try { sse("error", { error: String(e) }); res.end(); } catch {} return; }
+      return sendJson(res, 500, { error: String(e) });
+    }
   }
   // POST /api/analyze {type, reference, diets, limit, pages}
   if (req.method === "POST" && url.pathname === "/api/analyze") {

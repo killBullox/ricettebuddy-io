@@ -61,14 +61,15 @@ class ImportRepository {
       // Social su mobile: estraiamo SUL DISPOSITIVO (connessione/login utente),
       // il server fa solo l'AI. Siti web e web-build: parsing lato server.
       if (!kIsWeb && _socialRe.hasMatch(url)) {
-        onPhase?.call('reading');
+        onPhase?.call('reading'); // fase reale: estrazione sul dispositivo
         final post = await SocialExtractor.extract(url);
-        onPhase?.call('processing');
+        // Da qui le fasi arrivano dallo STREAM dell'AI (reali), via onPhase.
         final r = await localApi.enrichExtracted(
           title: post.title,
           text: post.text,
           imageUrl: post.imageUrl,
           sourceUrl: post.sourceUrl,
+          onPhase: onPhase,
         );
         return (id: r.recipe.id!, duplicate: r.duplicate);
       }

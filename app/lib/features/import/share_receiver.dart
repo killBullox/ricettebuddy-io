@@ -98,18 +98,21 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
     _importing = true;
     final ctx = context;
     final l = AppLocalizations.of(ctx);
+    final live = ValueNotifier<String>(l.phaseReading);
     showDialog(
       context: ctx,
       barrierDismissible: false,
       barrierColor: const Color(0xFFFBFAF7),
       useSafeArea: false,
       builder: (_) => Center(
-        child: CookingLoader(
-            size: 230, phases: importPhases(l), payoff: kPayoff),
+        child: CookingLoader(size: 230, liveMessage: live, payoff: kPayoff),
       ),
     );
     try {
-      final res = await ref.read(importRepositoryProvider).importFromUrl(url);
+      final res = await ref.read(importRepositoryProvider).importFromUrl(
+            url,
+            onPhase: (p) => live.value = phaseText(l, p),
+          );
       ref.invalidate(recipeListProvider);
       if (!ctx.mounted) return;
       Navigator.of(ctx).pop(); // chiude il loader
@@ -123,6 +126,7 @@ class _ShareReceiverState extends ConsumerState<ShareReceiver>
         SnackBar(content: Text(l.importFailed('$e'))),
       );
     } finally {
+      live.dispose();
       _importing = false;
     }
   }

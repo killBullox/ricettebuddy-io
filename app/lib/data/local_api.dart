@@ -64,29 +64,73 @@ class LocalApi {
     return (recipe: Recipe.fromMap(m), duplicate: m['duplicate'] == true);
   }
 
-  /// Enrich AI su testo GIÀ estratto sul dispositivo (social). Il server non
-  /// scarica nulla: fa solo veganizzazione/struttura/quantità.
+  /// Enrich AI su testo GIÀ estratto sul dispositivo (social). Il server fa solo
+  /// veganizzazione/struttura/quantità e **streamma** le fasi REALI (SSE): via
+  /// [onPhase] arrivano man mano che l'AI genera davvero i campi.
   Future<({Recipe recipe, bool duplicate})> enrichExtracted({
     required String title,
     required String text,
     String? imageUrl,
     required String sourceUrl,
+    void Function(String phase)? onPhase,
   }) async {
-    final res = await http
-        .post(_u('api/enrich'),
-            headers: _json,
-            body: jsonEncode({
-              'title': title,
-              'text': text,
-              'image_url': imageUrl,
-              'source_url': sourceUrl,
-            }))
-        .timeout(const Duration(seconds: 120));
-    if (res.statusCode >= 400) {
-      throw Exception((jsonDecode(res.body) as Map)['error'] ?? 'Import fallito');
+    final req = http.Request('POST', _u('api/enrich'))
+      ..headers['Content-Type'] = 'application/json'
+      ..headers['Accept'] = 'text/event-stream'
+      ..body = jsonEncode({
+        'title': title,
+        'text': text,
+        'image_url': imageUrl,
+        'source_url': sourceUrl,
+      });
+    final client = http.Client();
+    try {
+      final resp =
+          await client.send(req).timeout(const Duration(seconds: 30));
+      if (resp.statusCode >= 400) {
+        throw Exception('Import fallito (${resp.statusCode})');
+      }
+      Map<String, dynamic>? done;
+      String? error;
+      var buffer = '';
+      String? event;
+      await for (final chunk
+          in resp.stream.transform(utf8.decoder).timeout(
+        const Duration(seconds: 120),
+      )) {
+        buffer += chunk;
+        int nl;
+        while ((nl = buffer.indexOf('\n')) >= 0) {
+          final line = buffer.substring(0, nl).trimRight();
+          buffer = buffer.substring(nl + 1);
+          if (line.isEmpty) {
+            event = null;
+          } else if (line.startsWith('event:')) {
+            event = line.substring(6).trim();
+          } else if (line.startsWith('data:')) {
+            final d = line.substring(5).trim();
+            if (event == 'phase') {
+              try {
+                onPhase?.call((jsonDecode(d) as Map)['phase'].toString());
+              } catch (_) {}
+            } else if (event == 'done') {
+              done = Map<String, dynamic>.from(jsonDecode(d) as Map);
+            } else if (event == 'error') {
+              try {
+                error = (jsonDecode(d) as Map)['error']?.toString();
+              } catch (_) {
+                error = d;
+              }
+            }
+          }
+        }
+      }
+      if (error != null) throw Exception(error);
+      if (done == null) throw Exception('Import fallito');
+      return (recipe: Recipe.fromMap(done), duplicate: done['duplicate'] == true);
+    } finally {
+      client.close();
     }
-    final m = Map<String, dynamic>.from(jsonDecode(res.body) as Map);
-    return (recipe: Recipe.fromMap(m), duplicate: m['duplicate'] == true);
   }
 
   /// Analizza una sorgente e importa le ricette conformi ai regimi. Ritorna

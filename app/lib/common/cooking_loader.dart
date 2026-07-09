@@ -1,6 +1,6 @@
-import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -17,31 +17,34 @@ enum BeetLoaderStyle {
 /// Payoff del brand mostrato sotto il loader (in inglese, identità Beet-It).
 const kPayoff = 'Plant-based nutrition that rocks';
 
-/// Fasi dell'import mostrate nel loader. Avanzano UNA volta sola (niente loop):
-/// niente ripetizioni, riflettono i passi reali dell'elaborazione.
-List<String> importPhases(AppLocalizations l) => [
-      l.phaseReading,
-      l.phaseVeganizing,
-      l.phaseInstructions,
-      l.phaseNutrition,
-      l.phaseCo2,
-    ];
+/// Testo localizzato per una fase REALE ricevuta dallo stream di import.
+/// Le chiavi arrivano dal backend mentre l'AI genera davvero quel campo.
+String phaseText(AppLocalizations l, String key) => switch (key) {
+      'reading' => l.phaseReading,
+      'analyzing' => l.phaseAnalyzing,
+      'ingredients' => l.phaseVeganizing,
+      'steps' => l.phaseInstructions,
+      'nutrition' => l.phaseNutrition,
+      'co2' => l.phaseCo2,
+      _ => l.phaseProcessing,
+    };
 
 /// Loader animato Beet-It.
-/// - [phases]: voci di progresso che avanzano una volta e si fermano sull'ultima.
-/// - [message]: testo statico (se non ci sono [phases]).
+/// - [liveMessage]: fase REALE che cambia in tempo reale (pilotata dallo stream
+///   dell'import). Niente timer finti.
+/// - [message]: testo statico (se non c'è [liveMessage]).
 /// - [payoff]: riga brand secondaria, sotto, in tono tenue.
 class CookingLoader extends StatefulWidget {
   final double size;
   final String? message;
-  final List<String>? phases;
+  final ValueListenable<String>? liveMessage;
   final String? payoff;
   final BeetLoaderStyle style;
   const CookingLoader({
     super.key,
     this.size = 120,
     this.message,
-    this.phases,
+    this.liveMessage,
     this.payoff,
     this.style = BeetLoaderStyle.ring,
   });
@@ -57,38 +60,34 @@ class _CookingLoaderState extends State<CookingLoader>
     duration: const Duration(milliseconds: 2200),
   )..repeat();
 
-  Timer? _phaseTimer;
-  int _phase = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    final n = widget.phases?.length ?? 0;
-    if (n > 1) {
-      // Avanza UNA sola volta lungo le fasi e si ferma sull'ultima.
-      _phaseTimer = Timer.periodic(const Duration(milliseconds: 2400), (t) {
-        if (!mounted) return;
-        if (_phase < n - 1) {
-          setState(() => _phase++);
-        } else {
-          t.cancel();
-        }
-      });
-    }
-  }
-
   @override
   void dispose() {
-    _phaseTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
 
+  Widget _label(String? text) {
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        child: Text(
+          text,
+          key: ValueKey(text),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+              color: Color(0xFF8B1A4A),
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              letterSpacing: 0.2),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final label = (widget.phases != null && widget.phases!.isNotEmpty)
-        ? widget.phases![_phase]
-        : widget.message;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -104,23 +103,13 @@ class _CookingLoaderState extends State<CookingLoader>
             ),
           ),
         ),
-        if (label != null && label.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 18),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 350),
-              child: Text(
-                label,
-                key: ValueKey(label),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Color(0xFF8B1A4A),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    letterSpacing: 0.2),
-              ),
-            ),
-          ),
+        if (widget.liveMessage != null)
+          ValueListenableBuilder<String>(
+            valueListenable: widget.liveMessage!,
+            builder: (_, v, __) => _label(v),
+          )
+        else
+          _label(widget.message),
         if (widget.payoff != null && widget.payoff!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6),
