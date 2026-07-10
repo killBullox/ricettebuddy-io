@@ -93,8 +93,10 @@ class SocialExtractor {
     final html = r.body;
     final title = _htmlDecode(_meta(html, 'og:title') ?? '');
     final desc = _htmlDecode(_meta(html, 'og:description') ?? '');
-    final img = _meta(html, 'og:image');
-    final ogUrl = _meta(html, 'og:url') ?? url;
+    // NB: gli URL immagine nei meta contengono entità HTML (&amp;) → decodifica,
+    // altrimenti l'URL è rotto e la ricetta resta senza foto.
+    final img = _htmlDecode(_meta(html, 'og:image') ?? '');
+    final ogUrl = _htmlDecode(_meta(html, 'og:url') ?? url);
 
     var caption = desc.trim();
     if (caption.length < 40) {
@@ -107,7 +109,7 @@ class SocialExtractor {
     return ExtractedPost(
       title: title.isNotEmpty ? title : 'Ricetta',
       text: '$title\n\n$caption',
-      imageUrl: (img == null || img.isEmpty) ? null : img,
+      imageUrl: img.isEmpty ? null : img,
       sourceUrl: ogUrl,
     );
   }
