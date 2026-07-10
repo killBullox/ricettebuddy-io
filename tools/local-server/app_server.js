@@ -65,6 +65,18 @@ async function cacheImage(u, id) {
     return "media/" + name; // percorso relativo, risolto dall'app sul backend
   } catch { return u; }
 }
+
+// GET /media/<file> — foto ricetta scaricate all'import (cache locale).
+function serveMedia(req, res, url) {
+  const name = url.pathname.slice(7);
+  if (!/^[A-Za-z0-9._-]+$/.test(name)) { res.writeHead(400); return res.end("bad name"); }
+  const fp = _path.join(MEDIA_DIR, name);
+  if (!_fs.existsSync(fp)) { res.writeHead(404); return res.end("not found"); }
+  const ext = name.split(".").pop();
+  const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+  res.writeHead(200, { "Content-Type": mime, "Cache-Control": "public, max-age=31536000" });
+  res.end(_fs.readFileSync(fp));
+}
 const { iconSvg } = require("./icongen.js");
 
 const ROOT = process.env.WEB_ROOT || path.join(__dirname, "../../app/build/web");
@@ -283,17 +295,6 @@ async function handleApi(req, res, url) {
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
-  // GET /media/<file> — foto ricetta scaricate all'import (cache locale).
-  if (req.method === "GET" && url.pathname.startsWith("/media/")) {
-    const name = url.pathname.slice(7);
-    if (!/^[A-Za-z0-9._-]+$/.test(name)) return sendJson(res, 400, { error: "bad name" });
-    const fp = _path.join(MEDIA_DIR, name);
-    if (!_fs.existsSync(fp)) return sendJson(res, 404, { error: "not found" });
-    const ext = name.split(".").pop();
-    const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-    res.writeHead(200, { "Content-Type": mime, "Cache-Control": "public, max-age=31536000" });
-    return res.end(_fs.readFileSync(fp));
-  }
   // POST /api/extract-social {url} — estrazione server-side via yt-dlp
   // (Facebook e altri social che il dispositivo non può leggere): ritorna
   // {title, text, image_url, source_url} senza fare l'enrich.
@@ -510,6 +511,7 @@ http.createServer((req, res) => {
       "})());});",
     );
   }
+  if (url.pathname.startsWith("/media/")) return serveMedia(req, res, url);
   if (url.pathname.startsWith("/api/")) return handleApi(req, res, url);
   serveStatic(req, res, url);
 }).listen(PORT, HOST, () => {
