@@ -41,10 +41,12 @@ class RecipeImage extends StatelessWidget {
         errorBuilder: (_, __, ___) => fallback,
       );
     }
-    // Le immagini remote (es. GialloZafferano) non hanno header CORS: su Flutter
-    // web fallirebbero. Le carichiamo attraverso il proxy same-origin del
-    // server locale (/img?u=...).
-    final url = Config.backendUri('img?u=${Uri.encodeQueryComponent(p)}').toString();
+    // Percorsi relativi (es. "media/r12.jpg") = foto salvate sul backend
+    // all'import (mai scadute). URL assoluti = proxy same-origin (/img?u=...)
+    // perché i CDN remoti non hanno header CORS (Flutter web fallirebbe).
+    final url = p.startsWith('http')
+        ? Config.backendUri('img?u=${Uri.encodeQueryComponent(p)}').toString()
+        : Config.backendUri(p).toString();
     return CachedNetworkImage(
       imageUrl: url,
       width: width,

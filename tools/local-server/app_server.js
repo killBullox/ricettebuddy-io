@@ -38,6 +38,33 @@ const SSE_HEADERS = {
   "Connection": "keep-alive",
   "X-Accel-Buffering": "no",
 };
+
+// --- Cache locale delle foto ricetta -----------------------------------
+// Gli URL immagine dei social (scontent IG/FB) sono FIRMATI e scadono dopo
+// qualche settimana: all'import scarichiamo la foto in media/ e salviamo il
+// percorso locale, così le ricette non perdono mai l'immagine.
+const _fs = require("fs");
+const _path = require("path");
+const MEDIA_DIR = _path.join(__dirname, "media");
+try { _fs.mkdirSync(MEDIA_DIR, { recursive: true }); } catch { /* già esiste */ }
+
+async function cacheImage(u, id) {
+  try {
+    if (!u || !/^https?:\/\//i.test(String(u))) return u;
+    const r = await fetch(u, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      redirect: "follow",
+    });
+    if (!r.ok) return u;
+    const ct = String(r.headers.get("content-type") || "");
+    const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length < 1000) return u; // non è un'immagine vera
+    const name = `r${id}.${ext}`;
+    _fs.writeFileSync(_path.join(MEDIA_DIR, name), buf);
+    return "media/" + name; // percorso relativo, risolto dall'app sul backend
+  } catch { return u; }
+}
 const { iconSvg } = require("./icongen.js");
 
 const ROOT = process.env.WEB_ROOT || path.join(__dirname, "../../app/build/web");
@@ -251,9 +278,21 @@ async function handleApi(req, res, url) {
       try { r = await enrichRecipe(r); console.log("enriched. was_vegan:", r.was_vegan); }
       catch (e) { console.log("enrich ERR:", e.message, "| cause:", e.cause && (e.cause.code || e.cause.message)); }
       const saved = { ...r, id: String(++seq) };
+      saved.image_url = await cacheImage(saved.image_url, saved.id);
       recipes.unshift(saved); save();
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
+  }
+  // GET /media/<file> — foto ricetta scaricate all'import (cache locale).
+  if (req.method === "GET" && url.pathname.startsWith("/media/")) {
+    const name = url.pathname.slice(7);
+    if (!/^[A-Za-z0-9._-]+$/.test(name)) return sendJson(res, 400, { error: "bad name" });
+    const fp = _path.join(MEDIA_DIR, name);
+    if (!_fs.existsSync(fp)) return sendJson(res, 404, { error: "not found" });
+    const ext = name.split(".").pop();
+    const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    res.writeHead(200, { "Content-Type": mime, "Cache-Control": "public, max-age=31536000" });
+    return res.end(_fs.readFileSync(fp));
   }
   // POST /api/extract-social {url} — estrazione server-side via yt-dlp
   // (Facebook e altri social che il dispositivo non può leggere): ritorna
@@ -319,12 +358,14 @@ async function handleApi(req, res, url) {
           return res.end();
         }
         const saved = { ...r, id: String(++seq) };
+        saved.image_url = await cacheImage(saved.image_url, saved.id);
         recipes.unshift(saved); save();
         sse("done", saved);
         return res.end();
       }
       try { r = await enrichRecipe(r); } catch (e) { console.log("enrich ERR:", e.message); }
       const saved = { ...r, id: String(++seq) };
+      saved.image_url = await cacheImage(saved.image_url, saved.id);
       recipes.unshift(saved); save();
       return sendJson(res, 201, saved);
     } catch (e) {
