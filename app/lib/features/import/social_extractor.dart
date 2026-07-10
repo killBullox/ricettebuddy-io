@@ -59,7 +59,7 @@ class SocialExtractor {
         .post(Config.backendUri('api/extract-social'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'url': url}))
-        .timeout(const Duration(seconds: 100));
+        .timeout(const Duration(seconds: 150));
     final m = Map<String, dynamic>.from(jsonDecode(r.body) as Map);
     if (r.statusCode >= 400) {
       throw (m['error'] ?? 'Estrazione non riuscita').toString();

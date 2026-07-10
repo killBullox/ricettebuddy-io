@@ -34,11 +34,13 @@ class IngredientAvatar extends StatelessWidget {
 
     final slug = img?.trim();
     if (slug == null || slug.isEmpty) return fallback();
+    // Il server valida lo slug e può includere l'estensione (es. "vanilla.jpg").
+    final file = slug.contains('.') ? slug : '$slug.jpg';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: CachedNetworkImage(
-        imageUrl: 'https://img.spoonacular.com/ingredients_250x250/$slug.jpg',
+        imageUrl: 'https://img.spoonacular.com/ingredients_250x250/$file',
         width: size,
         height: size,
         fit: BoxFit.cover,

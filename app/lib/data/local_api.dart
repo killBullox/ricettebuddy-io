@@ -98,7 +98,7 @@ class LocalApi {
     final client = http.Client();
     try {
       final resp =
-          await client.send(req).timeout(const Duration(seconds: 30));
+          await client.send(req).timeout(const Duration(seconds: 60));
       if (resp.statusCode >= 400) {
         throw Exception('Import fallito (${resp.statusCode})');
       }
@@ -106,9 +106,10 @@ class LocalApi {
       String? error;
       var buffer = '';
       String? event;
+      // Il server manda un heartbeat ogni 10s: gap lunghi = connessione morta.
       await for (final chunk
           in resp.stream.transform(utf8.decoder).timeout(
-        const Duration(seconds: 120),
+        const Duration(seconds: 90),
       )) {
         buffer += chunk;
         int nl;

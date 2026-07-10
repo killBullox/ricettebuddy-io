@@ -26,7 +26,8 @@ Rispondi SOLO con JSON valido:
 IMPATTO CO2: "co2_saved_kg" = stima dei kg di CO2e RISPARMIATI PER PORZIONE scegliendo questa versione vegetale invece di un equivalente tradizionale a base animale. Usa fattori realistici (per kg di alimento): manzo ~20, agnello ~20, formaggio ~9, maiale ~7, pollo ~6, uova ~4.5, pesce ~5, latte/panna ~1.5; legumi/tofu/verdure/cereali ~0.5-2. Calcola la differenza sulle porzioni animali sostituite. Se la ricetta era GIÀ vegana, stima comunque il risparmio rispetto a un piatto analogo a base animale. Numero positivo con 1-2 decimali (es. 1.8).
 Regole sostituzioni: credibili (uova->aquafaba/lino; guanciale->tempeh/funghi affumicati; pecorino/parmigiano->lievito alimentare/parmigiano vegetale; panna->panna di soia/anacardi; burro->margarina/olio; miele->sciroppo d'acero). Adatta i passi. diet_tags sempre includa "vegan".
 
-FOTO INGREDIENTE ("img"): per OGNI ingrediente metti il nome INGLESE comune per la foto, minuscolo, SINGOLARE, con trattini tra le parole, nello stile della libreria Spoonacular (es. cipolla rossa->"red-onion", olio d'oliva->"olive-oil", pomodori->"tomato", farina->"flour", aglio->"garlic", zucchine->"zucchini", ceci->"chickpeas", basilico->"basil", menta->"mint", tofu->"tofu", latte di soia->"soy-milk", lievito alimentare->"nutritional-yeast", passata di pomodoro->"tomato-sauce"). Usa il termine generico più comune (non marche). Se è una preparazione composta, scegli l'ingrediente principale.
+FOTO INGREDIENTE ("img"): per OGNI ingrediente metti il nome INGLESE comune per la foto, minuscolo, SINGOLARE, con trattini tra le parole, nello stile della libreria Spoonacular (es. cipolla rossa->"red-onion", olio d'oliva->"olive-oil", pomodori->"tomato", farina->"flour", aglio->"garlic", zucchine->"zucchini", ceci->"chickpeas", basilico->"basil", menta->"mint", tofu->"tofu", latte di soia->"soy-milk", lievito alimentare->"nutritional-yeast", passata di pomodoro->"tomato-sauce"). Usa il termine generico più comune (non marche).
+IMPORTANTE: traduci SEMPRE il nome COMPOSTO INTERO, mai solo la prima parola: burro di cacao->"cocoa-butter" (NON "butter"), bacca/baccello di vaniglia->"vanilla-bean" (NON "berry"), latte di cocco->"coconut-milk" (NON "milk"), farina di ceci->"chickpea-flour" (NON "flour"), aceto di riso->"rice-vinegar", zucchero a velo->"powdered-sugar", cioccolato bianco->"white-chocolate". Il significato dell'ingrediente sta nell'insieme, non nella testa del nome.
 
 LINGUA: scrivi TUTTO in ITALIANO — titolo, nomi ingredienti (sia "name" sia "raw"), passi, note delle sostituzioni, category, cuisine, tags. Se la ricetta di partenza è in un'altra lingua, TRADUCILA in italiano naturale e scorrevole (non lasciare parole in inglese o altre lingue).
 
@@ -70,6 +71,43 @@ function buildInput(recipe) {
   return `Titolo: ${recipe.title}\n\nIngredienti:\n${(recipe.ingredients || []).map((i) => "- " + i.raw_text).join("\n")}\n\nProcedimento:\n${(recipe.steps || []).map((s, i) => `${i + 1}. ${s.text}`).join("\n")}`;
 }
 
+// --- Validazione foto ingrediente ---------------------------------------
+// La libreria Spoonacular non ha tutti gli slug: verifichiamo che la foto
+// ESISTA. Fallback: prova senza la parola-testa (vanilla-bean -> vanilla);
+// MAI la sola testa (butter per cocoa-butter darebbe una foto sbagliata).
+// Se niente esiste -> null (l'app mostra l'emoji, mai una foto errata).
+const IMG_BASE = "https://img.spoonacular.com/ingredients_250x250/";
+const _imgCache = new Map(); // slug -> filename|null
+
+async function _imgExists(file) {
+  try { const r = await fetch(IMG_BASE + file, { method: "HEAD" }); return r.ok; }
+  catch { return false; }
+}
+
+async function resolveImg(slug) {
+  const s = String(slug || "").toLowerCase().trim();
+  if (!s) return null;
+  if (_imgCache.has(s)) return _imgCache.get(s);
+  const tries = [s];
+  const parts = s.split("-");
+  if (parts.length > 1) tries.push(parts.slice(0, -1).join("-")); // via la testa
+  let found = null;
+  outer: for (const t of tries) {
+    for (const ext of ["jpg", "png"]) {
+      if (await _imgExists(`${t}.${ext}`)) { found = `${t}.${ext}`; break outer; }
+    }
+  }
+  _imgCache.set(s, found);
+  return found;
+}
+
+async function resolveIngredientImages(ingredients) {
+  await Promise.all((ingredients || []).map(async (i) => {
+    i.img = await resolveImg(i.img);
+  }));
+  return ingredients;
+}
+
 function mapEnrich(recipe, v) {
   return {
     ...recipe,
@@ -98,7 +136,9 @@ function mapEnrich(recipe, v) {
 async function enrichRecipe(recipe) {
   if (!KEY) return recipe; // senza chiave, passa liscia
   const v = await callClaude(buildInput(recipe));
-  return mapEnrich(recipe, v);
+  const out = mapEnrich(recipe, v);
+  await resolveIngredientImages(out.ingredients);
+  return out;
 }
 
 // Come enrichRecipe ma in STREAMING: chiama [onPhase] mano a mano che i campi
@@ -147,7 +187,9 @@ async function enrichRecipeStream(recipe, onPhase) {
     }
   }
   const v = JSON.parse(acc.slice(acc.indexOf("{"), acc.lastIndexOf("}") + 1));
-  return mapEnrich(recipe, v);
+  const out = mapEnrich(recipe, v);
+  await resolveIngredientImages(out.ingredients);
+  return out;
 }
 
 module.exports = { enrichRecipe, enrichRecipeStream };

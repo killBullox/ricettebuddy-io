@@ -411,13 +411,18 @@ async function handleApi(req, res, url) {
       console.log("enrich (device-extracted):", r.title, wantStream ? "[stream]" : "");
       if (wantStream) {
         res.writeHead(200, SSE_HEADERS);
+        // Heartbeat: tiene viva la connessione (l'app non va in timeout se
+        // una fase dell'AI dura a lungo).
+        const beat = setInterval(() => { try { res.write(": ping\n\n"); } catch { /* chiusa */ } }, 10000);
         try {
           r = await enrichRecipeStream(r, (phase) => sse("phase", { phase }));
         } catch (e) {
+          clearInterval(beat);
           console.log("enrich stream ERR:", e.message);
           sse("error", { error: String(e.message || e) });
           return res.end();
         }
+        clearInterval(beat);
         const saved = { ...r, id: String(++seq) };
         saved.image_url = await cacheImage(saved.image_url, saved.id);
         recipes.unshift(saved); save();
