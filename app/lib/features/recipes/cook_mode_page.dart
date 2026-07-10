@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/recipe.dart';
 import '../../data/models/recipe_step.dart';
 import 'recipe_image.dart';
+import 'step_ingredients.dart';
 
 /// Cook Mode: procedimento a schermo intero, un passo alla volta, con timer
 /// automatico quando il passo cita dei minuti.
@@ -132,6 +133,16 @@ class _CookModePageState extends State<CookModePage> {
                           ),
                         Text(s.text,
                             style: const TextStyle(color: Colors.white, fontSize: 22, height: 1.4)),
+                        // Foto grandi degli ingredienti citati in questo passo.
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: StepIngredients(
+                            stepText: s.text,
+                            ingredients: widget.recipe.ingredients,
+                            size: 84,
+                            labelColor: Colors.white,
+                          ),
+                        ),
                         if (mins != null) ...[
                           const SizedBox(height: 24),
                           _TimerBox(

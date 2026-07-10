@@ -20,6 +20,7 @@ import 'nutrition_donut.dart';
 import 'recipe_editor_page.dart';
 import 'recipe_image.dart';
 import 'recipe_labels.dart';
+import 'step_ingredients.dart';
 
 class RecipeDetailPage extends ConsumerWidget {
   final String recipeId;
@@ -49,7 +50,13 @@ class _Detail extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        body: NestedScrollView(
+        // Trascina verso il basso per ricaricare la ricetta.
+        body: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(recipeDetailProvider(recipe.id!));
+            await ref.read(recipeDetailProvider(recipe.id!).future);
+          },
+          child: NestedScrollView(
           headerSliverBuilder: (context, _) => [
             SliverAppBar(
               expandedHeight: recipe.imageUrl != null ? 320 : null,
@@ -125,11 +132,12 @@ class _Detail extends ConsumerWidget {
               ),
             ),
           ],
-          body: TabBarView(
-            children: [
-              _RecipeTab(recipe: recipe),
-              _ShoppingTab(recipe: recipe),
-            ],
+            body: TabBarView(
+              children: [
+                _RecipeTab(recipe: recipe),
+                _ShoppingTab(recipe: recipe),
+              ],
+            ),
           ),
         ),
       ),
@@ -333,11 +341,20 @@ class _RecipeTab extends ConsumerWidget {
                     children: [
                       for (final s in steps)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('${s.position + 1}. ${s.text}'),
+                              // Foto degli ingredienti citati in questo passaggio.
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: StepIngredients(
+                                  stepText: s.text,
+                                  ingredients: recipe.ingredients,
+                                  size: 64,
+                                ),
+                              ),
                               if (s.imageUrl != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
