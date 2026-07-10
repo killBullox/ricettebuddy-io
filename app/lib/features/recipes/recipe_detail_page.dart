@@ -52,6 +52,9 @@ class _Detail extends ConsumerWidget {
       child: Scaffold(
         // Trascina verso il basso per ricaricare la ricetta.
         body: RefreshIndicator(
+          // Con NestedScrollView lo scroll parte dalla lista interna (depth>0):
+          // senza questo predicate il pull-to-refresh non scatta mai.
+          notificationPredicate: (n) => n.depth <= 2,
           onRefresh: () async {
             ref.invalidate(recipeDetailProvider(recipe.id!));
             await ref.read(recipeDetailProvider(recipe.id!).future);
@@ -228,6 +231,8 @@ class _RecipeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final steps = [...recipe.steps]..sort((a, b) => a.position - b.position);
     return ListView(
+      // Sempre trascinabile (per il pull-to-refresh) anche se il contenuto è corto.
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 32),
       children: [
           if (recipe.source == RecipeSource.generated)
@@ -464,6 +469,7 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
       children: [
         Expanded(
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
               for (var i = 0; i < ings.length; i++)
