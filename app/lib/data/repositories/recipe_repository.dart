@@ -112,6 +112,15 @@ class RecipeRepository {
     if (_demo) return localApi.deleteRecipe(id);
     await _db!.from('recipes').delete().eq('id', id);
   }
+
+  /// Rielabora la ricetta dalla fonte (foto, label, CO2, img ingredienti).
+  Future<void> refreshFromSource(String id) async {
+    if (_demo) {
+      await localApi.refreshRecipe(id);
+      return;
+    }
+    // Con Supabase il refresh avverrà nella Edge Function (non ancora attivo).
+  }
 }
 
 RecipeRepository _make() =>

@@ -56,7 +56,20 @@ class _Detail extends ConsumerWidget {
           // senza questo predicate il pull-to-refresh non scatta mai.
           notificationPredicate: (n) => n.depth <= 2,
           onRefresh: () async {
+            // Aggiorna la foto dalla fonte (server) e ricarica la ricetta.
+            try {
+              await ref
+                  .read(recipeRepositoryProvider)
+                  .refreshFromSource(recipe.id!);
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))),
+                );
+              }
+            }
             ref.invalidate(recipeDetailProvider(recipe.id!));
+            ref.invalidate(recipeListProvider);
             await ref.read(recipeDetailProvider(recipe.id!).future);
           },
           child: NestedScrollView(

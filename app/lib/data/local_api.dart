@@ -44,6 +44,18 @@ class LocalApi {
 
   Future<void> deleteRecipe(String id) => http.delete(_u('api/recipes/$id'));
 
+  /// Aggiorna la FOTO della ricetta: il server la ri-estrae dalla fonte e la
+  /// salva in cache locale (veloce, pochi secondi).
+  Future<Recipe> refreshRecipe(String id) async {
+    final res = await http
+        .post(_u('api/recipes/$id/refresh'))
+        .timeout(const Duration(seconds: 60));
+    if (res.statusCode >= 400) {
+      throw Exception((jsonDecode(res.body) as Map)['error'] ?? 'Aggiornamento fallito');
+    }
+    return Recipe.fromMap(Map<String, dynamic>.from(jsonDecode(res.body) as Map));
+  }
+
   Future<void> setFavorite(String id, bool value) => http.put(
       _u('api/recipes/$id'),
       headers: _json,

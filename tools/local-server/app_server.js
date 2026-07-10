@@ -228,6 +228,35 @@ async function handleApi(req, res, url) {
     recipes = recipes.filter((x) => x.id !== parts[2]); save();
     return sendJson(res, 200, { ok: true });
   }
+  // POST /api/recipes/:id/refresh — aggiorna la FOTO della ricetta: ri-estrae
+  // l'immagine dalla fonte (veloce, senza AI) e la salva in cache locale.
+  if (req.method === "POST" && parts[1] === "recipes" && parts[2] && parts[3] === "refresh") {
+    const idx = recipes.findIndex((x) => x.id === parts[2]);
+    if (idx < 0) return sendJson(res, 404, { error: "Ricetta non trovata" });
+    const old = recipes[idx];
+    try {
+      console.log("refresh foto:", old.id, old.title);
+      const u = String(old.source_url || "");
+      let newImg = null;
+      if (/instagram\.com/i.test(u)) { try { newImg = (await importInstagramPost(u)).image_url; } catch (e) { console.log("refresh ig:", e.message); } }
+      else if (/facebook\.com|fb\.watch/i.test(u)) { try { newImg = (await extractFacebook(u)).image_url; } catch (e) { console.log("refresh fb:", e.message); } }
+      else if (/tiktok\.com/i.test(u)) { try { newImg = (await importTikTok(u)).image_url; } catch (e) { console.log("refresh tt:", e.message); } }
+      else if (/youtube\.com|youtu\.be/i.test(u)) {
+        const m = u.match(/(?:youtu\.be\/|v=|shorts\/)([A-Za-z0-9_-]{6,})/);
+        if (m) newImg = `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg`;
+      }
+      // Sorgente: nuova immagine se trovata, altrimenti ritenta con l'attuale
+      // (se è ancora un URL remoto non ancora salvato in cache).
+      const src = newImg || old.image_url;
+      const cached = await cacheImage(src, old.id);
+      if (/^https?:/i.test(String(cached)) && !newImg) {
+        return sendJson(res, 422, { error: "Non riesco a recuperare la foto dalla fonte." });
+      }
+      recipes[idx] = { ...old, image_url: cached }; save();
+      console.log("refresh foto ok:", cached);
+      return sendJson(res, 200, recipes[idx]);
+    } catch (e) { return sendJson(res, 500, { error: String(e) }); }
+  }
   // POST /api/import-url {url}
   if (req.method === "POST" && url.pathname === "/api/import-url") {
     const { url: u } = await readBody(req);
