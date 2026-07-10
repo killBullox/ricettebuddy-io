@@ -57,6 +57,7 @@ async function cacheImage(u, id) {
     });
     if (!r.ok) return u;
     const ct = String(r.headers.get("content-type") || "");
+    if (!ct.startsWith("image/")) return u; // mai salvare HTML/altro come foto
     const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
     const buf = Buffer.from(await r.arrayBuffer());
     if (buf.length < 1000) return u; // non è un'immagine vera
@@ -64,6 +65,21 @@ async function cacheImage(u, id) {
     _fs.writeFileSync(_path.join(MEDIA_DIR, name), buf);
     return "media/" + name; // percorso relativo, risolto dall'app sul backend
   } catch { return u; }
+}
+
+// og:image di una pagina via fetch con UA crawler (veloce, niente browser).
+async function ogImageOf(u) {
+  try {
+    const r = await fetch(u, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Twitterbot/1.0)" },
+      redirect: "follow",
+    });
+    if (!r.ok) return null;
+    const html = await r.text();
+    const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    return m ? m[1].replace(/&amp;/g, "&") : null;
+  } catch { return null; }
 }
 
 // GET /media/<file> — foto ricetta scaricate all'import (cache locale).
@@ -237,23 +253,38 @@ async function handleApi(req, res, url) {
     try {
       console.log("refresh foto:", old.id, old.title);
       const u = String(old.source_url || "");
+      const isLocal = (s) => /^media\//.test(String(s || ""));
+      if (!/^https?:/i.test(u)) {
+        return sendJson(res, 422, {
+          error: "Questa ricetta non ha una fonte collegata: reimportala per recuperare la foto.",
+        });
+      }
       let newImg = null;
-      if (/instagram\.com/i.test(u)) { try { newImg = (await importInstagramPost(u)).image_url; } catch (e) { console.log("refresh ig:", e.message); } }
-      else if (/facebook\.com|fb\.watch/i.test(u)) { try { newImg = (await extractFacebook(u)).image_url; } catch (e) { console.log("refresh fb:", e.message); } }
+      if (/facebook\.com|fb\.watch/i.test(u)) { try { newImg = (await extractFacebook(u)).image_url; } catch (e) { console.log("refresh fb:", e.message); } }
       else if (/tiktok\.com/i.test(u)) { try { newImg = (await importTikTok(u)).image_url; } catch (e) { console.log("refresh tt:", e.message); } }
       else if (/youtube\.com|youtu\.be/i.test(u)) {
         const m = u.match(/(?:youtu\.be\/|v=|shorts\/)([A-Za-z0-9_-]{6,})/);
         if (m) newImg = `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg`;
       }
-      // Sorgente: nuova immagine se trovata, altrimenti ritenta con l'attuale
-      // (se è ancora un URL remoto non ancora salvato in cache).
-      const src = newImg || old.image_url;
-      const cached = await cacheImage(src, old.id);
-      if (/^https?:/i.test(String(cached)) && !newImg) {
+      // Instagram, Pinterest, siti: og:image via fetch (funziona dal VPS).
+      if (!newImg) newImg = await ogImageOf(u);
+
+      // Regola: MAI degradare una foto locale funzionante.
+      let finalImg = old.image_url;
+      if (newImg) {
+        const cached = await cacheImage(newImg, old.id);
+        if (isLocal(cached)) finalImg = cached;
+        else if (!isLocal(old.image_url)) finalImg = newImg;
+      } else if (/^https?:/i.test(String(old.image_url || ""))) {
+        // Nessuna nuova foto: prova almeno a mettere in cache quella attuale.
+        const cached = await cacheImage(old.image_url, old.id);
+        if (isLocal(cached)) finalImg = cached;
+      }
+      if (!finalImg || (!isLocal(finalImg) && finalImg === old.image_url && !newImg)) {
         return sendJson(res, 422, { error: "Non riesco a recuperare la foto dalla fonte." });
       }
-      recipes[idx] = { ...old, image_url: cached }; save();
-      console.log("refresh foto ok:", cached);
+      recipes[idx] = { ...old, image_url: finalImg }; save();
+      console.log("refresh foto ok:", String(finalImg).slice(0, 60));
       return sendJson(res, 200, recipes[idx]);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
   }
