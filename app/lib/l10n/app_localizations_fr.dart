@@ -265,4 +265,104 @@ class AppLocalizationsFr extends AppLocalizations {
   String co2SubChosen(Object km) {
     return 'en choisissant cette version végétale — comme $km km de moins en voiture 🚗';
   }
+
+  @override
+  String get chefIdeasTitle => 'Chef IA';
+
+  @override
+  String get chefThinking => 'Le Chef crée vos recettes…';
+
+  @override
+  String get chefPrefFast => 'Rapide (≤30 min)';
+
+  @override
+  String get chefGenerate => 'Générer des recettes';
+
+  @override
+  String get chefHint =>
+      'Choisis tes préférences et appuie sur Générer : le Chef inventera des recettes avec ce que tu as dans ton garde-manger.';
+
+  @override
+  String get saveToCookbook => 'Enregistrer dans le carnet';
+
+  @override
+  String get savedToCookbook => 'Enregistrée';
+
+  @override
+  String get ingredientsTitle => 'Ingrédients';
+
+  @override
+  String get preparationTitle => 'Préparation';
+
+  @override
+  String get planHowTitle => 'Comment veux-tu planifier ?';
+
+  @override
+  String get planManualTitle => 'Manuel';
+
+  @override
+  String get planManualDesc =>
+      'Tu ajoutes toi-même les recettes à chaque repas.';
+
+  @override
+  String get planAutoTitle => 'Automatique';
+
+  @override
+  String get planAutoDesc =>
+      'Définis des filtres et un plafond calorique quotidien : la semaine se remplit avec tes recettes.';
+
+  @override
+  String get planConsultTitle => 'Depuis la consultation nutritionnelle';
+
+  @override
+  String get planConsultDesc =>
+      'Importe le plan de ton nutritionniste et associe-le aux recettes.';
+
+  @override
+  String get planComingSoon => 'Bientôt';
+
+  @override
+  String get planMaxKcal => 'Calories max par jour';
+
+  @override
+  String get planNoLimit => 'Sans limite';
+
+  @override
+  String get planIncludeSnack => 'Inclure une collation';
+
+  @override
+  String get planGenerateBtn => 'Générer le plan de la semaine';
+
+  @override
+  String planResultAll(Object n) {
+    return '$n repas planifiés ✓';
+  }
+
+  @override
+  String planResultPartial(Object filled, Object missing) {
+    return '$filled repas planifiés, $missing vides : pas assez de recettes adaptées avec des données nutritionnelles.';
+  }
+
+  @override
+  String get pantryScan => 'Scanner des aliments';
+
+  @override
+  String get pantryScanCamera => 'Prendre une photo';
+
+  @override
+  String get pantryScanGallery => 'Choisir dans la galerie';
+
+  @override
+  String get pantryScanning => 'Reconnaissance des aliments…';
+
+  @override
+  String get pantryScanFound => 'Aliments reconnus';
+
+  @override
+  String get pantryScanNone => 'Aucun aliment reconnu sur la photo.';
+
+  @override
+  String pantryScanAdded(Object n) {
+    return '$n aliments ajoutés au garde-manger';
+  }
 }

@@ -264,4 +264,103 @@ class AppLocalizationsEn extends AppLocalizations {
   String co2SubChosen(Object km) {
     return 'by choosing this plant-based version — like $km km less by car 🚗';
   }
+
+  @override
+  String get chefIdeasTitle => 'AI Chef';
+
+  @override
+  String get chefThinking => 'The Chef is creating your recipes…';
+
+  @override
+  String get chefPrefFast => 'Quick (≤30 min)';
+
+  @override
+  String get chefGenerate => 'Generate recipes';
+
+  @override
+  String get chefHint =>
+      'Pick your preferences and tap Generate: the Chef will invent recipes from what you have in your pantry.';
+
+  @override
+  String get saveToCookbook => 'Save to cookbook';
+
+  @override
+  String get savedToCookbook => 'Saved';
+
+  @override
+  String get ingredientsTitle => 'Ingredients';
+
+  @override
+  String get preparationTitle => 'Preparation';
+
+  @override
+  String get planHowTitle => 'How do you want to plan?';
+
+  @override
+  String get planManualTitle => 'Manual';
+
+  @override
+  String get planManualDesc => 'You add recipes to each meal yourself.';
+
+  @override
+  String get planAutoTitle => 'Automatic';
+
+  @override
+  String get planAutoDesc =>
+      'Set filters and a daily calorie cap: the week fills itself with your recipes.';
+
+  @override
+  String get planConsultTitle => 'From nutrition consultation';
+
+  @override
+  String get planConsultDesc =>
+      'Import your nutritionist\'s plan and match it with recipes.';
+
+  @override
+  String get planComingSoon => 'Coming soon';
+
+  @override
+  String get planMaxKcal => 'Max daily calories';
+
+  @override
+  String get planNoLimit => 'No limit';
+
+  @override
+  String get planIncludeSnack => 'Include snack';
+
+  @override
+  String get planGenerateBtn => 'Generate week plan';
+
+  @override
+  String planResultAll(Object n) {
+    return '$n meals planned ✓';
+  }
+
+  @override
+  String planResultPartial(Object filled, Object missing) {
+    return '$filled meals planned, $missing left empty: not enough matching recipes with nutrition data.';
+  }
+
+  @override
+  String get pantryScan => 'Scan food';
+
+  @override
+  String get pantryScanCamera => 'Take a photo';
+
+  @override
+  String get pantryScanGallery => 'Choose from gallery';
+
+  @override
+  String get pantryScanning => 'Recognizing the food…';
+
+  @override
+  String get pantryScanFound => 'Recognized items';
+
+  @override
+  String get pantryScanNone => 'No food recognized in the photo.';
+
+  @override
+  String pantryScanAdded(Object n) {
+    return '$n items added to the pantry';
+  }
 }

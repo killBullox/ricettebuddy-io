@@ -577,6 +577,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'by choosing this plant-based version — like {km} km less by car 🚗'**
   String co2SubChosen(Object km);
+
+  /// No description provided for @chefIdeasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chef'**
+  String get chefIdeasTitle;
+
+  /// No description provided for @chefThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'The Chef is creating your recipes…'**
+  String get chefThinking;
+
+  /// No description provided for @chefPrefFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick (≤30 min)'**
+  String get chefPrefFast;
+
+  /// No description provided for @chefGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate recipes'**
+  String get chefGenerate;
+
+  /// No description provided for @chefHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your preferences and tap Generate: the Chef will invent recipes from what you have in your pantry.'**
+  String get chefHint;
+
+  /// No description provided for @saveToCookbook.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to cookbook'**
+  String get saveToCookbook;
+
+  /// No description provided for @savedToCookbook.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedToCookbook;
+
+  /// No description provided for @ingredientsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ingredients'**
+  String get ingredientsTitle;
+
+  /// No description provided for @preparationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparation'**
+  String get preparationTitle;
+
+  /// No description provided for @planHowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How do you want to plan?'**
+  String get planHowTitle;
+
+  /// No description provided for @planManualTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get planManualTitle;
+
+  /// No description provided for @planManualDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'You add recipes to each meal yourself.'**
+  String get planManualDesc;
+
+  /// No description provided for @planAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get planAutoTitle;
+
+  /// No description provided for @planAutoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set filters and a daily calorie cap: the week fills itself with your recipes.'**
+  String get planAutoDesc;
+
+  /// No description provided for @planConsultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'From nutrition consultation'**
+  String get planConsultTitle;
+
+  /// No description provided for @planConsultDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Import your nutritionist\'s plan and match it with recipes.'**
+  String get planConsultDesc;
+
+  /// No description provided for @planComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get planComingSoon;
+
+  /// No description provided for @planMaxKcal.
+  ///
+  /// In en, this message translates to:
+  /// **'Max daily calories'**
+  String get planMaxKcal;
+
+  /// No description provided for @planNoLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'No limit'**
+  String get planNoLimit;
+
+  /// No description provided for @planIncludeSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Include snack'**
+  String get planIncludeSnack;
+
+  /// No description provided for @planGenerateBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate week plan'**
+  String get planGenerateBtn;
+
+  /// No description provided for @planResultAll.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} meals planned ✓'**
+  String planResultAll(Object n);
+
+  /// No description provided for @planResultPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{filled} meals planned, {missing} left empty: not enough matching recipes with nutrition data.'**
+  String planResultPartial(Object filled, Object missing);
+
+  /// No description provided for @pantryScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan food'**
+  String get pantryScan;
+
+  /// No description provided for @pantryScanCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get pantryScanCamera;
+
+  /// No description provided for @pantryScanGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get pantryScanGallery;
+
+  /// No description provided for @pantryScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognizing the food…'**
+  String get pantryScanning;
+
+  /// No description provided for @pantryScanFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognized items'**
+  String get pantryScanFound;
+
+  /// No description provided for @pantryScanNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No food recognized in the photo.'**
+  String get pantryScanNone;
+
+  /// No description provided for @pantryScanAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} items added to the pantry'**
+  String pantryScanAdded(Object n);
 }
 
 class _AppLocalizationsDelegate

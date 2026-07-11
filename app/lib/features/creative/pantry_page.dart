@@ -1,7 +1,11 @@
-import 'package:flutter/material.dart';
-import '../../common/cooking_loader.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../common/cooking_loader.dart';
+import '../../data/local_api.dart';
 import '../../data/models/pantry_item.dart';
 import '../../data/repositories/creative_repository.dart';
 import '../../data/repositories/pantry_repository.dart';
@@ -20,7 +24,16 @@ class PantryPage extends ConsumerWidget {
     final l = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.pantryTitle)),
+      appBar: AppBar(
+        title: Text(l.pantryTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.photo_camera),
+            tooltip: l.pantryScan,
+            onPressed: () => _scan(context, ref),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addDialog(context, ref),
         icon: const Icon(Icons.add),
@@ -50,6 +63,129 @@ class PantryPage extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  /// Scansione: foto di confezione/alimenti → AI vision → conferma → dispensa.
+  Future<void> _scan(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.photo_camera),
+            title: Text(l.pantryScanCamera),
+            onTap: () => Navigator.pop(ctx, ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: Text(l.pantryScanGallery),
+            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (source == null) return;
+    final picked = await ImagePicker()
+        .pickImage(source: source, maxWidth: 1280, imageQuality: 80);
+    if (picked == null || !context.mounted) return;
+    final bytes = await picked.readAsBytes();
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: const Color(0xFFFBFAF7),
+      useSafeArea: false,
+      builder: (_) => Center(
+          child: CookingLoader(size: 180, message: l.pantryScanning)),
+    );
+    List<Map<String, dynamic>> items;
+    try {
+      items = await localApi.scanPantry(base64Encode(bytes));
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'.replaceFirst('Exception: ', ''))));
+      return;
+    }
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.pantryScanNone)));
+      return;
+    }
+    // Conferma: l'utente sceglie cosa aggiungere.
+    final selected = Set<int>.from(List.generate(items.length, (i) => i));
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+                title: Text(l.pantryScanFound,
+                    style: const TextStyle(fontWeight: FontWeight.bold))),
+            Flexible(
+              child: ListView(shrinkWrap: true, children: [
+                for (var i = 0; i < items.length; i++)
+                  CheckboxListTile(
+                    dense: true,
+                    value: selected.contains(i),
+                    onChanged: (v) => setState(() =>
+                        v == true ? selected.add(i) : selected.remove(i)),
+                    secondary: IngredientAvatar(
+                        raw: (items[i]['name'] ?? '').toString()),
+                    title: Text((items[i]['name'] ?? '').toString()),
+                    subtitle: items[i]['quantity'] == null
+                        ? null
+                        : Text(
+                            '${items[i]['quantity']} ${items[i]['unit'] ?? ''}'),
+                  ),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: selected.isEmpty
+                      ? null
+                      : () => Navigator.pop(ctx, true),
+                  child: Text(l.addToPantry),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+    if (ok != true) return;
+    var added = 0;
+    for (final i in selected) {
+      final it = items[i];
+      final name = (it['name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      final qty = (it['quantity'] as num?)?.toDouble();
+      final unit = it['unit']?.toString();
+      await ref.read(pantryRepositoryProvider).add(PantryItem(
+            rawText: qty != null ? '$qty ${unit ?? ''} $name'.trim() : name,
+            normalizedName: name,
+            quantity: qty,
+            unit: unit,
+          ));
+      added++;
+    }
+    ref.invalidate(pantryListProvider);
+    ref.invalidate(doableRecipesProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.pantryScanAdded('$added'))));
+    }
   }
 
   Future<void> _addDialog(BuildContext context, WidgetRef ref) async {

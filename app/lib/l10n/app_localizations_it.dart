@@ -265,4 +265,103 @@ class AppLocalizationsIt extends AppLocalizations {
   String co2SubChosen(Object km) {
     return 'scegliendo questa versione vegetale — come $km km in meno in auto 🚗';
   }
+
+  @override
+  String get chefIdeasTitle => 'Chef AI';
+
+  @override
+  String get chefThinking => 'Lo Chef sta creando le tue ricette…';
+
+  @override
+  String get chefPrefFast => 'Veloce (≤30 min)';
+
+  @override
+  String get chefGenerate => 'Genera ricette';
+
+  @override
+  String get chefHint =>
+      'Scegli le preferenze e tocca Genera: lo Chef inventerà ricette con quello che hai in dispensa.';
+
+  @override
+  String get saveToCookbook => 'Salva nel ricettario';
+
+  @override
+  String get savedToCookbook => 'Salvata';
+
+  @override
+  String get ingredientsTitle => 'Ingredienti';
+
+  @override
+  String get preparationTitle => 'Preparazione';
+
+  @override
+  String get planHowTitle => 'Come vuoi pianificare?';
+
+  @override
+  String get planManualTitle => 'Manuale';
+
+  @override
+  String get planManualDesc => 'Aggiungi tu le ricette a ogni pasto.';
+
+  @override
+  String get planAutoTitle => 'Automatica';
+
+  @override
+  String get planAutoDesc =>
+      'Imposta filtri e tetto calorico giornaliero: la settimana si riempie con le tue ricette.';
+
+  @override
+  String get planConsultTitle => 'Da consulenza nutrizionale';
+
+  @override
+  String get planConsultDesc =>
+      'Importa il piano del nutrizionista e abbinalo alle ricette.';
+
+  @override
+  String get planComingSoon => 'In arrivo';
+
+  @override
+  String get planMaxKcal => 'Calorie massime al giorno';
+
+  @override
+  String get planNoLimit => 'Nessun limite';
+
+  @override
+  String get planIncludeSnack => 'Includi spuntino';
+
+  @override
+  String get planGenerateBtn => 'Genera piano settimanale';
+
+  @override
+  String planResultAll(Object n) {
+    return '$n pasti pianificati ✓';
+  }
+
+  @override
+  String planResultPartial(Object filled, Object missing) {
+    return '$filled pasti pianificati, $missing vuoti: non ci sono abbastanza ricette adatte con dati nutrizionali.';
+  }
+
+  @override
+  String get pantryScan => 'Scansiona alimenti';
+
+  @override
+  String get pantryScanCamera => 'Scatta una foto';
+
+  @override
+  String get pantryScanGallery => 'Scegli dalla galleria';
+
+  @override
+  String get pantryScanning => 'Riconosco gli alimenti…';
+
+  @override
+  String get pantryScanFound => 'Alimenti riconosciuti';
+
+  @override
+  String get pantryScanNone => 'Nessun alimento riconosciuto nella foto.';
+
+  @override
+  String pantryScanAdded(Object n) {
+    return '$n alimenti aggiunti alla dispensa';
+  }
 }

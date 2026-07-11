@@ -35,11 +35,11 @@ UNITÀ DI MISURA: usa SEMPRE il sistema metrico. Converti ogni misura anglosasso
 
 PASSAGGI CON QUANTITÀ: OGNI volta che nomini un ingrediente in un passaggio, mettici accanto la sua quantità/numero — SENZA ECCEZIONI. Questo vale anche per gli ingredienti a unità intera o frazionaria (scrivi "1 cetriolo", "1 peperone", "1 avocado", "mezza cipolla rossa", "1 spicchio d'aglio"), non solo per grammi e ml. Se in un passaggio elenchi più ingredienti insieme, metti la quantità accanto a CIASCUNO (es. "unisci 150 g di fagioli, 200 g di pomodorini, 1 cetriolo a cubetti e 1 peperone a listarelle"). Se lo stesso ingrediente compare in più passaggi con quantità diverse, ripartisci e specifica ogni volta (es. step 2 "100 g di farina", step 5 "i restanti 50 g di farina"): la somma per ingrediente deve corrispondere al totale in "ingredients". Unica cosa che puoi omettere: gli ingredienti a piacere/q.b. (sale, pepe, prezzemolo). Mantieni i passi scorrevoli, ma NON tralasciare mai una quantità.`;
 
-async function callClaudeOnce(input) {
+async function callClaudeOnce(input, system = SYSTEM, maxTokens = 8192) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 8192, system: SYSTEM, messages: [{ role: "user", content: input }] }),
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: input }] }),
   });
   const raw = await res.text();
   if (res.status !== 200) throw new Error(`Anthropic HTTP ${res.status}: ${raw.slice(0, 150)}`);
@@ -51,10 +51,10 @@ async function callClaudeOnce(input) {
   return JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
 }
 
-async function callClaude(input, tries = 3) {
+async function callClaude(input, tries = 3, system = SYSTEM, maxTokens = 8192) {
   let lastErr;
   for (let k = 0; k < tries; k++) {
-    try { return await callClaudeOnce(input); }
+    try { return await callClaudeOnce(input, system, maxTokens); }
     catch (e) { lastErr = e; }
   }
   throw lastErr;
@@ -192,4 +192,74 @@ async function enrichRecipeStream(recipe, onPhase) {
   return out;
 }
 
-module.exports = { enrichRecipe, enrichRecipeStream };
+// --- Chef AI: generazione di ricette originali -----------------------------
+// Stesso schema/regole dell'enrich (nutrizione, CO2, foto ingredienti, lingua,
+// unità metriche, quantità nei passi) ma INVENTA ricette dalla dispensa+vincoli.
+const GEN_SYSTEM = SYSTEM
+  .replace(
+    /^Sei uno chef vegano e nutrizionista\..*?\n/s,
+    `Sei uno chef vegano stellato e nutrizionista. Il tuo compito è INVENTARE ricette 100% vegane originali, realistiche, gustose e bilanciate, usando SOPRATTUTTO gli ingredienti di dispensa forniti dall'utente (puoi aggiungere pochi ingredienti comuni da cucina: olio, sale, pepe, spezie, aglio, cipolla, farina, ecc.). Rispetta SEMPRE i vincoli dati (tempo massimo, etichette nutrizionali richieste, allergeni da escludere). Le ricette devono essere diverse tra loro per tecnica e profilo di gusto.\n`)
+  .replace(
+    'Rispondi SOLO con JSON valido:\n{',
+    'Rispondi SOLO con JSON valido, un oggetto con array "recipes" dove OGNI ricetta ha questo schema:\n{"recipes": [{')
+  .replace(
+    '"classification": {"category": string, "cuisine": string, "difficulty": "facile"|"media"|"difficile", "diet_tags": string[], "allergens": string[], "tags": string[]}\n}',
+    '"classification": {"category": string, "cuisine": string, "difficulty": "facile"|"media"|"difficile", "diet_tags": string[], "allergens": string[], "tags": string[]}\n}]}');
+
+async function generateRecipes({ pantry = [], maxMinutes = null, labels = [],
+  excludeAllergens = [], count = 3 } = {}) {
+  if (!KEY) throw new Error("AI non configurata sul server.");
+  const vincoli = [];
+  if (maxMinutes) vincoli.push(`tempo totale massimo ${maxMinutes} minuti`);
+  if (labels.length) vincoli.push(`profilo nutrizionale: ${labels.join(", ")}`);
+  if (excludeAllergens.length) vincoli.push(`SENZA: ${excludeAllergens.join(", ")}`);
+  const input =
+    `Dispensa disponibile: ${pantry.length ? pantry.join(", ") : "(vuota: usa ingredienti vegani comuni)"}\n` +
+    `Vincoli: ${vincoli.length ? vincoli.join("; ") : "nessuno"}\n` +
+    `Genera ${count} ricette diverse tra loro.`;
+  const v = await callClaude(input, 3, GEN_SYSTEM, 16000);
+  const base = {
+    title: "", image_url: null, source_url: null, source_type: "generated",
+    cook_minutes: null, diet_tags: [], ingredients: [], steps: [],
+  };
+  const out = [];
+  for (const r of (v.recipes || [])) {
+    const m = mapEnrich(base, r);
+    m.was_vegan = true; // generate vegane per definizione
+    await resolveIngredientImages(m.ingredients);
+    out.push(m);
+  }
+  return out;
+}
+
+// --- Scansione dispensa: foto -> ingredienti (Claude vision) ---------------
+const SCAN_SYSTEM = `Sei un assistente di cucina. Ricevi la FOTO di uno o più prodotti alimentari (confezioni, frutta, verdura, scontrini, dispense). Identifica gli alimenti visibili.
+Rispondi SOLO con JSON valido:
+{"items": [ {"name": string, "quantity": number|null, "unit": "g"|"ml"|"pz"|null} ]}
+Regole: "name" in ITALIANO, minuscolo, nome del prodotto acquistabile (es. "passata di pomodoro", "ceci in scatola", "farina 00"). Se sulla confezione è visibile il peso/volume, riportalo in quantity+unit metrici; altrimenti null. Ignora oggetti non alimentari. Se non riconosci nulla, items vuoto.`;
+
+async function scanPantryImage(base64Jpeg) {
+  if (!KEY) throw new Error("AI non configurata sul server.");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({
+      model: MODEL, max_tokens: 1500, system: SCAN_SYSTEM,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64Jpeg } },
+          { type: "text", text: "Identifica gli alimenti nella foto." },
+        ],
+      }],
+    }),
+  });
+  const raw = await res.text();
+  if (res.status !== 200) throw new Error(`Anthropic HTTP ${res.status}: ${raw.slice(0, 150)}`);
+  const data = JSON.parse(raw);
+  const t = (data.content || []).find((b) => b.type === "text").text;
+  const v = JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1));
+  return (v.items || []).filter((i) => i && i.name);
+}
+
+module.exports = { enrichRecipe, enrichRecipeStream, generateRecipes, scanPantryImage };

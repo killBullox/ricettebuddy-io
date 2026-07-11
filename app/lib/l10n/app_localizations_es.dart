@@ -264,4 +264,103 @@ class AppLocalizationsEs extends AppLocalizations {
   String co2SubChosen(Object km) {
     return 'al elegir esta versión vegetal — como $km km menos en coche 🚗';
   }
+
+  @override
+  String get chefIdeasTitle => 'Chef IA';
+
+  @override
+  String get chefThinking => 'El Chef está creando tus recetas…';
+
+  @override
+  String get chefPrefFast => 'Rápida (≤30 min)';
+
+  @override
+  String get chefGenerate => 'Generar recetas';
+
+  @override
+  String get chefHint =>
+      'Elige tus preferencias y pulsa Generar: el Chef inventará recetas con lo que tienes en la despensa.';
+
+  @override
+  String get saveToCookbook => 'Guardar en el recetario';
+
+  @override
+  String get savedToCookbook => 'Guardada';
+
+  @override
+  String get ingredientsTitle => 'Ingredientes';
+
+  @override
+  String get preparationTitle => 'Preparación';
+
+  @override
+  String get planHowTitle => '¿Cómo quieres planificar?';
+
+  @override
+  String get planManualTitle => 'Manual';
+
+  @override
+  String get planManualDesc => 'Añades tú las recetas a cada comida.';
+
+  @override
+  String get planAutoTitle => 'Automática';
+
+  @override
+  String get planAutoDesc =>
+      'Configura filtros y un tope calórico diario: la semana se llena con tus recetas.';
+
+  @override
+  String get planConsultTitle => 'Desde consulta nutricional';
+
+  @override
+  String get planConsultDesc =>
+      'Importa el plan de tu nutricionista y combínalo con recetas.';
+
+  @override
+  String get planComingSoon => 'Próximamente';
+
+  @override
+  String get planMaxKcal => 'Calorías máximas al día';
+
+  @override
+  String get planNoLimit => 'Sin límite';
+
+  @override
+  String get planIncludeSnack => 'Incluir tentempié';
+
+  @override
+  String get planGenerateBtn => 'Generar plan semanal';
+
+  @override
+  String planResultAll(Object n) {
+    return '$n comidas planificadas ✓';
+  }
+
+  @override
+  String planResultPartial(Object filled, Object missing) {
+    return '$filled comidas planificadas, $missing vacías: no hay suficientes recetas adecuadas con datos nutricionales.';
+  }
+
+  @override
+  String get pantryScan => 'Escanear alimentos';
+
+  @override
+  String get pantryScanCamera => 'Hacer una foto';
+
+  @override
+  String get pantryScanGallery => 'Elegir de la galería';
+
+  @override
+  String get pantryScanning => 'Reconociendo los alimentos…';
+
+  @override
+  String get pantryScanFound => 'Alimentos reconocidos';
+
+  @override
+  String get pantryScanNone => 'No se reconoció ningún alimento en la foto.';
+
+  @override
+  String pantryScanAdded(Object n) {
+    return '$n alimentos añadidos a la despensa';
+  }
 }

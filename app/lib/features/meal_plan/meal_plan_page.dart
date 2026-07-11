@@ -9,6 +9,7 @@ import '../../data/repositories/meal_plan_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
 import '../../l10n/app_localizations.dart';
+import 'plan_generate_sheet.dart';
 
 final _weekStartProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();
@@ -35,6 +36,19 @@ class MealPlanPage extends ConsumerWidget {
               weekStart.subtract(const Duration(days: 7)),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: l.planHowTitle,
+            onPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder: (_) => PlanGenerateSheet(weekStart: weekStart),
+              );
+              ref.invalidate(mealPlanWeekProvider(weekStart));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: () => ref.read(_weekStartProvider.notifier).state =

@@ -11,6 +11,11 @@
 	</dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Scansione dispensa: foto di confezioni/alimenti riconosciute dall'AI -->
+	<key>NSCameraUsageDescription</key>
+	<string>La fotocamera serve per scansionare confezioni e alimenti da aggiungere alla dispensa.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>La libreria foto serve per scegliere immagini di alimenti da aggiungere alla dispensa.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<!-- Schema URL usato dalla Share Extension per riaprire l'app col contenuto condiviso -->

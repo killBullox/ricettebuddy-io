@@ -35,6 +35,8 @@ dependencies:
   # Estrazione contenuti social SUL DISPOSITIVO (connessione/login dell'utente):
   # webview headless per leggere la didascalia di IG/FB/Pinterest senza bot-gate.
   flutter_inappwebview: ^6.1.5
+  # F3 — scansione dispensa: foto della confezione/alimento -> AI vision
+  image_picker: ^1.1.2
 
   # --- Feature che aggiungeremo (lasciate qui come promemoria) ---
   # receive_sharing_intent: ^1.8.0        # F1 import dai social (Share Extension)

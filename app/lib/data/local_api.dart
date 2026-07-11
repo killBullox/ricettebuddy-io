@@ -44,6 +44,51 @@ class LocalApi {
 
   Future<void> deleteRecipe(String id) => http.delete(_u('api/recipes/$id'));
 
+  /// Scansione dispensa: foto (jpeg base64) → alimenti riconosciuti dall'AI.
+  Future<List<Map<String, dynamic>>> scanPantry(String base64Jpeg) async {
+    final res = await http
+        .post(_u('api/scan-pantry'),
+            headers: _json, body: jsonEncode({'image': base64Jpeg}))
+        .timeout(const Duration(seconds: 90));
+    if (res.statusCode >= 400) {
+      throw Exception(
+          (jsonDecode(res.body) as Map)['error'] ?? 'Scansione non riuscita');
+    }
+    return (((jsonDecode(res.body) as Map)['items'] as List?) ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+  }
+
+  /// Chef AI: genera ricette originali (bozze non salvate) dalla dispensa e
+  /// dai vincoli scelti. Operazione AI lunga (~1-2 minuti per 3 ricette).
+  Future<List<Recipe>> chefGenerate({
+    required List<String> pantry,
+    int? maxMinutes,
+    List<String> labels = const [],
+    List<String> excludeAllergens = const [],
+    int count = 3,
+  }) async {
+    final res = await http
+        .post(_u('api/chef'),
+            headers: _json,
+            body: jsonEncode({
+              'pantry': pantry,
+              'max_minutes': maxMinutes,
+              'labels': labels,
+              'exclude_allergens': excludeAllergens,
+              'count': count,
+            }))
+        .timeout(const Duration(seconds: 240));
+    if (res.statusCode >= 400) {
+      throw Exception(
+          (jsonDecode(res.body) as Map)['error'] ?? 'Generazione non riuscita');
+    }
+    final data = jsonDecode(res.body) as Map;
+    return ((data['recipes'] as List?) ?? const [])
+        .map((e) => Recipe.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
   /// Aggiorna la FOTO della ricetta: il server la ri-estrae dalla fonte e la
   /// salva in cache locale (veloce, pochi secondi).
   Future<Recipe> refreshRecipe(String id) async {

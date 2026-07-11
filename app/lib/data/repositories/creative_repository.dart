@@ -88,20 +88,32 @@ class CreativeRepository {
         .toList();
   }
 
-  /// Sezione "Idee nuove" — Edge Function server-side (usa dispensa + gusti +
+  /// Sezione "Idee nuove" — generazione AI server-side (usa dispensa + gusti +
   /// vincoli; l'AI e le API key stanno sul server). Ritorna bozze non salvate
   /// con `source = generated`.
   Future<List<Recipe>> generateIdeas({
     int count = 3,
     int? maxMinutes,
-    List<String> diet = const [],
+    List<String> labels = const [],
     List<String> excludeAllergens = const [],
   }) async {
-    if (_demo) return _store.generateIdeas(count: count);
+    if (_demo) {
+      final pantry = _store.pantry
+          .map((p) => p.normalizedName)
+          .where((s) => s.trim().isNotEmpty)
+          .toList();
+      return localApi.chefGenerate(
+        pantry: pantry,
+        maxMinutes: maxMinutes,
+        labels: labels,
+        excludeAllergens: excludeAllergens,
+        count: count,
+      );
+    }
     final res = await _db!.functions.invoke('creative-generate', body: {
       'count': count,
       'max_minutes': maxMinutes,
-      'diet': diet,
+      'labels': labels,
       'exclude_allergens': excludeAllergens,
     });
     final data = res.data as Map<String, dynamic>;

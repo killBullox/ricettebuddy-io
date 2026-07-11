@@ -31,7 +31,7 @@ const { importFacebookPost, extractFacebook } = require("./facebook.js");
 const { importTikTok } = require("./tiktok.js");
 const { importYouTube } = require("./youtube.js");
 const { importPinterest, parseGenericRecipe } = require("./pinterest.js");
-const { enrichRecipe, enrichRecipeStream } = require("./enrich_server.js");
+const { enrichRecipe, enrichRecipeStream, generateRecipes, scanPantryImage } = require("./enrich_server.js");
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream",
   "Cache-Control": "no-cache",
@@ -354,6 +354,39 @@ async function handleApi(req, res, url) {
       recipes.unshift(saved); save();
       return sendJson(res, 201, saved);
     } catch (e) { return sendJson(res, 500, { error: String(e) }); }
+  }
+  // POST /api/scan-pantry {image}: foto (base64 jpeg) -> alimenti riconosciuti.
+  if (req.method === "POST" && url.pathname === "/api/scan-pantry") {
+    const { image = "" } = await readBody(req);
+    try {
+      if (!image || image.length < 100) {
+        return sendJson(res, 422, { error: "Immagine mancante." });
+      }
+      const items = await scanPantryImage(image);
+      console.log("scan-pantry:", items.length, "alimenti");
+      return sendJson(res, 200, { items });
+    } catch (e) {
+      console.log("scan-pantry ERR:", e.message);
+      return sendJson(res, 422, { error: e.message || "Scansione non riuscita" });
+    }
+  }
+  // POST /api/chef — Chef AI: genera ricette originali da dispensa + vincoli.
+  // Ritorna BOZZE (non salvate): l'utente sceglie quali salvare nel ricettario.
+  if (req.method === "POST" && url.pathname === "/api/chef") {
+    const { pantry = [], max_minutes = null, labels = [],
+      exclude_allergens = [], count = 3 } = await readBody(req);
+    try {
+      console.log("chef:", pantry.length, "ingredienti, vincoli:", labels.join(",") || "-");
+      const list = await generateRecipes({
+        pantry, maxMinutes: max_minutes, labels,
+        excludeAllergens: exclude_allergens,
+        count: Math.min(Math.max(1, count), 4),
+      });
+      return sendJson(res, 200, { recipes: list });
+    } catch (e) {
+      console.log("chef ERR:", e.message);
+      return sendJson(res, 422, { error: e.message || "Generazione non riuscita" });
+    }
   }
   // POST /api/extract-social {url} — estrazione server-side via yt-dlp
   // (Facebook e altri social che il dispositivo non può leggere): ritorna
