@@ -119,5 +119,9 @@
   "pantryScanFound": "Recognized items",
   "pantryScanNone": "No food recognized in the photo.",
   "pantryScanAdded": "{n} items added to the pantry",
-  "@pantryScanAdded": { "placeholders": { "n": {} } }
+  "@pantryScanAdded": { "placeholders": { "n": {} } },
+  "planIncludeDessert": "Add dessert to lunch/dinner",
+  "pantryScanBarcode": "Scan barcode",
+  "barcodeNotFound": "Product not found for barcode {code}.",
+  "@barcodeNotFound": { "placeholders": { "code": {} } }
 }

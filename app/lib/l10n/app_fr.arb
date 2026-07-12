@@ -108,5 +108,8 @@
   "pantryScanning": "Reconnaissance des aliments…",
   "pantryScanFound": "Aliments reconnus",
   "pantryScanNone": "Aucun aliment reconnu sur la photo.",
-  "pantryScanAdded": "{n} aliments ajoutés au garde-manger"
+  "pantryScanAdded": "{n} aliments ajoutés au garde-manger",
+  "planIncludeDessert": "Ajouter un dessert au déjeuner/dîner",
+  "pantryScanBarcode": "Scanner un code-barres",
+  "barcodeNotFound": "Produit introuvable pour le code {code}."
 }

@@ -363,4 +363,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String pantryScanAdded(Object n) {
     return '$n items added to the pantry';
   }
+
+  @override
+  String get planIncludeDessert => 'Add dessert to lunch/dinner';
+
+  @override
+  String get pantryScanBarcode => 'Scan barcode';
+
+  @override
+  String barcodeNotFound(Object code) {
+    return 'Product not found for barcode $code.';
+  }
 }

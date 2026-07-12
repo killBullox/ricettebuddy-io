@@ -108,5 +108,8 @@
   "pantryScanning": "Lebensmittel werden erkannt…",
   "pantryScanFound": "Erkannte Lebensmittel",
   "pantryScanNone": "Keine Lebensmittel auf dem Foto erkannt.",
-  "pantryScanAdded": "{n} Lebensmittel zum Vorrat hinzugefügt"
+  "pantryScanAdded": "{n} Lebensmittel zum Vorrat hinzugefügt",
+  "planIncludeDessert": "Dessert zu Mittag-/Abendessen hinzufügen",
+  "pantryScanBarcode": "Barcode scannen",
+  "barcodeNotFound": "Kein Produkt für Barcode {code} gefunden."
 }

@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 
 /// Grafico a ciambella dei macronutrienti (proteine/carboidrati/grassi) con
 /// etichette dirette. Palette categoriale validata (CVD-safe).
+/// I valori [n] sono PER PORZIONE; con [servings] mostra anche il totale.
 class NutritionDonut extends StatelessWidget {
   final Map<String, dynamic> n;
-  const NutritionDonut({super.key, required this.n});
+  final int? servings;
+  const NutritionDonut({super.key, required this.n, this.servings});
 
   static const _protein = Color(0xFF2A78D6); // blu
   static const _carbs = Color(0xFF1BAF7A); // acqua
@@ -85,6 +87,29 @@ class NutritionDonut extends StatelessWidget {
               ),
             ],
           ),
+          // Totale ricetta = per porzione × porzioni (trasparenza sui numeri).
+          if (servings != null && servings! > 1) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFBFAF7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Totale ricetta (${servings!} porzioni): '
+                '${(kcal * servings!)} kcal · '
+                'P ${(p * servings!).round()} g · '
+                'C ${(c * servings!).round()} g · '
+                'G ${(f * servings!).round()} g',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    color: Theme.of(context).hintColor,
+                    fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ),
+          ],
         ],
       ),
     );

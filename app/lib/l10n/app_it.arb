@@ -108,5 +108,8 @@
   "pantryScanning": "Riconosco gli alimenti…",
   "pantryScanFound": "Alimenti riconosciuti",
   "pantryScanNone": "Nessun alimento riconosciuto nella foto.",
-  "pantryScanAdded": "{n} alimenti aggiunti alla dispensa"
+  "pantryScanAdded": "{n} alimenti aggiunti alla dispensa",
+  "planIncludeDessert": "Aggiungi dolce a pranzo/cena",
+  "pantryScanBarcode": "Scansiona codice a barre",
+  "barcodeNotFound": "Prodotto non trovato per il codice {code}."
 }

@@ -296,7 +296,8 @@ class _RecipeTab extends ConsumerWidget {
             _Co2Card(kg: recipe.co2Saved!, veganized: recipe.isVeganized),
           if (recipe.wasVegan == false)
             _VeganizedBanner(substitutions: recipe.substitutions),
-          if (recipe.nutrition != null) NutritionDonut(n: recipe.nutrition!),
+          if (recipe.nutrition != null)
+            NutritionDonut(n: recipe.nutrition!, servings: recipe.servings),
           if (recipe.category != null ||
               recipe.difficulty != null ||
               recipe.allergens.isNotEmpty)

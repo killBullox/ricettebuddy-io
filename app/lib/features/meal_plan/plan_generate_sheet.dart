@@ -27,6 +27,7 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
   final Set<String> _excl = {};
   final Set<String> _labels = {};
   bool _snack = false;
+  bool _dessert = false;
 
   void _toggle(Set<String> s, String v) =>
       setState(() => s.contains(v) ? s.remove(v) : s.add(v));
@@ -49,6 +50,7 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
           excludeAllergens: _excl,
           labels: _labels,
           includeSnack: _snack,
+          includeDessert: _dessert,
         ),
       );
       if (!mounted) return;
@@ -168,6 +170,12 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
                 title: Text(l.planIncludeSnack),
                 value: _snack,
                 onChanged: (v) => setState(() => _snack = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l.planIncludeDessert),
+                value: _dessert,
+                onChanged: (v) => setState(() => _dessert = v),
               ),
               const SizedBox(height: 6),
               SizedBox(

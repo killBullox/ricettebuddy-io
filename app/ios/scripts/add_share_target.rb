@@ -70,5 +70,11 @@ end
 # firma resta quello che funziona (export da archive --no-codesign).
 runner.add_dependency(ext)
 
+# mobile_scanner (barcode) richiede iOS >= 15.5.
+runner.build_configurations.each do |c|
+  cur = c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
+  c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5' if cur < 15.5
+end
+
 project.save
 puts 'XCODEPROJ_OK'

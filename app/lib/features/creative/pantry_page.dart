@@ -12,6 +12,7 @@ import '../../data/repositories/pantry_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../recipes/ingredient_avatar.dart';
 import '../recipes/ingredient_icon.dart';
+import 'pantry_barcode.dart';
 
 /// Dispensa smart: cosa hai in casa, con quantità modificabili (− / +),
 /// icone ingrediente e modifica/eliminazione. Base per lo "Chef creativo".
@@ -65,29 +66,37 @@ class PantryPage extends ConsumerWidget {
     );
   }
 
-  /// Scansione: foto di confezione/alimenti → AI vision → conferma → dispensa.
+  /// Scansione: barcode (Open Food Facts) o foto (AI vision) → dispensa.
   Future<void> _scan(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
-    final source = await showModalBottomSheet<ImageSource>(
+    final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
+            leading: const Icon(Icons.qr_code_scanner),
+            title: Text(l.pantryScanBarcode),
+            onTap: () => Navigator.pop(ctx, 'barcode'),
+          ),
+          ListTile(
             leading: const Icon(Icons.photo_camera),
             title: Text(l.pantryScanCamera),
-            onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            onTap: () => Navigator.pop(ctx, 'camera'),
           ),
           ListTile(
             leading: const Icon(Icons.photo_library),
             title: Text(l.pantryScanGallery),
-            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            onTap: () => Navigator.pop(ctx, 'gallery'),
           ),
           const SizedBox(height: 8),
         ]),
       ),
     );
-    if (source == null) return;
+    if (choice == null || !context.mounted) return;
+    if (choice == 'barcode') return _scanBarcode(context, ref);
+    final source =
+        choice == 'camera' ? ImageSource.camera : ImageSource.gallery;
     final picked = await ImagePicker()
         .pickImage(source: source, maxWidth: 1280, imageQuality: 80);
     if (picked == null || !context.mounted) return;
@@ -185,6 +194,62 @@ class PantryPage extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l.pantryScanAdded('$added'))));
+    }
+  }
+
+  /// Barcode → Open Food Facts → conferma → dispensa.
+  Future<void> _scanBarcode(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeScanPage()),
+    );
+    if (code == null || !context.mounted) return;
+
+    OffProduct? product;
+    try {
+      product = await lookupBarcode(code);
+    } catch (_) {
+      product = null;
+    }
+    if (!context.mounted) return;
+    if (product == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.barcodeNotFound(code))));
+      return;
+    }
+    final p = product;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.pantryScanFound),
+        content: Text(p.quantity != null
+            ? '${p.name}\n${p.quantity!.toStringAsFixed(0)} ${p.unit ?? ''}'
+            : p.name),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.addToPantry)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await ref.read(pantryRepositoryProvider).add(PantryItem(
+          rawText: p.quantity != null
+              ? '${p.quantity!.toStringAsFixed(0)} ${p.unit ?? ''} ${p.name}'
+                  .trim()
+              : p.name,
+          normalizedName: p.name,
+          quantity: p.quantity,
+          unit: p.unit,
+        ));
+    ref.invalidate(pantryListProvider);
+    ref.invalidate(doableRecipesProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.pantryScanAdded('1'))));
     }
   }
 

@@ -757,6 +757,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{n} items added to the pantry'**
   String pantryScanAdded(Object n);
+
+  /// No description provided for @planIncludeDessert.
+  ///
+  /// In en, this message translates to:
+  /// **'Add dessert to lunch/dinner'**
+  String get planIncludeDessert;
+
+  /// No description provided for @pantryScanBarcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan barcode'**
+  String get pantryScanBarcode;
+
+  /// No description provided for @barcodeNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Product not found for barcode {code}.'**
+  String barcodeNotFound(Object code);
 }
 
 class _AppLocalizationsDelegate
