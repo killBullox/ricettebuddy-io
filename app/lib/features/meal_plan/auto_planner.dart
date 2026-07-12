@@ -117,15 +117,15 @@ Future<AutoPlanResult> generateAutoPlan({
   }
   // La colazione può attingere anche ai dolci; lo spuntino a dolci leggeri.
   List<Recipe> forCourse(Course c) => switch (c) {
-        Course.breakfast => [
+        Course.breakfast => <Recipe>[
             ...?byCourse[Course.breakfast],
             ...?byCourse[Course.dolce],
           ],
-        Course.snack => [
-            ...(byCourse[Course.dolce] ?? []),
-            ...(byCourse[Course.antipasto] ?? []),
+        Course.snack => <Recipe>[
+            ...(byCourse[Course.dolce] ?? const []),
+            ...(byCourse[Course.antipasto] ?? const []),
           ].where((r) => (kcalOf(r) ?? 999) <= 300).toList(),
-        _ => byCourse[c] ?? const [],
+        _ => byCourse[c] ?? const <Recipe>[],
       };
 
   // Sostituisce il piano esistente della settimana.
