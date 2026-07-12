@@ -123,5 +123,7 @@
   "planIncludeDessert": "Add dessert to lunch/dinner",
   "pantryScanBarcode": "Scan barcode",
   "barcodeNotFound": "Product not found for barcode {code}.",
-  "@barcodeNotFound": { "placeholders": { "code": {} } }
+  "@barcodeNotFound": { "placeholders": { "code": {} } },
+  "planReplace": "Replace",
+  "planReplaceTitle": "Choose a replacement"
 }

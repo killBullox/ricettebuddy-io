@@ -111,5 +111,7 @@
   "pantryScanAdded": "{n} aliments ajoutés au garde-manger",
   "planIncludeDessert": "Ajouter un dessert au déjeuner/dîner",
   "pantryScanBarcode": "Scanner un code-barres",
-  "barcodeNotFound": "Produit introuvable pour le code {code}."
+  "barcodeNotFound": "Produit introuvable pour le code {code}.",
+  "planReplace": "Remplacer",
+  "planReplaceTitle": "Choisis le remplacement"
 }

@@ -374,4 +374,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String barcodeNotFound(Object code) {
     return 'Product not found for barcode $code.';
   }
+
+  @override
+  String get planReplace => 'Replace';
+
+  @override
+  String get planReplaceTitle => 'Choose a replacement';
 }

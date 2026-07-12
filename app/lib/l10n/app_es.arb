@@ -111,5 +111,7 @@
   "pantryScanAdded": "{n} alimentos añadidos a la despensa",
   "planIncludeDessert": "Añadir postre a comida/cena",
   "pantryScanBarcode": "Escanear código de barras",
-  "barcodeNotFound": "Producto no encontrado para el código {code}."
+  "barcodeNotFound": "Producto no encontrado para el código {code}.",
+  "planReplace": "Sustituir",
+  "planReplaceTitle": "Elige el sustituto"
 }

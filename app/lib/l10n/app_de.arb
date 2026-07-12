@@ -111,5 +111,7 @@
   "pantryScanAdded": "{n} Lebensmittel zum Vorrat hinzugefügt",
   "planIncludeDessert": "Dessert zu Mittag-/Abendessen hinzufügen",
   "pantryScanBarcode": "Barcode scannen",
-  "barcodeNotFound": "Kein Produkt für Barcode {code} gefunden."
+  "barcodeNotFound": "Kein Produkt für Barcode {code} gefunden.",
+  "planReplace": "Ersetzen",
+  "planReplaceTitle": "Ersatz auswählen"
 }

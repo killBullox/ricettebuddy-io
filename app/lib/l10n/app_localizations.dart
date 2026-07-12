@@ -775,6 +775,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Product not found for barcode {code}.'**
   String barcodeNotFound(Object code);
+
+  /// No description provided for @planReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get planReplace;
+
+  /// No description provided for @planReplaceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a replacement'**
+  String get planReplaceTitle;
 }
 
 class _AppLocalizationsDelegate
