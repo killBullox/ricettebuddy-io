@@ -31,7 +31,9 @@ class AutoPlanResult {
 }
 
 /// Portata di una ricetta (per comporre pasti sensati).
-enum Course { breakfast, antipasto, primo, secondo, piattoUnico, dolce, snack }
+/// [base] = preparazioni/condimenti (burro vegano, pesto, sughi, brodi…):
+/// restano nel ricettario ma NON sono mai pianificabili come pasto.
+enum Course { breakfast, antipasto, primo, secondo, piattoUnico, dolce, snack, base }
 
 final _reBreakfast = RegExp(
     r'colazion|breakfast|porridge|pancake|crep|smoothie|frullat|granola|overnight|chia|yogurt',
@@ -51,17 +53,28 @@ final _reSecondo = RegExp(
 final _rePiattoUnico = RegExp(
     r'piatto unico|bowl|buddha|poke|one[- ]pot|curry|chili|paella|couscous|cous cous',
     caseSensitive: false);
+// Preparazioni di base e condimenti: NON sono un pasto.
+final _reBase = RegExp(
+    r'\bburro\b|margarin|maiones|ketchup|senape|salsa|\bsugo\b|pesto|'
+    r'condiment|brodo|\bdado\b|besciamell|panna vegetale|spalmabil|'
+    r'formaggio vegan|marmellat|confettur|conserva|sottacet|'
+    r'latte (di|vegetale)|yogurt fatto|seitan fatto|impasto|lievito madre|'
+    r'pasta madre|base per|preparato',
+    caseSensitive: false);
 
 double? kcalOf(Recipe r) => (r.nutrition?['kcal'] as num?)?.toDouble();
 
 /// Classifica la ricetta in una portata usando categoria, tag e titolo.
+/// I piatti "veri" (primo/secondo/piatto unico/colazione) vincono sui match
+/// da preparazione: "pasta al pesto" è un primo, "pesto di basilico" è base.
 Course courseOf(Recipe r) {
   final hay = '${r.category ?? ''} ${r.tags.join(' ')} ${r.title}';
   if (_reBreakfast.hasMatch(hay)) return Course.breakfast;
-  if (_reDolce.hasMatch(hay)) return Course.dolce;
   if (_rePiattoUnico.hasMatch(hay)) return Course.piattoUnico;
   if (_rePrimo.hasMatch(hay)) return Course.primo;
   if (_reSecondo.hasMatch(hay)) return Course.secondo;
+  if (_reBase.hasMatch(hay)) return Course.base; // preparazioni: mai un pasto
+  if (_reDolce.hasMatch(hay)) return Course.dolce;
   if (_reAntipasto.hasMatch(hay)) return Course.antipasto;
   // Fallback sui numeri: piatti sostanziosi = piatto unico, leggeri = antipasto.
   final k = kcalOf(r);
@@ -107,6 +120,7 @@ Future<AutoPlanResult> generateAutoPlan({
       .where((r) =>
           r.id != null &&
           filters.matches(r) &&
+          courseOf(r) != Course.base && // preparazioni/condimenti: mai un pasto
           (opts.maxKcalPerDay == null || kcalOf(r) != null))
       .toList();
 
@@ -115,7 +129,8 @@ Future<AutoPlanResult> generateAutoPlan({
   for (final r in pool) {
     byCourse.putIfAbsent(courseOf(r), () => []).add(r);
   }
-  // La colazione può attingere anche ai dolci; lo spuntino a dolci leggeri.
+  // La colazione può attingere anche ai dolci; lo spuntino SOLO a dolci
+  // leggeri e colazioni leggere (niente antipasti/contorni come "snack").
   List<Recipe> forCourse(Course c) => switch (c) {
         Course.breakfast => <Recipe>[
             ...?byCourse[Course.breakfast],
@@ -123,7 +138,7 @@ Future<AutoPlanResult> generateAutoPlan({
           ],
         Course.snack => <Recipe>[
             ...(byCourse[Course.dolce] ?? const []),
-            ...(byCourse[Course.antipasto] ?? const []),
+            ...(byCourse[Course.breakfast] ?? const []),
           ].where((r) => (kcalOf(r) ?? 999) <= 300).toList(),
         _ => byCourse[c] ?? const <Recipe>[],
       };
