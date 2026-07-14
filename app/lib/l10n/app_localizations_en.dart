@@ -380,4 +380,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planReplaceTitle => 'Choose a replacement';
+
+  @override
+  String get consultFirstTitle => 'First consultation';
+
+  @override
+  String get consultFirstDesc =>
+      'Initial assessment: habits, goals and a personalized plan.';
+
+  @override
+  String get consultFollowTitle => 'Follow-up';
+
+  @override
+  String get consultFollowDesc => 'Progress check and plan adjustments.';
 }

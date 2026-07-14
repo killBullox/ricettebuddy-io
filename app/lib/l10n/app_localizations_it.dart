@@ -381,4 +381,18 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get planReplaceTitle => 'Scegli il sostituto';
+
+  @override
+  String get consultFirstTitle => 'Prima consulenza';
+
+  @override
+  String get consultFirstDesc =>
+      'Valutazione iniziale: abitudini, obiettivi e piano personalizzato.';
+
+  @override
+  String get consultFollowTitle => 'Follow-up';
+
+  @override
+  String get consultFollowDesc =>
+      'Controllo dei progressi e aggiustamenti del piano.';
 }

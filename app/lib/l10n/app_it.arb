@@ -113,5 +113,9 @@
   "pantryScanBarcode": "Scansiona codice a barre",
   "barcodeNotFound": "Prodotto non trovato per il codice {code}.",
   "planReplace": "Sostituisci",
-  "planReplaceTitle": "Scegli il sostituto"
+  "planReplaceTitle": "Scegli il sostituto",
+  "consultFirstTitle": "Prima consulenza",
+  "consultFirstDesc": "Valutazione iniziale: abitudini, obiettivi e piano personalizzato.",
+  "consultFollowTitle": "Follow-up",
+  "consultFollowDesc": "Controllo dei progressi e aggiustamenti del piano."
 }

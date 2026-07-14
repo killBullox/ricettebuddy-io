@@ -5,21 +5,39 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'calendly_embed.dart';
+import 'calendly_page.dart';
 
-/// Sezione "Consulenza Nutrizionale": presenta il servizio e permette di
-/// prenotare una consulenza. La prenotazione avviene su Calendly.
-// TODO: sostituire con l'URL Calendly reale di Beet-It.
-const String kCalendlyUrl = 'https://calendly.com/beet-it/consulenza';
+/// Sezione "Consulenza Nutrizionale": due eventi prenotabili su Calendly.
+// TODO: sostituire con gli URL Calendly reali appena forniti.
+const String kCalendlyFirstUrl =
+    'https://calendly.com/beet-it/prima-consulenza';
+const String kCalendlyFollowUpUrl = 'https://calendly.com/beet-it/follow-up';
 
-class ConsulenzaPage extends StatelessWidget {
+class ConsulenzaPage extends StatefulWidget {
   const ConsulenzaPage({super.key});
 
+  @override
+  State<ConsulenzaPage> createState() => _ConsulenzaPageState();
+}
+
+class _ConsulenzaPageState extends State<ConsulenzaPage> {
   static const _beet = Color(0xFFB5326B);
   static const _plum = Color(0xFF3A0A45);
 
-  Future<void> _prenota(BuildContext context) async {
-    final uri = Uri.parse(kCalendlyUrl);
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  // Evento selezionato per l'iframe sul web (0 = prima, 1 = follow-up).
+  int _webEvent = 0;
+
+  /// Apre il calendario dell'evento: inline in-app su mobile, link esterno
+  /// come fallback se la webview non è disponibile.
+  Future<void> _prenota(BuildContext context, String title, String url) async {
+    if (!kIsWeb) {
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => CalendlyPage(title: title, url: url),
+      ));
+      return;
+    }
+    final ok = await launchUrl(Uri.parse(url),
+        mode: LaunchMode.externalApplication);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Impossibile aprire Calendly')),
@@ -100,36 +118,93 @@ class ConsulenzaPage extends StatelessWidget {
           const SizedBox(height: 28),
           Text('Prenota', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
-          if (kIsWeb)
-            // Calendario Calendly incorporato: prenoti senza uscire dall'app.
+          // Due eventi: Prima consulenza e Follow-up.
+          _BookCard(
+            icon: Icons.person_add_alt_1,
+            title: l.consultFirstTitle,
+            subtitle: l.consultFirstDesc,
+            highlighted: true,
+            selected: kIsWeb && _webEvent == 0,
+            onTap: () {
+              if (kIsWeb) setState(() => _webEvent = 0);
+              _prenota(context, l.consultFirstTitle, kCalendlyFirstUrl);
+            },
+          ),
+          const SizedBox(height: 10),
+          _BookCard(
+            icon: Icons.event_repeat,
+            title: l.consultFollowTitle,
+            subtitle: l.consultFollowDesc,
+            selected: kIsWeb && _webEvent == 1,
+            onTap: () {
+              if (kIsWeb) setState(() => _webEvent = 1);
+              _prenota(context, l.consultFollowTitle, kCalendlyFollowUpUrl);
+            },
+          ),
+          if (kIsWeb) ...[
+            const SizedBox(height: 16),
+            // Calendario incorporato dell'evento selezionato.
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 height: 720,
                 color: Colors.white,
-                child: buildCalendlyEmbed(kCalendlyUrl),
-              ),
-            )
-          else
-            FilledButton.icon(
-              onPressed: () => _prenota(context),
-              icon: const Icon(Icons.event_available),
-              label: Text(l.bookConsultation),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: _beet,
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                child: buildCalendlyEmbed(calendlyEmbedUrl(
+                    _webEvent == 0 ? kCalendlyFirstUrl : kCalendlyFollowUpUrl)),
               ),
             ),
-          const SizedBox(height: 6),
-          Center(
-            child: TextButton.icon(
-              onPressed: () => _prenota(context),
-              icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Apri Calendly a schermo intero'),
-            ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// Card di prenotazione di un evento Calendly.
+class _BookCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool highlighted;
+  final bool selected;
+  final VoidCallback onTap;
+  const _BookCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.highlighted = false,
+    this.selected = false,
+  });
+
+  static const _beet = Color(0xFFB5326B);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: highlighted ? _beet : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: selected
+            ? const BorderSide(color: Color(0xFF2E7D32), width: 2)
+            : BorderSide.none,
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Icon(icon,
+            size: 30, color: highlighted ? Colors.white : _beet),
+        title: Text(title,
+            style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: highlighted ? Colors.white : null)),
+        subtitle: Text(subtitle,
+            style: TextStyle(
+                fontSize: 12.5,
+                color: highlighted ? Colors.white70 : null)),
+        trailing: Icon(Icons.chevron_right,
+            color: highlighted ? Colors.white : null),
+        onTap: onTap,
       ),
     );
   }

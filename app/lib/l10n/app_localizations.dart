@@ -787,6 +787,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a replacement'**
   String get planReplaceTitle;
+
+  /// No description provided for @consultFirstTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'First consultation'**
+  String get consultFirstTitle;
+
+  /// No description provided for @consultFirstDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Initial assessment: habits, goals and a personalized plan.'**
+  String get consultFirstDesc;
+
+  /// No description provided for @consultFollowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up'**
+  String get consultFollowTitle;
+
+  /// No description provided for @consultFollowDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress check and plan adjustments.'**
+  String get consultFollowDesc;
 }
 
 class _AppLocalizationsDelegate

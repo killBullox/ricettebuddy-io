@@ -125,5 +125,9 @@
   "barcodeNotFound": "Product not found for barcode {code}.",
   "@barcodeNotFound": { "placeholders": { "code": {} } },
   "planReplace": "Replace",
-  "planReplaceTitle": "Choose a replacement"
+  "planReplaceTitle": "Choose a replacement",
+  "consultFirstTitle": "First consultation",
+  "consultFirstDesc": "Initial assessment: habits, goals and a personalized plan.",
+  "consultFollowTitle": "Follow-up",
+  "consultFollowDesc": "Progress check and plan adjustments."
 }
