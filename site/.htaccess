@@ -1,0 +1,17 @@
+# beetit.it — controllo cache per l'edge Aruba.
+# L'HTML non va cachato, altrimenti Aruba continua a servire la vecchia pagina
+# "Sito in costruzione". Gli asset con nome stabile si possono cachare a lungo.
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+  <FilesMatch "\.(css|js|jpe?g|png|svg|webp|ico|woff2?)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+</IfModule>
+
+# index.html come pagina di default della cartella.
+DirectoryIndex index.html
