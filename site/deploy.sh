@@ -36,4 +36,4 @@ while IFS= read -r -d '' f; do
   n=$((n+1))
 done < <(find "$HERE" -type f -print0)
 
-echo "✓ Caricati $n file su ${FTP_HOST}${FTP_DIR}"
+echo "✓ Caricati $n file su ${FTP_HOST}/${FTP_DIR}"
