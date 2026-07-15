@@ -5,3 +5,6 @@ vid.mp4
 
 # Segreti server locale
 tools/local-server/.env
+
+# Credenziali FTP sito
+site/.env

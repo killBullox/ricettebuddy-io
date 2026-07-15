@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <radialGradient id="mb" cx="35%" cy="28%" r="75%">
+      <stop offset="0%" style="stop-color:#E8559A"/>
+      <stop offset="60%" style="stop-color:#A01E5A"/>
+      <stop offset="100%" style="stop-color:#6B0F3A"/>
+    </radialGradient>
+  </defs>
+  <!-- foglie -->
+  <path d="M22 17 C17 9 13 6 11 4 C15 9 19 13 22 17 Z" fill="#2E7D32"/>
+  <path d="M24 16 C23 10 24 6 24 4 C25 9 25 12 25 16 Z" fill="#2E7D32"/>
+  <path d="M26 17 C31 9 35 6 37 4 C33 9 29 13 26 17 Z" fill="#388E3C"/>
+  <!-- corpo barbabietola -->
+  <path d="M24 17 C32 17 36 23 36 29 C36 37 30 43 24 44 C18 43 12 37 12 29 C12 23 16 17 24 17 Z" fill="url(#mb)"/>
+  <!-- radichetta -->
+  <path d="M24 44 Q23 47 25 48" stroke="#6B0F3A" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <!-- fulmine rock -->
+  <path d="M25.5 21 L20 30 L23.5 30 L21 38 L28.5 28 L24.5 28 L27 21 Z" fill="#FFF8F5"/>
+</svg>
