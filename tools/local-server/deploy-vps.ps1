@@ -1,4 +1,4 @@
-# Deploy del backend Beet-It sulla VPS (Windows), esposto su IP:porta.
+# Deploy del backend Beet It! sulla VPS (Windows), esposto su IP:porta.
 # Da lanciare SULLA VPS (RDP o SSH), in PowerShell come amministratore.
 #
 # Sicurezza: tocca SOLO C:\BeetIt, una porta dedicata e una regola firewall.
@@ -13,7 +13,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-Write-Host "== Beet-It backend deploy (porta $Port) =="
+Write-Host "== Beet It! backend deploy (porta $Port) =="
 
 # 1. Cartella dedicata + repo
 New-Item -ItemType Directory -Force -Path $Root | Out-Null

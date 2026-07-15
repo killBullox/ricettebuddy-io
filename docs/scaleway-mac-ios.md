@@ -1,6 +1,6 @@
 # Build iOS su Mac Scaleway → TestFlight (passo-passo)
 
-Hai un Mac su Scaleway: lo usiamo come "macchina di build" per compilare Beet-It,
+Hai un Mac su Scaleway: lo usiamo come "macchina di build" per compilare Beet It!,
 firmarla col tuo Apple Developer e caricarla su TestFlight (poi la installi
 sull'iPhone via l'app TestFlight).
 
@@ -58,7 +58,7 @@ App Store Connect → Upload**.
 - Su App Store Connect la build appare in **TestFlight** (dopo qualche minuto di
   "processing").
 - Aggiungiti come **tester interno**.
-- Sull'iPhone installa l'app **TestFlight**, accetta l'invito, installa Beet-It.
+- Sull'iPhone installa l'app **TestFlight**, accetta l'invito, installa Beet It!.
 
 ## Nota onesta
 Questa via è potente ma manuale (Xcode via VNC). Se ti sembra troppo, **Codemagic**

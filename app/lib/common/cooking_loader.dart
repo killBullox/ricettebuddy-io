@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
-/// Stile del loader Beet-It.
+/// Stile del loader Beet It!.
 enum BeetLoaderStyle {
   /// Grande: una barbabietola che ondeggia con un anello di progresso (import).
   ring,
@@ -14,7 +14,7 @@ enum BeetLoaderStyle {
   bounce,
 }
 
-/// Payoff del brand mostrato sotto il loader (in inglese, identità Beet-It).
+/// Payoff del brand mostrato sotto il loader (in inglese, identità Beet It!).
 const kPayoff = 'Plant-based nutrition that rocks';
 
 /// Testo localizzato per una fase REALE ricevuta dallo stream di import.
@@ -29,7 +29,7 @@ String phaseText(AppLocalizations l, String key) => switch (key) {
       _ => l.phaseProcessing,
     };
 
-/// Loader animato Beet-It.
+/// Loader animato Beet It!.
 /// - [liveMessage]: fase REALE che cambia in tempo reale (pilotata dallo stream
 ///   dell'import). Niente timer finti.
 /// - [message]: testo statico (se non c'è [liveMessage]).

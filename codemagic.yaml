@@ -1,4 +1,4 @@
-# Build iOS di Beet-It su Mac cloud (Codemagic) e pubblicazione su TestFlight.
+# Build iOS di Beet It! su Mac cloud (Codemagic) e pubblicazione su TestFlight.
 # Il progetto Flutter è nella sottocartella app/.
 #
 # PRIMA DI LANCIARE, su Codemagic vanno collegati (una volta):
@@ -8,7 +8,7 @@
 
 workflows:
   ios-testflight:
-    name: Beet-It iOS → TestFlight
+    name: Beet It! iOS → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:

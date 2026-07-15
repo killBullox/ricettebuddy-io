@@ -1,4 +1,4 @@
-# Build Android (APK) — Beet-It
+# Build Android (APK) — Beet It!
 
 Il progetto Flutter builda l'APK con la solita pipeline. Note/gotcha emerse:
 

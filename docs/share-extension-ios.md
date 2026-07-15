@@ -1,7 +1,7 @@
-# Share Extension iOS — "Beet-It Recipes" nel menu Condividi
+# Share Extension iOS — "Beet It! Recipes" nel menu Condividi
 
 Su **Android è già pronto**: il manifest dichiara gli `intent-filter` `ACTION_SEND`
-(text/* e image/*), quindi Beet-It compare nel menu Condividi. L'app riceve il
+(text/* e image/*), quindi Beet It! compare nel menu Condividi. L'app riceve il
 link tramite `receive_sharing_intent` e lo importa (vedi
 `lib/features/import/share_receiver.dart`).
 
@@ -37,7 +37,7 @@ L'unico requisito iOS è lo **schema URL** `ShareMedia-io.beetit.recipes` in
 - `app/ios/Runner/SceneDelegate.swift` — cattura il link dallo schema URL.
 - `app/ios/Runner/AppDelegate.swift` — `MethodChannel("beetit/share")`.
 - `app/ios/Runner/Info.plist` — `CFBundleURLScheme = ShareMedia-io.beetit.recipes`
-  + `CFBundleDisplayName = Beet-It Recipes`.
+  + `CFBundleDisplayName = Beet It! Recipes`.
 - `app/ios/scripts/add_share_target.rb` — aggiunge il target app-extension.
 - `app/ios/scripts/build_with_share.sh` — pipeline di build sul Mac.
 

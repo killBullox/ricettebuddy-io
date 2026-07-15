@@ -101,7 +101,7 @@ class _ConsulenzaPageState extends State<ConsulenzaPage> {
             icon: Icons.restaurant_menu,
             title: 'Piano alimentare su misura',
             text: 'Menù settimanali bilanciati, 100% vegetali, integrati con '
-                'le ricette che salvi in Beet-It.',
+                'le ricette che salvi in Beet It!.',
           ),
           const _Benefit(
             icon: Icons.monitor_heart_outlined,

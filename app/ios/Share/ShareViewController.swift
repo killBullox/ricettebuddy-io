@@ -3,7 +3,7 @@ import Social
 import MobileCoreServices
 import UniformTypeIdentifiers
 
-// Share Extension di Beet-It — AUTONOMA (Swift puro, nessuna dipendenza).
+// Share Extension di Beet It! — AUTONOMA (Swift puro, nessuna dipendenza).
 //
 // Quando condividi da un'app SOCIAL a cui sei loggato (Facebook, Instagram,
 // TikTok…), la condivisione porta con sé anche la DIDASCALIA/descrizione del

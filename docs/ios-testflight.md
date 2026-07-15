@@ -1,11 +1,11 @@
-# Beet-It su iPhone (nativo, via TestFlight)
+# Beet It! su iPhone (nativo, via TestFlight)
 
 Da Windows non si compila iOS: usiamo un **Mac in cloud (Codemagic)** che builda,
 firma e carica su **TestFlight**. Ecco l'ordine dei passi.
 
 ## Fatto lato codice (già pronto)
 - Icone app iOS generate dal logo barbabietola.
-- Bundle identifier: **`io.beetit.recipes`**; nome app "Beet-It Recipes".
+- Bundle identifier: **`io.beetit.recipes`**; nome app "Beet It! Recipes".
 - Base URL backend configurabile: `--dart-define=API_BASE=<url pubblico>`.
 - `codemagic.yaml` (workflow `ios-testflight`).
 
@@ -34,7 +34,7 @@ Iscriviti su https://developer.apple.com/programs/ (approvazione anche 24-48h,
 
 ### 5. TestFlight sull'iPhone
 - Installa l'app **TestFlight** dall'App Store.
-- Quando la build arriva su TestFlight, accetta l'invito e installa Beet-It.
+- Quando la build arriva su TestFlight, accetta l'invito e installa Beet It!.
 
 ## Prerequisito: il backend pubblico
 La build TestFlight gira sul tuo iPhone ovunque: **non** raggiunge il PC. Il server

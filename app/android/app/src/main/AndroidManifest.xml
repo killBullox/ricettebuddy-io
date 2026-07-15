@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="Beet-It Recipes"
+        android:label="Beet It! Recipes"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
@@ -25,7 +25,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Beet-It compare nel menu "Condividi" per link/testo (reel IG/FB/
+            <!-- Beet It! compare nel menu "Condividi" per link/testo (reel IG/FB/
                  TikTok, video YouTube) e per le immagini (ricetta da foto). -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>

@@ -22,7 +22,7 @@ class RicetteBuddyApp extends ConsumerWidget {
       brightness: Brightness.light,
     );
     return MaterialApp(
-      title: 'Beet-It Vegan Recipes',
+      title: 'Beet It! Vegan Recipes',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: scheme,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
-/// Parametri embed Calendly coordinati col brand Beet-It (sfondo crema,
+/// Parametri embed Calendly coordinati col brand Beet It! (sfondo crema,
 /// testo prugna, accento beet) e senza banner ridondanti.
 String calendlyEmbedUrl(String base) {
   final sep = base.contains('?') ? '&' : '?';
@@ -10,7 +10,7 @@ String calendlyEmbedUrl(String base) {
 }
 
 /// Calendario Calendly INLINE nell'app (webview): l'utente sceglie data/ora e
-/// prenota senza uscire da Beet-It.
+/// prenota senza uscire da Beet It!.
 class CalendlyPage extends StatelessWidget {
   final String title;
   final String url;

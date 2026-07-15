@@ -52,7 +52,7 @@ class _SignInPageState extends State<SignInPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SvgPicture.asset('assets/branding/beet_it_round.svg',
-                    width: 200, semanticsLabel: 'Beet-It Vegan Recipes'),
+                    width: 200, semanticsLabel: 'Beet It! Vegan Recipes'),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _email,
