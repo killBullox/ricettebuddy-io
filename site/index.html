@@ -58,8 +58,73 @@
           <a class="btn btn--ghost btn--lg" href="#app">Scopri l'app</a>
         </div>
       </div>
-      <div class="hero__art" aria-hidden="true">
-        <img src="assets/logo-round.svg" alt="" class="hero__badge" />
+      <div class="hero__art">
+        <div class="hero-anim" aria-hidden="true">
+          <span class="hero-anim__flash"></span>
+          <svg class="hero-anim__svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-label="Beet It! Plant-based nutrition that rocks">
+            <defs>
+              <radialGradient id="haBgGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#5C1A6B"/>
+                <stop offset="100%" stop-color="#3A0A45"/>
+              </radialGradient>
+              <radialGradient id="haBeetBody" cx="40%" cy="35%" r="70%">
+                <stop offset="0%" stop-color="#D64E8A"/>
+                <stop offset="100%" stop-color="#8B1A4A"/>
+              </radialGradient>
+              <filter id="haBlur6"><feGaussianBlur stdDeviation="6"/></filter>
+            </defs>
+            <g class="ha-stage">
+              <circle cx="250" cy="250" r="245" fill="url(#haBgGrad)"/>
+
+              <circle class="ha-spark" cx="75" cy="140" r="3" fill="#D64E8A" opacity="0.5"/>
+              <circle class="ha-spark" cx="60" cy="190" r="2" fill="#D64E8A" opacity="0.35"/>
+              <circle class="ha-spark" cx="90" cy="260" r="3.5" fill="#D64E8A" opacity="0.4"/>
+              <circle class="ha-spark" cx="55" cy="300" r="2" fill="#D64E8A" opacity="0.3"/>
+              <circle class="ha-spark" cx="425" cy="140" r="3" fill="#D64E8A" opacity="0.5"/>
+              <circle class="ha-spark" cx="440" cy="190" r="2" fill="#D64E8A" opacity="0.35"/>
+              <circle class="ha-spark" cx="410" cy="260" r="3.5" fill="#D64E8A" opacity="0.4"/>
+              <circle class="ha-spark" cx="445" cy="300" r="2" fill="#D64E8A" opacity="0.3"/>
+
+              <line class="ha-eline" x1="40" y1="205" x2="80" y2="205" stroke="#D64E8A" stroke-width="1.5" opacity="0.4" stroke-linecap="round"/>
+              <line class="ha-eline" x1="45" y1="220" x2="75" y2="220" stroke="#D64E8A" stroke-width="1" opacity="0.25" stroke-linecap="round"/>
+              <line class="ha-eline" x1="420" y1="205" x2="460" y2="205" stroke="#D64E8A" stroke-width="1.5" opacity="0.4" stroke-linecap="round"/>
+              <line class="ha-eline" x1="425" y1="220" x2="455" y2="220" stroke="#D64E8A" stroke-width="1" opacity="0.25" stroke-linecap="round"/>
+
+              <g class="ha-beet">
+                <path d="M250 105 C288 105 322 122 332 162 C342 205 335 262 315 292 C298 316 276 326 250 326 C224 326 202 316 185 292 C165 262 158 205 168 162 C178 122 212 105 250 105 Z" fill="url(#haBeetBody)"/>
+                <path d="M188 165 Q250 150 312 165" stroke="#6B0F3A" stroke-width="1.5" fill="none" opacity="0.5"/>
+                <path d="M182 200 Q250 185 318 200" stroke="#6B0F3A" stroke-width="1.5" fill="none" opacity="0.4"/>
+                <path d="M182 235 Q250 222 318 235" stroke="#6B0F3A" stroke-width="1.2" fill="none" opacity="0.3"/>
+                <path d="M205 135 Q222 128 238 135 Q233 152 218 156 Q203 150 205 135 Z" fill="white" opacity="0.10"/>
+              </g>
+
+              <path class="ha-leaf" d="M228 112 Q196 70 176 48 Q202 76 233 108 Z" fill="#2E7D32"/>
+              <path class="ha-leaf" d="M241 102 Q227 60 230 32 Q247 64 250 100 Z" fill="#388E3C"/>
+              <path class="ha-leaf" d="M251 98 Q250 72 253 52 Q257 72 254 98 Z" fill="#2E7D32" opacity="0.9"/>
+              <path class="ha-leaf" d="M261 102 Q270 60 267 32 Q280 64 269 102 Z" fill="#388E3C"/>
+              <path class="ha-leaf" d="M274 112 Q300 70 322 48 Q302 78 279 108 Z" fill="#2E7D32"/>
+
+              <path class="ha-root" d="M247 325 Q252 344 246 358" stroke="#6B0F3A" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+              <g class="ha-bolt">
+                <path class="ha-bolt-glow" d="M262 128 L237 200 L255 200 L230 275 L278 188 L257 188 L278 128 Z" fill="#FFF8F5" filter="url(#haBlur6)" opacity="0"/>
+                <path d="M264 130 L239 202 L257 202 L232 277 L280 190 L259 190 L280 130 Z" fill="#D64E8A" opacity="0.35"/>
+                <path d="M262 128 L237 200 L255 200 L230 275 L278 188 L257 188 L278 128 Z" fill="#FFF8F5" opacity="0.95"/>
+              </g>
+
+              <circle class="ha-ring" cx="250" cy="250" r="245" fill="none" stroke="#D64E8A" stroke-width="5"/>
+
+              <text class="ha-title" x="250" y="420" font-family="'Arial Black','Impact',sans-serif" font-size="62" font-weight="900" fill="#FFF8F5" text-anchor="middle" letter-spacing="-1">BEET IT!</text>
+
+              <line class="ha-deco" x1="135" y1="432" x2="195" y2="432" stroke="#D64E8A" stroke-width="2" opacity="0.6"/>
+              <line class="ha-deco" x1="305" y1="432" x2="365" y2="432" stroke="#D64E8A" stroke-width="2" opacity="0.6"/>
+
+              <text class="ha-sub" x="250" y="450" font-family="Arial,sans-serif" font-size="12" fill="#D64E8A" text-anchor="middle" letter-spacing="4">PLANT-BASED NUTRITION</text>
+
+              <text class="ha-payoff" x="250" y="468" font-family="'Arial Black',Impact,sans-serif" font-size="14" font-weight="900" fill="#E8559A" text-anchor="middle" letter-spacing="6">THAT ROCKS</text>
+            </g>
+          </svg>
+        </div>
       </div>
     </div>
   </section>

@@ -111,11 +111,61 @@ h1, h2, h3 {
   content: ""; position: absolute; width: 78%; aspect-ratio: 1; border-radius: 50%;
   background: radial-gradient(circle, rgba(232, 85, 154, .22), transparent 68%); z-index: 0;
 }
-.hero__badge { position: relative; z-index: 1; width: min(380px, 82%); filter: drop-shadow(0 26px 50px rgba(36, 10, 46, .34)); }
-@media (prefers-reduced-motion: no-preference) {
-  .hero__badge { animation: float 7s ease-in-out infinite; }
-  @keyframes float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-16px) rotate(1deg); } }
+/* ===== Hero badge — intro animata, poi floating a riposo ===== */
+.hero-anim { position: relative; z-index: 1; width: min(380px, 82%); filter: drop-shadow(0 26px 50px rgba(36, 10, 46, .34)); }
+.hero-anim__svg { width: 100%; height: auto; display: block; overflow: visible; transform-origin: center; }
+.hero-anim__svg [class^="ha-"] { transform-box: fill-box; }
+.hero-anim__flash {
+  position: absolute; inset: -18%; border-radius: 50%; pointer-events: none; opacity: 0; z-index: 2;
+  background: radial-gradient(circle, rgba(255, 248, 245, .9), transparent 60%);
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ha-ring, .ha-bolt, .ha-beet, .ha-leaf, .ha-root, .ha-spark, .ha-eline,
+  .ha-title, .ha-deco, .ha-sub, .ha-payoff { opacity: 0; }
+
+  .hero-anim__flash { animation: haFlash .6s ease-out 1.05s 1; }
+  .ha-bolt { transform: translateY(-560px); animation: haStrike .35s cubic-bezier(.6,0,1,.4) .72s forwards; }
+  .ha-bolt-glow { transform-origin: center; animation: haGlow 2.6s ease-in-out 5s infinite; }
+  .ha-beet { transform-origin: center; transform: scale(0); animation: haPop .75s cubic-bezier(.34,1.6,.5,1) 1.12s forwards; }
+  .ha-leaf { transform-origin: 50% 100%; transform: scale(0); animation: haSprout .55s cubic-bezier(.34,1.7,.45,1) forwards; }
+  .ha-leaf:nth-of-type(1) { animation-delay: 1.85s; }
+  .ha-leaf:nth-of-type(2) { animation-delay: 1.97s; }
+  .ha-leaf:nth-of-type(3) { animation-delay: 2.09s; }
+  .ha-leaf:nth-of-type(4) { animation-delay: 2.21s; }
+  .ha-leaf:nth-of-type(5) { animation-delay: 2.33s; }
+  .ha-root { stroke-dasharray: 60; stroke-dashoffset: 60; animation: haDraw .45s ease-out 2.55s forwards; }
+  .ha-spark { transform-origin: center; transform: scale(0);
+    animation: haSparkIn .4s cubic-bezier(.34,1.7,.45,1) forwards, haSparkFloat 4s ease-in-out 5s infinite; }
+  .ha-spark:nth-of-type(odd) { animation-delay: 2.7s, 5s; }
+  .ha-spark:nth-of-type(even) { animation-delay: 2.85s, 5.7s; }
+  .ha-eline { transform-origin: center; transform: scaleX(0); animation: haZap .35s ease-out 2.9s forwards; }
+  .ha-ring { stroke-dasharray: 1540; stroke-dashoffset: 1540; transform-origin: center; transform: rotate(-90deg);
+    animation: haRing .95s cubic-bezier(.5,0,.3,1) 2.95s forwards; }
+  .ha-title { transform-origin: center; animation: haSlam .45s cubic-bezier(.5,0,.2,1) 3.6s forwards, haShake .32s linear 4.02s; }
+  .ha-deco { transform-origin: center; transform: scaleX(0); animation: haZap .4s ease-out 4.05s forwards; }
+  .ha-sub { animation: haRise .5s ease-out 4.25s forwards; }
+  .ha-payoff { transform-origin: center; animation: haPunch .45s cubic-bezier(.34,1.7,.45,1) 4.55s forwards; }
+
+  /* A intro conclusa: il badge resta nel floating che piace */
+  .hero-anim__svg { animation: haRest 7s ease-in-out 5.4s infinite; }
+}
+
+@keyframes haFlash { 0%{opacity:0} 12%{opacity:.85} 30%{opacity:.15} 55%{opacity:.35} 100%{opacity:0} }
+@keyframes haStrike { 0%{opacity:1;transform:translateY(-560px)} 100%{opacity:1;transform:translateY(0)} }
+@keyframes haGlow { 0%,100%{opacity:0} 50%{opacity:.55} }
+@keyframes haPop { 0%{opacity:1;transform:scale(0)} 100%{opacity:1;transform:scale(1)} }
+@keyframes haSprout { 0%{opacity:1;transform:scale(0) rotate(-14deg)} 100%{opacity:1;transform:scale(1) rotate(0)} }
+@keyframes haDraw { 0%{opacity:1} 100%{opacity:1;stroke-dashoffset:0} }
+@keyframes haSparkIn { 0%{opacity:0;transform:scale(0)} 100%{opacity:1;transform:scale(1)} }
+@keyframes haSparkFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+@keyframes haZap { 0%{opacity:0;transform:scaleX(0)} 100%{opacity:1;transform:scaleX(1)} }
+@keyframes haRing { 0%{opacity:1} 100%{opacity:1;stroke-dashoffset:0} }
+@keyframes haSlam { 0%{opacity:0;transform:scale(3.2)} 70%{opacity:1;transform:scale(.94)} 100%{opacity:1;transform:scale(1)} }
+@keyframes haShake { 0%,100%{transform:translate(0,0)} 25%{transform:translate(-3px,2px)} 50%{transform:translate(3px,-2px)} 75%{transform:translate(-2px,-1px)} }
+@keyframes haRise { 0%{opacity:0;transform:translateY(12px)} 100%{opacity:1;transform:translateY(0)} }
+@keyframes haPunch { 0%{opacity:0;transform:scale(1.9)} 100%{opacity:1;transform:scale(1)} }
+@keyframes haRest { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-14px) rotate(1deg)} }
 
 /* ===== Section head ===== */
 .section-head { max-width: 800px; margin: 0 auto clamp(30px, 5vw, 56px); text-align: center; }
@@ -225,7 +275,7 @@ h1, h2, h3 {
   .hero__sub { margin-inline: auto; }
   .hero__chips, .hero__actions { justify-content: center; }
   .hero__art { order: -1; }
-  .hero__badge { width: min(240px, 58%); }
+  .hero-anim { width: min(240px, 58%); }
   .feature { grid-template-columns: 1fr; }
   .feature--reverse .feature__text { order: 0; }
   .feature__tag { justify-content: flex-start; }
