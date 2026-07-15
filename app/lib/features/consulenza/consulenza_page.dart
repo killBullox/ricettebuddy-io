@@ -8,10 +8,10 @@ import 'calendly_embed.dart';
 import 'calendly_page.dart';
 
 /// Sezione "Consulenza Nutrizionale": due eventi prenotabili su Calendly.
-// TODO: sostituire con gli URL Calendly reali appena forniti.
 const String kCalendlyFirstUrl =
-    'https://calendly.com/beet-it/prima-consulenza';
-const String kCalendlyFollowUpUrl = 'https://calendly.com/beet-it/follow-up';
+    'https://calendly.com/manuela-manzo-beetit/consulenza-nutrizionale-preliminare';
+const String kCalendlyFollowUpUrl =
+    'https://calendly.com/manuela-manzo-beetit/consulenza-nutrizionale-follow-up';
 
 class ConsulenzaPage extends StatefulWidget {
   const ConsulenzaPage({super.key});
