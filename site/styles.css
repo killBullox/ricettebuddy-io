@@ -79,7 +79,7 @@ h1, h2, h3 {
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--paper-2);
 }
-.nav__brand { display: flex; align-items: center; gap: 11px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.3rem; }
+.nav__brand { display: flex; align-items: center; gap: 12px; font-family: 'Arial Black', 'Impact', sans-serif; font-weight: 900; font-size: 1.6rem; letter-spacing: -0.5px; color: var(--aubergine); }
 .nav__brand img { border-radius: 50%; }
 .nav__links { display: flex; gap: 28px; margin-left: auto; font-weight: 600; color: var(--taupe); }
 .nav__links a { position: relative; }
