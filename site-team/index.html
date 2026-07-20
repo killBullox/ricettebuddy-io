@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Beet It! — Area team nutrizione</title>
+<style>
+  :root{--beet:#B5326B;--beet-d:#8B1A4A;--aub:#240A2E;--paper:#FBF5EF;--paper2:#F1E7DE;--ink:#2A1220;--taupe:#6E5560;--ok:#2E7D32}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--paper);color:var(--ink)}
+  a{color:var(--beet)}
+  header{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--aub);color:#fff}
+  header b{font-size:1.15rem}
+  header .who{margin-left:auto;font-size:.85rem;opacity:.85}
+  header button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px}
+  /* login */
+  .login{max-width:360px;margin:8vh auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 12px 32px rgba(36,10,46,.12)}
+  .login h1{font-size:1.3rem;margin:0 0 4px}.login p{color:var(--taupe);margin:0 0 18px;font-size:.9rem}
+  input,select{width:100%;padding:11px 12px;border:1px solid #d8cbc2;border-radius:10px;font-size:1rem;margin-bottom:12px;background:#fff}
+  .btn{background:var(--beet);color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer;font-size:1rem}
+  .btn:hover{background:var(--beet-d)}
+  .err{color:#b00020;font-size:.85rem;margin:6px 0}
+  .msg{color:var(--taupe);font-size:.85rem}
+  /* toolbar */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .toolbar input,.toolbar select{width:auto;margin:0;flex:1;min-width:160px}
+  .count{color:var(--taupe);font-size:.85rem;margin-left:auto}
+  /* grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(36,10,46,.10);cursor:pointer;transition:transform .1s}
+  .card:hover{transform:translateY(-3px)}
+  .card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--paper2)}
+  .card .b{padding:10px 12px}
+  .card .t{font-weight:700;font-size:.95rem;line-height:1.2}
+  .card .m{color:var(--taupe);font-size:.78rem;margin-top:4px}
+  .pill{display:inline-block;background:var(--paper2);border-radius:20px;padding:2px 9px;font-size:.72rem;color:var(--beet-d);font-weight:700}
+  /* modal */
+  #ov{position:fixed;inset:0;background:rgba(20,6,26,.6);display:none;z-index:50;align-items:center;justify-content:center;padding:20px}
+  #ov.on{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto}
+  .modal img{width:100%;aspect-ratio:16/9;object-fit:cover}
+  .modal .p{padding:22px}
+  .modal h2{margin:0 0 4px}.modal .sub{color:var(--taupe);margin-bottom:14px}
+  .nutri{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;padding:12px;background:var(--paper);border-radius:12px}
+  .nutri div{font-size:.85rem}.nutri b{display:block;font-size:1.1rem;color:var(--beet-d)}
+  .modal h3{font-size:1rem;margin:16px 0 6px}
+  .modal ul,.modal ol{margin:0;padding-left:20px}.modal li{margin-bottom:5px}
+  .close{float:right;background:var(--paper2);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1rem}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+
+<div id="app-login" class="hidden">
+  <div class="login">
+    <h1>Area team nutrizione</h1>
+    <p>Accesso riservato Beet It!</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" />
+    <input id="pwd" type="password" placeholder="Password" autocomplete="current-password" />
+    <div id="loginErr" class="err"></div>
+    <button class="btn" id="loginBtn" style="width:100%">Entra</button>
+  </div>
+</div>
+
+<div id="app-main" class="hidden">
+  <header>
+    <b>Beet It! · Team nutrizione</b>
+    <span class="who" id="who"></span>
+    <button id="logout">Esci</button>
+  </header>
+  <div class="wrap">
+    <div class="toolbar">
+      <input id="q" type="text" placeholder="Cerca ricetta o ingrediente…" />
+      <select id="cat"><option value="">Tutte le categorie</option></select>
+      <select id="sortKcal">
+        <option value="">Ordina…</option>
+        <option value="asc">Kcal crescente</option>
+        <option value="desc">Kcal decrescente</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div id="ov"><div class="modal"><div id="modalBody"></div></div></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://zffcpwtijxbbshrpsxqq.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR';
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const $ = id => document.getElementById(id);
+let RECIPES = [];
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ show('login'); return; }
+  // verifica ruolo
+  const { data:prof } = await sb.from('profiles').select('role,full_name').eq('id', session.user.id).single();
+  if(!prof || !['nutritionist','admin'].includes(prof.role)){
+    await sb.auth.signOut();
+    show('login'); $('loginErr').textContent = 'Account senza permessi team.';
+    return;
+  }
+  $('who').textContent = (prof.full_name || session.user.email) + ' · ' + prof.role;
+  show('main');
+  loadRecipes();
+}
+function show(w){ $('app-login').classList.toggle('hidden', w!=='login'); $('app-main').classList.toggle('hidden', w!=='main'); }
+
+$('loginBtn').onclick = async () => {
+  $('loginErr').textContent='';
+  const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('pwd').value });
+  if(error){ $('loginErr').textContent = 'Accesso non riuscito: '+error.message; return; }
+  boot();
+};
+$('pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') $('loginBtn').click(); });
+$('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function loadRecipes(){
+  const { data, error } = await sb.from('recipes')
+    .select('id,base_code,title,image_url,category,cuisine,difficulty,servings,prep_minutes,cook_minutes,nutrition')
+    .is('user_id', null).order('title');
+  if(error){ $('grid').innerHTML = '<p>Errore nel caricamento: '+error.message+'</p>'; return; }
+  RECIPES = data;
+  const cats = [...new Set(data.map(r=>r.category).filter(Boolean))].sort();
+  $('cat').insertAdjacentHTML('beforeend', cats.map(c=>`<option>${c}</option>`).join(''));
+  render();
+}
+function render(){
+  const q = $('q').value.trim().toLowerCase();
+  const cat = $('cat').value;
+  const sort = $('sortKcal').value;
+  let list = RECIPES.filter(r =>
+    (!cat || r.category===cat) &&
+    (!q || (r.title.toLowerCase().includes(q) || (r.base_code||'').toLowerCase().includes(q)))
+  );
+  if(sort){ list = [...list].sort((a,b)=>{ const ka=a.nutrition?.kcal??0, kb=b.nutrition?.kcal??0; return sort==='asc'?ka-kb:kb-ka; }); }
+  $('count').textContent = list.length + ' ricette';
+  $('grid').innerHTML = list.map(r=>`
+    <div class="card" data-id="${r.id}">
+      <img loading="lazy" src="${r.image_url}" alt="">
+      <div class="b">
+        <div class="t">${r.title}</div>
+        <div class="m"><span class="pill">${r.category||''}</span> ${r.nutrition?.kcal?Math.round(r.nutrition.kcal)+' kcal':''}</div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
+}
+$('q').oninput = render; $('cat').onchange = render; $('sortKcal').onchange = render;
+
+async function openDetail(id){
+  const r = RECIPES.find(x=>x.id===id);
+  const { data:ings } = await sb.from('ingredients').select('raw_text,position').eq('recipe_id',id).order('position');
+  const { data:steps } = await sb.from('steps').select('text,position').eq('recipe_id',id).order('position');
+  const n = r.nutrition||{};
+  $('modalBody').innerHTML = `
+    <img src="${r.image_url}" alt="">
+    <div class="p">
+      <button class="close" id="closeM">✕</button>
+      <h2>${r.title}</h2>
+      <div class="sub">${[r.cuisine,r.category,r.difficulty].filter(Boolean).join(' · ')} · ${r.servings} porz. · ${(r.prep_minutes||0)+(r.cook_minutes||0)} min</div>
+      <div class="nutri">
+        <div><b>${n.kcal?Math.round(n.kcal):'—'}</b>kcal</div>
+        <div><b>${n.protein??'—'}</b>proteine g</div>
+        <div><b>${n.carbs??'—'}</b>carbo g</div>
+        <div><b>${n.fat??'—'}</b>grassi g</div>
+        <div><b>${n.fiber??'—'}</b>fibre g</div>
+      </div>
+      <h3>Ingredienti</h3>
+      <ul>${(ings||[]).map(i=>`<li>${i.raw_text}</li>`).join('')||'<li>—</li>'}</ul>
+      <h3>Procedimento</h3>
+      <ol>${(steps||[]).map(s=>`<li>${s.text}</li>`).join('')||'<li>—</li>'}</ol>
+    </div>`;
+  $('ov').classList.add('on');
+  $('closeM').onclick = ()=> $('ov').classList.remove('on');
+}
+$('ov').onclick = e=>{ if(e.target.id==='ov') $('ov').classList.remove('on'); };
+
+boot();
+</script>
+</body>
+</html>
