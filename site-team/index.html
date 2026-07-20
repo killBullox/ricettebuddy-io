@@ -14,7 +14,6 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:'Archivo',system-ui,Segoe UI,Arial,sans-serif;background:var(--paper);color:var(--ink)}
   h1,h2,h3{font-family:'Fraunces',Georgia,serif;letter-spacing:-.01em}
-  /* ===== login ===== */
   #app-login{min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(120% 120% at 80% 0%,var(--aub2),var(--aub) 60%);padding:20px}
   .login{width:100%;max-width:380px;background:#fff;border-radius:20px;padding:32px;box-shadow:0 22px 48px rgba(0,0,0,.35);text-align:center}
@@ -24,7 +23,6 @@
   .btn{background:var(--beet);color:#fff;border:none;border-radius:11px;padding:12px 20px;font-weight:700;cursor:pointer;font-size:1rem;font-family:inherit}
   .btn:hover{background:var(--beet-d)}
   .err{color:#b00020;font-size:.85rem;margin:4px 0 10px;min-height:1em}
-  /* ===== header ===== */
   header{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--aub);color:#fff;position:sticky;top:0;z-index:20}
   header img{width:38px;height:38px;border-radius:50%}
   header b{font-family:'Fraunces',serif;font-size:1.2rem}
@@ -33,7 +31,6 @@
   header button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:9px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:.85rem}
   header button:hover{background:rgba(255,255,255,.12)}
   .wrap{max-width:1200px;margin:0 auto;padding:22px}
-  /* ===== toolbar ===== */
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
   .toolbar input,.toolbar select{width:auto;margin:0;flex:0 1 auto}
   .toolbar input#q{flex:1;min-width:200px}
@@ -42,7 +39,6 @@
   .chip.on{background:var(--beet);border-color:var(--beet);color:#fff}
   .chip.kcal.on{background:var(--aub);border-color:var(--aub)}
   .count{color:var(--taupe);font-size:.85rem;margin-left:auto}
-  /* ===== grid ===== */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
   .card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 5px 16px rgba(36,10,46,.10);cursor:pointer;transition:transform .12s}
   .card:hover{transform:translateY(-3px)}
@@ -54,20 +50,17 @@
   .pill{display:inline-block;border-radius:20px;padding:2px 9px;font-size:.68rem;font-weight:800}
   .pill.veg{background:#E6F1E7;color:var(--leaf)}
   .pill.nut{background:#FFF0D6;color:#9A6B00}
-  /* ===== modal ===== */
   #ov{position:fixed;inset:0;background:rgba(20,6,26,.62);display:none;z-index:50;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
   #ov.on{display:flex}
-  .modal{background:#fff;border-radius:20px;max-width:780px;width:100%;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+  .modal{background:#fff;border-radius:20px;max-width:780px;width:100%;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4);position:relative}
   .modal>img{width:100%;aspect-ratio:16/9;object-fit:cover}
   .mp{padding:24px}
   .mp h2{margin:0 0 3px;font-size:1.6rem}
   .mp .sub{color:var(--taupe);margin-bottom:14px;font-size:.9rem}
   .close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.9);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:1.1rem}
-  /* nutrition donut block */
   .nutriblock{display:flex;gap:20px;align-items:center;background:var(--paper);border-radius:14px;padding:16px;flex-wrap:wrap}
   .legend div{display:flex;align-items:center;gap:7px;font-size:.86rem;margin-bottom:5px}
   .legend .dot{width:11px;height:11px;border-radius:50%}
-  .legend b{font-variant-numeric:tabular-nums}
   .totrec{font-size:.82rem;color:var(--taupe);margin-top:8px}
   .mp h3{font-size:1.05rem;margin:18px 0 7px}
   .ings{list-style:none;padding:0;margin:0}
@@ -75,12 +68,10 @@
   .ings li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--beet);flex:none}
   .steps{margin:0;padding-left:22px}.steps li{margin-bottom:9px;line-height:1.5}
   .hidden{display:none}
-  .link{background:none;border:none;color:var(--beet);cursor:pointer;font-family:inherit;text-decoration:underline;font-size:.85rem}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="app-login">
   <div class="login">
     <img src="https://beetit.it/assets/logo-round.svg" alt="Beet It!" />
@@ -93,11 +84,10 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div id="app-main" class="hidden">
   <header>
     <img src="https://beetit.it/assets/logo-round.svg" alt="" />
-    <b>Beet It! · Team nutrizione</b>
+    <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
     <button id="chpwd">Cambia password</button>
@@ -105,19 +95,19 @@
   </header>
   <div class="wrap">
     <div class="toolbar">
-      <input id="q" type="text" placeholder="Cerca ricetta o ingrediente…" />
+      <input id="q" type="text" placeholder="Cerca ricetta o ingrediente..." />
       <select id="cat"><option value="">Tutte le categorie</option></select>
       <select id="sortKcal">
-        <option value="">Ordina…</option>
+        <option value="">Ordina...</option>
         <option value="asc">Kcal crescente</option>
         <option value="desc">Kcal decrescente</option>
       </select>
       <span class="count" id="count"></span>
     </div>
     <div class="chips" id="chips">
-      <span class="chip kcal" data-kcal="300">≤ 300 kcal</span>
-      <span class="chip kcal" data-kcal="500">≤ 500 kcal</span>
-      <span class="chip kcal" data-kcal="700">≤ 700 kcal</span>
+      <span class="chip kcal" data-kcal="300">&le; 300 kcal</span>
+      <span class="chip kcal" data-kcal="500">&le; 500 kcal</span>
+      <span class="chip kcal" data-kcal="700">&le; 700 kcal</span>
       <span class="chip tag" data-tag="HIGH PROTEIN">Proteico</span>
       <span class="chip tag" data-tag="LOW CARB">Low carb</span>
       <span class="chip tag" data-tag="LIGHT">Leggera</span>
@@ -127,157 +117,171 @@
   </div>
 </div>
 
-<div id="ov"><div class="modal" style="position:relative"><div id="modalBody"></div></div></div>
+<div id="ov"><div class="modal"><div id="modalBody"></div></div></div>
 
 <script src="supabase.js"></script>
 <script>
-if(!window.supabase){ document.getElementById('loginErr').textContent='Errore: libreria non caricata. Ricarica la pagina.'; }
-const { createClient } = window.supabase;
-const sb = createClient('https://zffcpwtijxbbshrpsxqq.supabase.co','sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR');
-const $ = id => document.getElementById(id);
-let RECIPES = [];
-const TAG_IT = {'HIGH PROTEIN':'Proteico','LOW CARB':'Low carb','LIGHT':'Leggera','HIGH FIBER':'Ricca di fibre'};
-const filt = { kcal:0, tags:new Set() };
+window.onerror = function(msg, src, line, col){
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b00020;color:#fff;padding:12px 16px;z-index:99999;font:14px/1.4 system-ui;white-space:pre-wrap';
+  d.textContent = 'ERRORE JS @'+line+':'+col+' - '+msg;
+  document.body.appendChild(d); return false;
+};
+var $ = function(id){ return document.getElementById(id); };
+if(!window.supabase){ $('loginErr').textContent = 'Errore: libreria non caricata. Ricarica la pagina.'; }
+var sb = window.supabase.createClient('https://zffcpwtijxbbshrpsxqq.supabase.co','sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR');
+var RECIPES = [];
+var TAG_IT = {'HIGH PROTEIN':'Proteico','LOW CARB':'Low carb','LIGHT':'Leggera','HIGH FIBER':'Ricca di fibre'};
+var filt = { kcal:0, tags:[] };
 
-// tag nutrizionali con le STESSE soglie dell'app
+function kcalOf(r){ return (r.nutrition && typeof r.nutrition.kcal === 'number') ? r.nutrition.kcal : null; }
 function tagsOf(n){
-  const t=[]; if(!n) return t;
-  if(n.protein_g>=20) t.push('HIGH PROTEIN');
-  if(n.carbs_g<=20)  t.push('LOW CARB');
-  if(n.kcal<=400)    t.push('LIGHT');
-  if(n.fiber_g>=8)   t.push('HIGH FIBER');
+  var t=[]; if(!n) return t;
+  if(typeof n.protein_g==='number' && n.protein_g>=20) t.push('HIGH PROTEIN');
+  if(typeof n.carbs_g==='number' && n.carbs_g<=20) t.push('LOW CARB');
+  if(typeof n.kcal==='number' && n.kcal<=400) t.push('LIGHT');
+  if(typeof n.fiber_g==='number' && n.fiber_g>=8) t.push('HIGH FIBER');
   return t;
 }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function show(w){ $('app-login').classList.toggle('hidden', w!=='login'); $('app-main').classList.toggle('hidden', w!=='main'); }
 
 async function boot(){
-  const { data:{ session } } = await sb.auth.getSession();
+  var s = await sb.auth.getSession();
+  var session = (s && s.data) ? s.data.session : null;
   if(!session){ show('login'); return; }
-  const { data:prof } = await sb.from('profiles').select('role,full_name').eq('id',session.user.id).single();
-  if(!prof || !['nutritionist','admin'].includes(prof.role)){
+  var pr = await sb.from('profiles').select('role,full_name').eq('id', session.user.id).single();
+  var prof = pr ? pr.data : null;
+  if(!prof || (prof.role!=='nutritionist' && prof.role!=='admin')){
     await sb.auth.signOut(); show('login'); $('loginErr').textContent='Account senza permessi team.'; return;
   }
-  $('who').textContent = (prof.full_name||session.user.email)+' · '+prof.role;
-  show('main'); loadRecipes();
+  $('who').textContent = (prof.full_name || session.user.email) + ' - ' + prof.role;
+  show('main'); await loadRecipes();
 }
-function show(w){ $('app-login').classList.toggle('hidden',w!=='login'); $('app-main').classList.toggle('hidden',w!=='main'); }
-
-$('loginBtn').onclick = async () => {
+$('loginBtn').onclick = async function(){
   $('loginErr').textContent='';
-  const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('pwd').value });
-  if(error){ $('loginErr').textContent='Accesso non riuscito: '+error.message; return; }
+  var r = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('pwd').value });
+  if(r.error){ $('loginErr').textContent='Accesso non riuscito: '+r.error.message; return; }
   boot();
 };
-$('pwd').addEventListener('keydown',e=>{ if(e.key==='Enter') $('loginBtn').click(); });
-$('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-$('chpwd').onclick = async () => {
-  const np = prompt('Nuova password (min 8 caratteri):');
-  if(!np) return;
+$('pwd').addEventListener('keydown', function(e){ if(e.key==='Enter') $('loginBtn').click(); });
+$('logout').onclick = async function(){ await sb.auth.signOut(); location.reload(); };
+$('chpwd').onclick = async function(){
+  var np = prompt('Nuova password (min 8 caratteri):'); if(!np) return;
   if(np.length<8){ alert('Troppo corta.'); return; }
-  const { error } = await sb.auth.updateUser({ password: np });
-  alert(error ? ('Errore: '+error.message) : 'Password aggiornata ✓');
+  var r = await sb.auth.updateUser({ password: np });
+  alert(r.error ? ('Errore: '+r.error.message) : 'Password aggiornata');
 };
 
 async function loadRecipes(){
-  const { data, error } = await sb.from('recipes')
+  var res = await sb.from('recipes')
     .select('id,base_code,title,image_url,category,cuisine,difficulty,servings,prep_minutes,cook_minutes,nutrition,diet_tags')
-    .is('user_id',null).order('title');
-  if(error){ $('grid').innerHTML='<p>Errore: '+error.message+'</p>'; return; }
-  RECIPES = data.map(r=>({ ...r, _tags: tagsOf(r.nutrition) }));
-  const cats=[...new Set(data.map(r=>r.category).filter(Boolean))].sort();
-  $('cat').insertAdjacentHTML('beforeend',cats.map(c=>`<option>${c}</option>`).join(''));
+    .is('user_id', null).order('title');
+  if(res.error){ $('grid').innerHTML='<p style="padding:20px">Errore: '+res.error.message+'</p>'; return; }
+  RECIPES = res.data.map(function(r){ r._tags = tagsOf(r.nutrition); return r; });
+  var cats=[]; RECIPES.forEach(function(r){ if(r.category && cats.indexOf(r.category)<0) cats.push(r.category); });
+  cats.sort();
+  $('cat').insertAdjacentHTML('beforeend', cats.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join(''));
   render();
 }
-// chip handlers
-document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{
-  if(ch.dataset.kcal){
-    const v=+ch.dataset.kcal;
-    document.querySelectorAll('.chip.kcal').forEach(x=>{ if(x!==ch) x.classList.remove('on'); });
-    ch.classList.toggle('on'); filt.kcal = ch.classList.contains('on') ? v : 0;
-  } else {
-    ch.classList.toggle('on');
-    ch.classList.contains('on') ? filt.tags.add(ch.dataset.tag) : filt.tags.delete(ch.dataset.tag);
-  }
-  render();
-});
-function render(){
-  const q=$('q').value.trim().toLowerCase(), cat=$('cat').value, sort=$('sortKcal').value;
-  let list=RECIPES.filter(r=>
-    (!cat||r.category===cat) &&
-    (!q||r.title.toLowerCase().includes(q)||(r.base_code||'').toLowerCase().includes(q)) &&
-    (!filt.kcal||(r.nutrition?.kcal??1e9)<=filt.kcal) &&
-    ([...filt.tags].every(t=>r._tags.includes(t)))
-  );
-  if(sort) list=[...list].sort((a,b)=>{const ka=a.nutrition?.kcal??0,kb=b.nutrition?.kcal??0;return sort==='asc'?ka-kb:kb-ka;});
-  $('count').textContent=list.length+' ricette';
-  $('grid').innerHTML=list.map(r=>`
-    <div class="card" data-id="${r.id}">
-      <img loading="lazy" src="${r.image_url}" alt="">
-      <div class="b">
-        <div class="t">${r.title}</div>
-        <div class="m">${r.category||''} · ${r.nutrition?.kcal?Math.round(r.nutrition.kcal)+' kcal':''}</div>
-        <div class="pills">
-          <span class="pill veg">Vegano</span>
-          ${r._tags.map(t=>`<span class="pill nut">${TAG_IT[t]}</span>`).join('')}
-        </div>
-      </div>
-    </div>`).join('');
-  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
-}
-$('q').oninput=render; $('cat').onchange=render; $('sortKcal').onchange=render;
 
-// ===== donut SVG (protein/carbs/fat per grammi) =====
-function donut(n){
-  const p=n.protein_g||0,c=n.carbs_g||0,f=n.fat_g||0,tot=p+c+f||1;
-  const segs=[['#C42B6E',p],['#E39B2E',c],['#3B8C43',f]];
-  const R=52,CX=64,CY=64,C=2*Math.PI*R; let off=0;
-  const rings=segs.map(([col,val])=>{
-    const len=C*val/tot;
-    const el=`<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${col}" stroke-width="20"
-      stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${CX} ${CY})"/>`;
-    off+=len; return el;
-  }).join('');
-  return `<svg width="128" height="128" viewBox="0 0 128 128">${rings}
-    <text x="64" y="60" text-anchor="middle" font-family="Fraunces,serif" font-size="26" font-weight="700" fill="#8B1A4A">${Math.round(n.kcal||0)}</text>
-    <text x="64" y="78" text-anchor="middle" font-size="11" fill="#898781">kcal</text></svg>`;
+var chips = document.querySelectorAll('.chip');
+for(var i=0;i<chips.length;i++){
+  chips[i].onclick = (function(ch){ return function(){
+    if(ch.getAttribute('data-kcal')){
+      var v = parseInt(ch.getAttribute('data-kcal'),10);
+      var kc = document.querySelectorAll('.chip.kcal');
+      for(var j=0;j<kc.length;j++){ if(kc[j]!==ch) kc[j].classList.remove('on'); }
+      ch.classList.toggle('on'); filt.kcal = ch.classList.contains('on') ? v : 0;
+    } else {
+      ch.classList.toggle('on');
+      var tag = ch.getAttribute('data-tag'); var idx = filt.tags.indexOf(tag);
+      if(ch.classList.contains('on')){ if(idx<0) filt.tags.push(tag); }
+      else { if(idx>=0) filt.tags.splice(idx,1); }
+    }
+    render();
+  }; })(chips[i]);
 }
+
+function render(){
+  var q = $('q').value.trim().toLowerCase(), cat = $('cat').value, sort = $('sortKcal').value;
+  var list = RECIPES.filter(function(r){
+    if(cat && r.category!==cat) return false;
+    if(q){
+      var bc = (r.base_code||'').toLowerCase();
+      if(r.title.toLowerCase().indexOf(q)<0 && bc.indexOf(q)<0) return false;
+    }
+    var kc = kcalOf(r);
+    if(filt.kcal && (kc===null || kc>filt.kcal)) return false;
+    for(var k=0;k<filt.tags.length;k++){ if(r._tags.indexOf(filt.tags[k])<0) return false; }
+    return true;
+  });
+  if(sort){ list = list.slice().sort(function(a,b){ var ka=kcalOf(a)||0, kb=kcalOf(b)||0; return sort==='asc'?ka-kb:kb-ka; }); }
+  $('count').textContent = list.length + ' ricette';
+  $('grid').innerHTML = list.map(function(r){
+    var kc = kcalOf(r);
+    var pills = '<span class="pill veg">Vegano</span>' + r._tags.map(function(t){ return '<span class="pill nut">'+TAG_IT[t]+'</span>'; }).join('');
+    return '<div class="card" data-id="'+r.id+'">'
+      + '<img loading="lazy" src="'+r.image_url+'" alt="">'
+      + '<div class="b"><div class="t">'+esc(r.title)+'</div>'
+      + '<div class="m">'+esc(r.category||'')+(kc!=null?(' &middot; '+Math.round(kc)+' kcal'):'')+'</div>'
+      + '<div class="pills">'+pills+'</div></div></div>';
+  }).join('');
+  var cards = document.querySelectorAll('.card');
+  for(var c=0;c<cards.length;c++){ cards[c].onclick = (function(id){ return function(){ openDetail(id); }; })(cards[c].getAttribute('data-id')); }
+}
+$('q').oninput = render; $('cat').onchange = render; $('sortKcal').onchange = render;
+
+function donut(n){
+  var p=n.protein_g||0, c=n.carbs_g||0, f=n.fat_g||0, tot=(p+c+f)||1;
+  var segs=[['#C42B6E',p],['#E39B2E',c],['#3B8C43',f]];
+  var R=52,CX=64,CY=64,C=2*Math.PI*R, off=0, rings='';
+  for(var i=0;i<segs.length;i++){
+    var len = C*segs[i][1]/tot;
+    rings += '<circle cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" stroke="'+segs[i][0]+'" stroke-width="20" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+CX+' '+CY+')"/>';
+    off += len;
+  }
+  return '<svg width="128" height="128" viewBox="0 0 128 128">'+rings
+    + '<text x="64" y="60" text-anchor="middle" font-family="Fraunces,serif" font-size="26" font-weight="700" fill="#8B1A4A">'+Math.round(n.kcal||0)+'</text>'
+    + '<text x="64" y="78" text-anchor="middle" font-size="11" fill="#898781">kcal</text></svg>';
+}
+function g(v){ return (typeof v==='number') ? v : '-'; }
 
 async function openDetail(id){
-  const r=RECIPES.find(x=>x.id===id), n=r.nutrition||{};
-  const { data:ings } = await sb.from('ingredients').select('raw_text,position').eq('recipe_id',id).order('position');
-  const { data:steps } = await sb.from('steps').select('text,position').eq('recipe_id',id).order('position');
-  const sv=r.servings||1;
-  $('modalBody').innerHTML=`
-    <button class="close" id="closeM">✕</button>
-    <img src="${r.image_url}" alt="">
-    <div class="mp">
-      <h2>${r.title}</h2>
-      <div class="sub">${[r.cuisine,r.category,r.difficulty].filter(Boolean).join(' · ')} · ${sv} porzioni · ${(r.prep_minutes||0)+(r.cook_minutes||0)} min</div>
-      <div class="pills" style="margin-bottom:14px">
-        <span class="pill veg">Vegano</span>
-        ${r._tags.map(t=>`<span class="pill nut">${TAG_IT[t]}</span>`).join('')}
-      </div>
-      <div class="nutriblock">
-        ${donut(n)}
-        <div class="legend">
-          <div style="font-family:Fraunces,serif;font-weight:700;margin-bottom:6px">Valori nutrizionali · per porzione</div>
-          <div><span class="dot" style="background:#C42B6E"></span> Proteine <b>${n.protein_g??'—'} g</b></div>
-          <div><span class="dot" style="background:#E39B2E"></span> Carboidrati <b>${n.carbs_g??'—'} g</b></div>
-          <div><span class="dot" style="background:#3B8C43"></span> Grassi <b>${n.fat_g??'—'} g</b></div>
-          <div><span class="dot" style="background:#6E5560"></span> Fibre <b>${n.fiber_g??'—'} g</b></div>
-          <div class="totrec">Totale ricetta (${sv} porz.): ${Math.round((n.kcal||0)*sv)} kcal · P ${Math.round((n.protein_g||0)*sv)} · C ${Math.round((n.carbs_g||0)*sv)} · G ${Math.round((n.fat_g||0)*sv)} g</div>
-        </div>
-      </div>
-      <h3>Ingredienti</h3>
-      <ul class="ings">${(ings||[]).map(i=>`<li>${i.raw_text}</li>`).join('')||'<li>—</li>'}</ul>
-      <h3>Procedimento</h3>
-      <ol class="steps">${(steps||[]).map(s=>`<li>${s.text}</li>`).join('')||'<li>—</li>'}</ol>
-    </div>`;
+  var r=null; for(var i=0;i<RECIPES.length;i++){ if(RECIPES[i].id===id){ r=RECIPES[i]; break; } }
+  if(!r) return;
+  var n = r.nutrition || {};
+  var iq = await sb.from('ingredients').select('raw_text,position').eq('recipe_id',id).order('position');
+  var sq = await sb.from('steps').select('text,position').eq('recipe_id',id).order('position');
+  var ings = (iq && iq.data) ? iq.data : [];
+  var steps = (sq && sq.data) ? sq.data : [];
+  var sv = r.servings || 1;
+  var meta = [r.cuisine, r.category, r.difficulty].filter(Boolean).join(' &middot; ');
+  var pills = '<span class="pill veg">Vegano</span>' + r._tags.map(function(t){ return '<span class="pill nut">'+TAG_IT[t]+'</span>'; }).join('');
+  var ingHtml = ings.length ? ings.map(function(x){ return '<li>'+esc(x.raw_text)+'</li>'; }).join('') : '<li>-</li>';
+  var stepHtml = steps.length ? steps.map(function(x){ return '<li>'+esc(x.text)+'</li>'; }).join('') : '<li>-</li>';
+  $('modalBody').innerHTML =
+    '<button class="close" id="closeM">&times;</button>'
+    + '<img src="'+r.image_url+'" alt="">'
+    + '<div class="mp"><h2>'+esc(r.title)+'</h2>'
+    + '<div class="sub">'+meta+' &middot; '+sv+' porzioni &middot; '+((r.prep_minutes||0)+(r.cook_minutes||0))+' min</div>'
+    + '<div class="pills" style="margin-bottom:14px">'+pills+'</div>'
+    + '<div class="nutriblock">'+donut(n)
+    + '<div class="legend"><div style="font-family:Fraunces,serif;font-weight:700;margin-bottom:6px">Valori nutrizionali &middot; per porzione</div>'
+    + '<div><span class="dot" style="background:#C42B6E"></span> Proteine <b>'+g(n.protein_g)+' g</b></div>'
+    + '<div><span class="dot" style="background:#E39B2E"></span> Carboidrati <b>'+g(n.carbs_g)+' g</b></div>'
+    + '<div><span class="dot" style="background:#3B8C43"></span> Grassi <b>'+g(n.fat_g)+' g</b></div>'
+    + '<div><span class="dot" style="background:#6E5560"></span> Fibre <b>'+g(n.fiber_g)+' g</b></div>'
+    + '<div class="totrec">Totale ricetta ('+sv+' porz.): '+Math.round((n.kcal||0)*sv)+' kcal &middot; P '+Math.round((n.protein_g||0)*sv)+' &middot; C '+Math.round((n.carbs_g||0)*sv)+' &middot; G '+Math.round((n.fat_g||0)*sv)+' g</div>'
+    + '</div></div>'
+    + '<h3>Ingredienti</h3><ul class="ings">'+ingHtml+'</ul>'
+    + '<h3>Procedimento</h3><ol class="steps">'+stepHtml+'</ol></div>';
   $('ov').classList.add('on');
-  $('closeM').onclick=()=>$('ov').classList.remove('on');
+  $('closeM').onclick = function(){ $('ov').classList.remove('on'); };
 }
-$('ov').onclick=e=>{ if(e.target.id==='ov') $('ov').classList.remove('on'); };
+$('ov').onclick = function(e){ if(e.target.id==='ov') $('ov').classList.remove('on'); };
 
-boot().catch(e=>{ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
+boot().catch(function(e){ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
 </script>
 </body>
 </html>

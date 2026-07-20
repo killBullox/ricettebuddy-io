@@ -1,0 +1,17 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Test</title>
+<style>body{font-family:system-ui;padding:24px;font-size:18px;line-height:1.8}b{color:#C42B6E}</style></head>
+<body>
+<div id="log"><b>STEP 0</b>: pagina HTML caricata ✓ (se vedi questo, l'HTML rende)</div>
+<script src="supabase.js"></script>
+<script>
+var L=document.getElementById('log');
+function add(t){ L.innerHTML += '<br>'+t; }
+add(window.supabase ? '<b>STEP 1</b>: libreria supabase caricata ✓' : '<b>STEP 1</b>: libreria NON caricata ✗');
+try{
+  var sb = window.supabase.createClient('https://zffcpwtijxbbshrpsxqq.supabase.co','sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR');
+  add('<b>STEP 2</b>: client creato ✓');
+  sb.auth.getSession().then(function(){ add('<b>STEP 3</b>: connessione Supabase ok ✓ — tutto funziona, il problema era la cache.'); })
+    .catch(function(e){ add('<b>STEP 3</b>: errore connessione: '+e.message); });
+}catch(e){ add('<b>STEP 2</b>: errore createClient: '+e.message); }
+</script>
+</body></html>
