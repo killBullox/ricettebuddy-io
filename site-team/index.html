@@ -81,7 +81,7 @@
 <body>
 
 <!-- LOGIN -->
-<div id="app-login" class="hidden">
+<div id="app-login">
   <div class="login">
     <img src="https://beetit.it/assets/logo-round.svg" alt="Beet It!" />
     <h1>Area team nutrizione</h1>
@@ -129,8 +129,10 @@
 
 <div id="ov"><div class="modal" style="position:relative"><div id="modalBody"></div></div></div>
 
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+<script src="supabase.js"></script>
+<script>
+if(!window.supabase){ document.getElementById('loginErr').textContent='Errore: libreria non caricata. Ricarica la pagina.'; }
+const { createClient } = window.supabase;
 const sb = createClient('https://zffcpwtijxbbshrpsxqq.supabase.co','sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR');
 const $ = id => document.getElementById(id);
 let RECIPES = [];
@@ -275,7 +277,7 @@ async function openDetail(id){
 }
 $('ov').onclick=e=>{ if(e.target.id==='ov') $('ov').classList.remove('on'); };
 
-boot();
+boot().catch(e=>{ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
 </script>
 </body>
 </html>
