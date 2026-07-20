@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Beet It! — Area team nutrizione</title>
 <link rel="icon" href="https://beetit.it/assets/icon-1024.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
 <style>
   :root{--aub:#240A2E;--aub2:#531B5C;--beet:#C42B6E;--beet-d:#8B1A4A;--beet-br:#E8559A;
         --paper:#FBF5EF;--paper2:#F1E7DE;--ink:#2A1220;--taupe:#6E5560;--leaf:#3B8C43;--amber:#E39B2E}
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--paper);color:var(--ink)}
-  h1,h2,h3{font-family:Georgia,'Times New Roman',serif;letter-spacing:-.01em}
+  body{margin:0;font-family:'Archivo',system-ui,Segoe UI,Arial,sans-serif;background:var(--paper);color:var(--ink)}
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;letter-spacing:-.01em}
   #app-login{min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(120% 120% at 80% 0%,var(--aub2),var(--aub) 60%);padding:20px}
   .login{width:100%;max-width:380px;background:#fff;border-radius:20px;padding:32px;box-shadow:0 22px 48px rgba(0,0,0,.35);text-align:center}
@@ -22,7 +25,7 @@
   .err{color:#b00020;font-size:.85rem;margin:4px 0 10px;min-height:1em}
   header{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--aub);color:#fff;position:sticky;top:0;z-index:20}
   header img{width:38px;height:38px;border-radius:50%}
-  header b{font-family:Georgia,serif;font-size:1.2rem}
+  header b{font-family:'Fraunces',serif;font-size:1.2rem}
   header .sp{margin-left:auto}
   header .who{font-size:.82rem;opacity:.82;margin-right:8px}
   header button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:9px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:.85rem}
@@ -50,7 +53,7 @@
   #ov{position:fixed;inset:0;background:rgba(20,6,26,.62);display:none;z-index:50;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
   #ov.on{display:flex}
   .modal{background:#fff;border-radius:20px;max-width:780px;width:100%;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4);position:relative}
-  .modal>img{width:100%;aspect-ratio:16/9;object-fit:cover}
+  #modalBody>img{width:100%;height:300px;object-fit:cover;display:block}
   .mp{padding:24px}
   .mp h2{margin:0 0 3px;font-size:1.6rem}
   .mp .sub{color:var(--taupe);margin-bottom:14px;font-size:.9rem}
