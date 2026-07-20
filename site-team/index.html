@@ -105,6 +105,14 @@
       <span class="count" id="count"></span>
     </div>
     <div class="chips" id="chips">
+      <span class="chip course" data-course="Antipasti">Antipasti/contorni</span>
+      <span class="chip course" data-course="Primi">Primi</span>
+      <span class="chip course" data-course="Zuppe">Zuppe</span>
+      <span class="chip course" data-course="Secondi">Secondi/legumi</span>
+      <span class="chip course" data-course="Pane/Pizza">Pane/Pizza</span>
+      <span class="chip course" data-course="Dolci">Dolci</span>
+      <span class="chip course" data-course="Internazionali">Internazionali</span>
+      <span style="width:100%;height:0"></span>
       <span class="chip kcal" data-kcal="300">&le; 300 kcal</span>
       <span class="chip kcal" data-kcal="500">&le; 500 kcal</span>
       <span class="chip kcal" data-kcal="700">&le; 700 kcal</span>
@@ -132,7 +140,13 @@ if(!window.supabase){ $('loginErr').textContent = 'Errore: libreria non caricata
 var sb = window.supabase.createClient('https://zffcpwtijxbbshrpsxqq.supabase.co','sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR');
 var RECIPES = [];
 var TAG_IT = {'HIGH PROTEIN':'Proteico','LOW CARB':'Low carb','LIGHT':'Leggera','HIGH FIBER':'Ricca di fibre'};
-var filt = { kcal:0, tags:[] };
+var filt = { kcal:0, tags:[], course:'' };
+var COURSE_MAP = {
+  'Antipasti e contorni':'Antipasti', 'Primi di pasta':'Primi', 'Riso e cereali':'Primi',
+  'Zuppe e minestre':'Zuppe', 'Legumi e secondi vegetali':'Secondi',
+  'Lievitati, pane e pizza':'Pane/Pizza', 'Dolci':'Dolci'
+};
+function courseOf(r){ return COURSE_MAP[r.category] || 'Internazionali'; }
 
 function kcalOf(r){ return (r.nutrition && typeof r.nutrition.kcal === 'number') ? r.nutrition.kcal : null; }
 function tagsOf(n){
@@ -188,7 +202,12 @@ async function loadRecipes(){
 var chips = document.querySelectorAll('.chip');
 for(var i=0;i<chips.length;i++){
   chips[i].onclick = (function(ch){ return function(){
-    if(ch.getAttribute('data-kcal')){
+    if(ch.getAttribute('data-course')){
+      var cv = ch.getAttribute('data-course');
+      var cc = document.querySelectorAll('.chip.course');
+      for(var m=0;m<cc.length;m++){ if(cc[m]!==ch) cc[m].classList.remove('on'); }
+      ch.classList.toggle('on'); filt.course = ch.classList.contains('on') ? cv : '';
+    } else if(ch.getAttribute('data-kcal')){
       var v = parseInt(ch.getAttribute('data-kcal'),10);
       var kc = document.querySelectorAll('.chip.kcal');
       for(var j=0;j<kc.length;j++){ if(kc[j]!==ch) kc[j].classList.remove('on'); }
@@ -207,6 +226,7 @@ function render(){
   var q = $('q').value.trim().toLowerCase(), cat = $('cat').value, sort = $('sortKcal').value;
   var list = RECIPES.filter(function(r){
     if(cat && r.category!==cat) return false;
+    if(filt.course && courseOf(r)!==filt.course) return false;
     if(q){
       var bc = (r.base_code||'').toLowerCase();
       if(r.title.toLowerCase().indexOf(q)<0 && bc.indexOf(q)<0) return false;
