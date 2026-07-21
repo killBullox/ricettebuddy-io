@@ -851,7 +851,8 @@ $('saveBtn').onclick = async function(){
       category:$('fCat').value, cuisine:$('fCui').value.trim() || null,
       difficulty:$('fDiff').value, servings:parseInt($('fPorz').value,10)||1,
       prep_minutes:parseInt($('fPrep').value,10)||0, cook_minutes:parseInt($('fCott').value,10)||0,
-      diet_tags:['vegan'], source_type:'base',
+      /* stesso valore delle altre 149 del catalogo (l'enum non ha 'base') */
+      diet_tags:['vegan'], source_type:'generated',
       nutrition:{ kcal:num('nKcal'), protein_g:num('nPro'), carbs_g:num('nCar'),
                   fat_g:num('nFat'), fiber_g:num('nFib') }
     }).select('id').single();
