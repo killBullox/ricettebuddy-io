@@ -106,6 +106,39 @@
   .ck-nav #ckNext{background:var(--beet);border-color:var(--beet)}
   .ck-nav #ckNext:hover{background:var(--beet-br)}
   @media(max-width:600px){ .ck-tx{font-size:1.2rem} .ck-body{padding:24px 18px} }
+
+  /* ---- nuova ricetta ---- */
+  .btn-new{background:var(--beet);color:#fff;border:none;border-radius:9px;padding:6px 13px;
+    cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:700}
+  .btn-new:hover{background:var(--beet-br)}
+  #nw{position:fixed;inset:0;z-index:70;background:rgba(20,6,26,.62);display:none;
+    justify-content:center;padding:24px;overflow:auto}
+  #nw.on{display:flex}
+  .nw-box{background:#fff;border-radius:20px;max-width:860px;width:100%;height:max-content;
+    box-shadow:0 30px 60px rgba(0,0,0,.4);overflow:hidden}
+  .nw-hd{background:var(--aub);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:12px}
+  .nw-hd h2{margin:0;font-size:1.25rem;color:#fff}
+  .nw-hd .code{margin-left:auto;font-size:.8rem;opacity:.8;font-variant-numeric:tabular-nums}
+  .nw-bd{padding:24px}
+  .nw-bd h3{font-size:1rem;margin:22px 0 10px;padding-top:18px;border-top:1px solid var(--paper2)}
+  .nw-bd h3:first-child{margin-top:0;padding-top:0;border-top:none}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>label{flex:1 1 170px;display:block;font-size:.78rem;font-weight:700;color:var(--taupe);
+    text-transform:uppercase;letter-spacing:.06em}
+  .row>label input,.row>label select{margin-top:5px;margin-bottom:0}
+  textarea{width:100%;padding:12px 13px;border:1px solid #d8cbc2;border-radius:11px;
+    font-size:.95rem;font-family:inherit;line-height:1.55;resize:vertical;background:#fff}
+  .hint{font-size:.8rem;color:var(--taupe);margin:0 0 8px}
+  .nw-ai{background:var(--paper);border-radius:14px;padding:16px;margin-bottom:20px}
+  .nw-ft{display:flex;gap:12px;align-items:center;padding:18px 24px;background:var(--paper);
+    border-top:1px solid var(--paper2);flex-wrap:wrap}
+  .nw-ft .sp{margin-left:auto}
+  .btn-gh{background:#fff;color:var(--aub);border:1.5px solid var(--aub)}
+  .btn-gh:hover{background:var(--paper2)}
+  .nw-foto{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .nw-foto img{width:260px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:var(--paper2)}
+  .msg{font-size:.86rem;margin:10px 0 0;min-height:1.2em}
+  .msg.ok{color:var(--leaf)} .msg.ko{color:#b00020} .msg.wait{color:var(--taupe)}
 </style>
 </head>
 <body>
@@ -128,6 +161,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
+    <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
     <button id="logout">Esci</button>
   </header>
@@ -164,6 +198,86 @@
 </div>
 
 <div id="ov"><div class="modal"><div id="modalBody"></div></div></div>
+
+<div id="nw"><div class="nw-box">
+  <div class="nw-hd">
+    <h2>Nuova ricetta base</h2>
+    <span class="code" id="nwCode"></span>
+    <button class="ck-x" id="nwClose" title="Chiudi">&times;</button>
+  </div>
+  <div class="nw-bd">
+
+    <div class="nw-ai">
+      <p class="hint" style="margin-bottom:10px"><b>Compilazione assistita.</b> Metti il nome del
+        piatto e, se vuoi, un paio di note: l'AI struttura la ricetta con le dosi negli ingredienti
+        <b>e dentro ogni passo</b>, come il resto del catalogo. Poi rivedi tutto a mano.</p>
+      <div class="row">
+        <label style="flex:2 1 260px">Nome del piatto
+          <input id="aiTitle" placeholder="es. Insalata di farro con zucchine e menta" /></label>
+        <label>Zona / origine
+          <input id="aiZona" placeholder="es. Toscana" /></label>
+        <label style="flex:0 0 110px">Porzioni
+          <input id="aiPorz" type="number" min="1" value="4" /></label>
+      </div>
+      <label style="display:block;font-size:.78rem;font-weight:700;color:var(--taupe);
+        text-transform:uppercase;letter-spacing:.06em">Note per l'AI (facoltative)
+        <textarea id="aiNote" rows="2" style="margin-top:5px"
+          placeholder="es. senza glutine, cottura in forno, versione light"></textarea></label>
+      <button class="btn" id="aiBtn" style="margin-top:10px">✨ Compila con AI</button>
+      <p class="msg" id="aiMsg"></p>
+    </div>
+
+    <h3>Scheda</h3>
+    <div class="row">
+      <label style="flex:2 1 280px">Titolo <input id="fTitle" /></label>
+      <label>Categoria <select id="fCat"></select></label>
+    </div>
+    <div class="row">
+      <label>Zona (cuisine) <input id="fCui" placeholder="es. Sicilia" /></label>
+      <label style="flex:0 0 110px">Porzioni <input id="fPorz" type="number" min="1" value="4" /></label>
+      <label style="flex:0 0 110px">Prep (min) <input id="fPrep" type="number" min="0" value="15" /></label>
+      <label style="flex:0 0 130px">Cottura (min) <input id="fCott" type="number" min="0" value="20" /></label>
+      <label style="flex:0 0 140px">Difficolta'
+        <select id="fDiff"><option>Facile</option><option>Media</option><option>Difficile</option></select></label>
+    </div>
+
+    <h3>Valori nutrizionali <span style="font-weight:400;color:var(--taupe);font-size:.85rem">&mdash; per porzione</span></h3>
+    <div class="row">
+      <label style="flex:1 1 100px">Kcal <input id="nKcal" type="number" step="0.1" /></label>
+      <label style="flex:1 1 100px">Proteine g <input id="nPro" type="number" step="0.1" /></label>
+      <label style="flex:1 1 100px">Carboidrati g <input id="nCar" type="number" step="0.1" /></label>
+      <label style="flex:1 1 100px">Grassi g <input id="nFat" type="number" step="0.1" /></label>
+      <label style="flex:1 1 100px">Fibre g <input id="nFib" type="number" step="0.1" /></label>
+    </div>
+
+    <h3>Ingredienti</h3>
+    <p class="hint">Uno per riga, <b>sempre con la dose</b> &mdash; es. <i>800 g di melanzane</i>.</p>
+    <textarea id="fIng" rows="9"></textarea>
+
+    <h3>Procedimento</h3>
+    <p class="hint">Un passo per riga. In ogni passo <b>ripeti la dose</b> dell'ingrediente che si usa
+      &mdash; es. <i>Friggi le 800 g di melanzane...</i> E' cosi' che funziona il passo passo.</p>
+    <textarea id="fSteps" rows="11"></textarea>
+
+    <h3>Foto del piatto</h3>
+    <p class="hint">Generata con lo stesso modello e lo stesso prompt delle 149 foto del catalogo,
+      cosi' la libreria resta omogenea. Se non convince, rigenera.</p>
+    <div class="nw-foto">
+      <img id="fImg" alt="" />
+      <div style="flex:1 1 220px">
+        <button class="btn btn-gh" id="fotoBtn">📷 Genera foto</button>
+        <p class="msg" id="fotoMsg"></p>
+      </div>
+    </div>
+
+  </div>
+  <div class="nw-ft">
+    <p class="msg" id="saveMsg" style="margin:0"></p>
+    <span class="sp"></span>
+    <button class="btn btn-gh" id="nwCancel">Annulla</button>
+    <button class="btn" id="saveBtn">Salva nel catalogo</button>
+  </div>
+</div></div>
 
 <div id="cook">
   <div class="ck-top">
@@ -577,6 +691,165 @@ document.addEventListener('keydown', function(e){
   else if(e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); cookGo(1); }
   else if(e.key === 'ArrowLeft') cookGo(-1);
 });
+
+/* ===================== NUOVA RICETTA BASE ===================== */
+
+var CATEGORIE = ['Antipasti e contorni','Primi di pasta','Zuppe e minestre','Riso e cereali',
+  'Legumi e secondi vegetali','Lievitati, pane e pizza','Dolci','Medio Oriente e Nord Africa',
+  'India e subcontinente','Asia orientale e Sud Est','Americhe','Europa','Africa subsahariana'];
+var CAT_IT = CATEGORIE.slice(0,7);   /* le italiane -> codice ITxxx, le altre WWxxx */
+var NW = { code:null, img:'', ingEn:'', nomi:{} };
+
+/* Nome "da comprare" ripulito da dose, unita' e preparazione.
+   Port di cleanIngredientName() dell'app: e' quello che finisce in
+   normalized_name e che il passo passo usa per agganciare le foto. */
+var RE_UNIT = /(^|[^a-zà-ù])(g|gr|grammi?|kg|ml|cl|dl|l|litr\w*|cucchiai\w*|cucchiain\w*|tazz\w*|pizzic\w*|spicch\w*|fogli\w*|foglie|ramett\w*|manciat\w*|fett\w*|fettin\w*|pezz\w*|confezion\w*|barattol\w*|lattin\w*|mazzett\w*|scatol\w*|bicchier\w*|circa|qualche)(?=[^a-zà-ù]|$)/g;
+var RE_PREP = /(^|[^a-zà-ù])(tritat\w*|tagliat\w*|affettat\w*|grattugiat\w*|sbucciat\w*|spellat\w*|pelat\w*|frullat\w*|schiacciat\w*|macinat\w*|sminuzzat\w*|spezzettat\w*|a cubetti|a dadini|a fette|a fettine|a rondelle|a listarelle|a julienne|a pezzi|a pezzetti|a tocchetti|in polvere|in scaglie|finemente|grossolanamente|sottil\w*|a piacere|ammollat\w*|bio)(?=[^a-zà-ù]|$)/g;
+var RE_STOP = /(^|[^a-zà-ù])(di|del|della|dello|dei|degli|delle|al|allo|alla|ai|agli|un|una|uno|lo|la|le|gli|il|i|e|ed|con|per|in)(?=[^a-zà-ù]|$)/g;
+function cleanIngName(raw){
+  var s = String(raw||'').toLowerCase();
+  var c = s.indexOf(','); if(c>0) s = s.substring(0,c);
+  s = s.replace(/['’]/g,' ').replace(/\([^)]*\)/g,' ');
+  s = s.replace(/[0-9]+([.,\/][0-9]+)?/g,' ').replace(/[½¼¾⅓⅔⅛]/g,' ');
+  s = s.replace(RE_PREP,'$1 ').replace(RE_UNIT,'$1 ').replace(RE_STOP,'$1 ');
+  s = s.replace(/[^a-zà-ù\s]/g,' ').replace(/\s+/g,' ').trim();
+  return s || String(raw||'').trim();
+}
+function lines(el){
+  return $(el).value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+}
+function msg(el, text, cls){ var e=$(el); e.textContent=text; e.className='msg '+(cls||''); }
+
+$('fCat').innerHTML = CATEGORIE.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+
+/* Il codice dipende dalla categoria (IT/WW), quindi si assegna al primo uso
+   reale: generazione foto o salvataggio. */
+async function ensureCode(){
+  if(NW.code) return NW.code;
+  var pref = CAT_IT.indexOf($('fCat').value) >= 0 ? 'IT' : 'WW';
+  var r = await sb.from('recipes').select('base_code').is('user_id',null)
+            .like('base_code', pref+'%').order('base_code',{ascending:false}).limit(1);
+  var last = (r.data && r.data[0]) ? r.data[0].base_code : (pref+'000');
+  var n = parseInt(String(last).replace(/\D/g,''),10) + 1;
+  NW.code = pref + ('00'+n).slice(-3);
+  $('nwCode').textContent = 'Codice ' + NW.code;
+  return NW.code;
+}
+
+$('newBtn').onclick = function(){
+  NW = { code:null, img:'', ingEn:'', nomi:{} };
+  ['aiTitle','aiZona','aiNote','fTitle','fCui','fIng','fSteps','nKcal','nPro','nCar','nFat','nFib']
+    .forEach(function(id){ $(id).value=''; });
+  $('aiPorz').value=4; $('fPorz').value=4; $('fPrep').value=15; $('fCott').value=20;
+  $('fCat').selectedIndex=0; $('fDiff').selectedIndex=0;
+  $('fImg').removeAttribute('src'); $('nwCode').textContent='';
+  msg('aiMsg',''); msg('fotoMsg',''); msg('saveMsg','');
+  $('nw').classList.add('on');
+};
+function nwClose(){ $('nw').classList.remove('on'); }
+$('nwClose').onclick = nwClose; $('nwCancel').onclick = nwClose;
+$('nw').onclick = function(e){ if(e.target.id==='nw') nwClose(); };
+
+/* --- compilazione assistita --- */
+$('aiBtn').onclick = async function(){
+  var t = $('aiTitle').value.trim();
+  if(!t){ msg('aiMsg','Serve almeno il nome del piatto.','ko'); return; }
+  $('aiBtn').disabled = true;
+  msg('aiMsg','Sto strutturando la ricetta... (20-40 secondi)','wait');
+  try{
+    var res = await sb.functions.invoke('ricetta-ai', { body:{ action:'assist', ricetta:{
+      titolo:t, zona:$('aiZona').value.trim(), porzioni:parseInt($('aiPorz').value,10)||4,
+      note:$('aiNote').value.trim() } } });
+    if(res.error) throw new Error(res.error.message || 'errore funzione');
+    var r = res.data.ricetta;
+    $('fTitle').value = r.titolo || t;
+    if(CATEGORIE.indexOf(r.categoria) >= 0) $('fCat').value = r.categoria;
+    $('fCui').value = r.zona || $('aiZona').value.trim();
+    $('fPorz').value = r.porzioni || 4;
+    $('fPrep').value = r.prep_min || 0; $('fCott').value = r.cottura_min || 0;
+    if(r.difficolta) $('fDiff').value = r.difficolta;
+    var n = r.nutrizione || {};
+    $('nKcal').value=n.kcal||''; $('nPro').value=n.protein_g||''; $('nCar').value=n.carbs_g||'';
+    $('nFat').value=n.fat_g||''; $('nFib').value=n.fiber_g||'';
+    NW.nomi = {};
+    $('fIng').value = (r.ingredienti||[]).map(function(i){
+      if(i.nome) NW.nomi[i.testo] = i.nome;
+      return i.testo;
+    }).join('\n');
+    $('fSteps').value = (r.passi||[]).join('\n');
+    NW.ingEn = r.ingredienti_en || '';
+    msg('aiMsg','Compilata. Ora rivedi tutto: quello che salvi finisce nel catalogo.','ok');
+  }catch(e){ msg('aiMsg','Errore: '+(e.message||e),'ko'); }
+  $('aiBtn').disabled = false;
+};
+
+/* --- foto --- */
+$('fotoBtn').onclick = async function(){
+  var t = $('fTitle').value.trim();
+  if(!t){ msg('fotoMsg','Serve il titolo della ricetta.','ko'); return; }
+  $('fotoBtn').disabled = true;
+  msg('fotoMsg','Genero la foto... (20-60 secondi)','wait');
+  try{
+    var code = await ensureCode();
+    var res = await sb.functions.invoke('ricetta-ai', { body:{ action:'foto',
+      titolo:t, categoria:$('fCat').value, zona:$('fCui').value.trim(),
+      ingredienti_en: NW.ingEn || 'vegetables', base_code: code } });
+    if(res.error) throw new Error(res.error.message || 'errore funzione');
+    NW.img = res.data.image_url;
+    $('fImg').src = NW.img;
+    msg('fotoMsg','Fatta. Se non convince, premi di nuovo: ogni scatto e\' diverso.','ok');
+  }catch(e){ msg('fotoMsg','Errore: '+(e.message||e),'ko'); }
+  $('fotoBtn').disabled = false;
+};
+
+/* --- salvataggio --- */
+$('saveBtn').onclick = async function(){
+  var title = $('fTitle').value.trim();
+  var ing = lines('fIng'), steps = lines('fSteps');
+  if(!title){ msg('saveMsg','Manca il titolo.','ko'); return; }
+  if(!ing.length){ msg('saveMsg','Mancano gli ingredienti.','ko'); return; }
+  if(!steps.length){ msg('saveMsg','Manca il procedimento.','ko'); return; }
+  var senzaDose = ing.filter(function(x){ return !/[0-9]/.test(x); }).length;
+  if(senzaDose > 0 && !confirm(senzaDose+' ingredienti sono senza dose. Salvo lo stesso?')) return;
+  var passiSenzaDose = steps.filter(function(x){ return !/[0-9]/.test(x); }).length;
+  if(passiSenzaDose > steps.length/2 &&
+     !confirm(passiSenzaDose+' passi su '+steps.length+' non citano dosi: il passo passo perde le foto degli ingredienti. Salvo lo stesso?')) return;
+  if(!NW.img && !confirm('Nessuna foto generata: la ricetta comparira\' senza immagine. Salvo lo stesso?')) return;
+
+  $('saveBtn').disabled = true;
+  msg('saveMsg','Salvo...','wait');
+  try{
+    var code = await ensureCode();
+    var num = function(id){ var v=parseFloat($(id).value); return isNaN(v)?null:v; };
+    var ins = await sb.from('recipes').insert({
+      user_id:null, base_code:code, title:title, image_url:NW.img || null,
+      category:$('fCat').value, cuisine:$('fCui').value.trim() || null,
+      difficulty:$('fDiff').value, servings:parseInt($('fPorz').value,10)||1,
+      prep_minutes:parseInt($('fPrep').value,10)||0, cook_minutes:parseInt($('fCott').value,10)||0,
+      diet_tags:['vegan'], source_type:'base',
+      nutrition:{ kcal:num('nKcal'), protein_g:num('nPro'), carbs_g:num('nCar'),
+                  fat_g:num('nFat'), fiber_g:num('nFib') }
+    }).select('id').single();
+    if(ins.error) throw new Error(ins.error.message);
+    var rid = ins.data.id;
+
+    var qi = await sb.from('ingredients').insert(ing.map(function(t,k){
+      return { recipe_id:rid, user_id:null, position:k, raw_text:t,
+               normalized_name: NW.nomi[t] || cleanIngName(t) };
+    }));
+    if(qi.error) throw new Error('ingredienti: '+qi.error.message);
+
+    var qs = await sb.from('steps').insert(steps.map(function(t,k){
+      return { recipe_id:rid, user_id:null, position:k, text:t };
+    }));
+    if(qs.error) throw new Error('passi: '+qs.error.message);
+
+    msg('saveMsg','Salvata come '+code+'.','ok');
+    await loadRecipes();
+    setTimeout(function(){ nwClose(); openDetail(rid); }, 700);
+  }catch(e){ msg('saveMsg','Errore: '+(e.message||e),'ko'); }
+  $('saveBtn').disabled = false;
+};
 
 boot().catch(function(e){ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
 </script>
