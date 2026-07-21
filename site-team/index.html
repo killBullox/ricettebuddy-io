@@ -68,6 +68,44 @@
   .ings li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--beet);flex:none}
   .steps{margin:0;padding-left:22px}.steps li{margin-bottom:9px;line-height:1.5}
   .hidden{display:none !important}
+
+  /* ---- passo passo (cook mode), come nell'app ---- */
+  .btn-cook{background:var(--aub);color:#fff;border:none;border-radius:11px;padding:11px 18px;
+    font-weight:700;cursor:pointer;font-size:.95rem;font-family:inherit;display:inline-flex;align-items:center;gap:8px}
+  .btn-cook:hover{background:var(--aub2)}
+  #cook{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;color:#fff;
+    background:radial-gradient(120% 100% at 85% 0%,var(--aub2),var(--aub) 62%)}
+  #cook.on{display:flex}
+  .ck-top{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.13);flex:none}
+  .ck-top .tt{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ck-top .ct{margin-left:auto;font-size:.85rem;opacity:.75;font-variant-numeric:tabular-nums;flex:none}
+  .ck-x{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:9px;
+    width:34px;height:34px;cursor:pointer;font-size:1.1rem;flex:none}
+  .ck-x:hover{background:rgba(255,255,255,.14)}
+  .ck-bar{height:4px;background:rgba(255,255,255,.16);flex:none}
+  .ck-bar i{display:block;height:100%;background:var(--beet-br);transition:width .25s}
+  .ck-body{flex:1;overflow:auto;display:flex;justify-content:center;padding:34px 22px}
+  .ck-in{width:100%;max-width:720px}
+  .ck-n{font-family:'Fraunces',serif;font-size:.82rem;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--beet-br);margin-bottom:12px}
+  .ck-tx{font-size:1.45rem;line-height:1.5;font-weight:500}
+  .ck-lb{font-size:.72rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+    opacity:.62;margin:34px 0 14px}
+  .ck-ing{display:flex;gap:16px;flex-wrap:wrap}
+  .ck-ing figure{margin:0;width:84px;text-align:center}
+  .ck-ing .av{width:84px;height:84px;border-radius:22px;object-fit:cover;display:flex;
+    align-items:center;justify-content:center;font-size:40px;background:rgba(255,255,255,.11);overflow:hidden}
+  .ck-ing figcaption{font-size:.74rem;line-height:1.2;font-weight:600;margin-top:7px;opacity:.9;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ck-nav{display:flex;gap:12px;align-items:center;padding:16px 22px 22px;flex:none;
+    border-top:1px solid rgba(255,255,255,.13);justify-content:center}
+  .ck-nav button{border-radius:12px;padding:13px 26px;font-weight:700;font-size:1rem;
+    font-family:inherit;cursor:pointer;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff}
+  .ck-nav button:hover:not(:disabled){background:rgba(255,255,255,.14)}
+  .ck-nav button:disabled{opacity:.3;cursor:default}
+  .ck-nav #ckNext{background:var(--beet);border-color:var(--beet)}
+  .ck-nav #ckNext:hover{background:var(--beet-br)}
+  @media(max-width:600px){ .ck-tx{font-size:1.2rem} .ck-body{padding:24px 18px} }
 </style>
 </head>
 <body>
@@ -126,6 +164,27 @@
 </div>
 
 <div id="ov"><div class="modal"><div id="modalBody"></div></div></div>
+
+<div id="cook">
+  <div class="ck-top">
+    <button class="ck-x" id="ckClose" title="Esci (Esc)">&times;</button>
+    <span class="tt" id="ckTitle"></span>
+    <span class="ct" id="ckCount"></span>
+  </div>
+  <div class="ck-bar"><i id="ckBar" style="width:0"></i></div>
+  <div class="ck-body"><div class="ck-in">
+    <div class="ck-n" id="ckNum"></div>
+    <div class="ck-tx" id="ckText"></div>
+    <div id="ckIngWrap" class="hidden">
+      <div class="ck-lb">Ingredienti di questo passo</div>
+      <div class="ck-ing" id="ckIng"></div>
+    </div>
+  </div></div>
+  <div class="ck-nav">
+    <button id="ckPrev">&larr; Indietro</button>
+    <button id="ckNext">Avanti &rarr;</button>
+  </div>
+</div>
 
 <script src="supabase.js"></script>
 <script>
@@ -271,7 +330,7 @@ async function openDetail(id){
   var r=null; for(var i=0;i<RECIPES.length;i++){ if(RECIPES[i].id===id){ r=RECIPES[i]; break; } }
   if(!r) return;
   var n = r.nutrition || {};
-  var iq = await sb.from('ingredients').select('raw_text,position').eq('recipe_id',id).order('position');
+  var iq = await sb.from('ingredients').select('raw_text,normalized_name,position').eq('recipe_id',id).order('position');
   var sq = await sb.from('steps').select('text,position').eq('recipe_id',id).order('position');
   var ings = (iq && iq.data) ? iq.data : [];
   var steps = (sq && sq.data) ? sq.data : [];
@@ -295,11 +354,229 @@ async function openDetail(id){
     + '<div class="totrec">Totale ricetta ('+sv+' porz.): '+Math.round((n.kcal||0)*sv)+' kcal &middot; P '+Math.round((n.protein_g||0)*sv)+' &middot; C '+Math.round((n.carbs_g||0)*sv)+' &middot; G '+Math.round((n.fat_g||0)*sv)+' g</div>'
     + '</div></div>'
     + '<h3>Ingredienti</h3><ul class="ings">'+ingHtml+'</ul>'
-    + '<h3>Procedimento</h3><ol class="steps">'+stepHtml+'</ol></div>';
+    + '<h3>Procedimento</h3><ol class="steps">'+stepHtml+'</ol>'
+    + (steps.length ? '<div style="margin-top:18px"><button class="btn-cook" id="cookBtn">▶ Cucina passo passo</button></div>' : '')
+    + '</div>';
   $('ov').classList.add('on');
   $('closeM').onclick = function(){ $('ov').classList.remove('on'); };
+  if($('cookBtn')){
+    $('cookBtn').onclick = function(){
+      cookOpen(r.title, steps.map(function(x){ return x.text; }), ings);
+    };
+  }
 }
 $('ov').onclick = function(e){ if(e.target.id==='ov') $('ov').classList.remove('on'); };
+
+/* ================= PASSO PASSO (cook mode) — stessa logica dell'app ================= */
+
+/* Emoji ingrediente: port di ingredientEmoji() dell'app. Match a parola intera:
+   le FORME/derivati vincono sull'origine ("olio di soia" e' OLIO, non soia). */
+function ingEmoji(raw){
+  var s = String(raw||'').toLowerCase();
+  function w(kws){
+    for(var i=0;i<kws.length;i++){ if(new RegExp('(^|[^a-zà-ù])'+kws[i]).test(s)) return true; }
+    return false;
+  }
+  if(w(['olio','oliva','olive','evo'])) return '🫒';
+  if(w(['burro','margarina'])) return '🧈';
+  if(w(['latte','panna','yogurt','bevanda vegetale','bevanda di'])) return '🥛';
+  if(w(['sale'])) return '🧂';
+  if(w(['zucchero','dolcificante'])) return '🍬';
+  if(w(['miele','sciroppo','agave','acero','malto'])) return '🍯';
+  if(w(['aceto','vino','birra'])) return '🍷';
+  if(w(['brodo','acqua'])) return '💧';
+  if(w(['cioccolat','cacao'])) return '🍫';
+  if(w(['farina','semola'])) return '🌾';
+  if(w(['spaghett','pasta','penne','fusilli','lasagn','tagliatell','gnocch','maccheron',
+        'rigatoni','noodle','tortellin','ravioli','bucatini','orecchiette'])) return '🍝';
+  if(w(['riso','risotto','basmati'])) return '🍚';
+  if(w(['pane','pangrattato','crostini','baguette','focaccia','toast'])) return '🍞';
+  if(w(['avena','couscous','quinoa','bulgur','farro','orzo','cereali','fiocchi'])) return '🌾';
+  if(w(['peperoncin'])) return '🌶️';
+  if(w(['peperon'])) return '🫑';
+  if(w(['pomodor','passata','pelati','concentrato di pom'])) return '🍅';
+  if(w(['aglio'])) return '🧄';
+  if(w(['cipoll','scalogn','porro','porri'])) return '🧅';
+  if(w(['carot'])) return '🥕';
+  if(w(['patat'])) return '🥔';
+  if(w(['zucchin','cetriol'])) return '🥒';
+  if(w(['melanzan'])) return '🍆';
+  if(w(['fungh','porcini','champignon','shiitake','chiodini'])) return '🍄';
+  if(w(['basilico','prezzemolo','rosmarino','timo','menta','salvia','coriandolo',
+        'origano','erba','erbe','aneto','maggiorana','alloro'])) return '🌿';
+  if(w(['insalat','lattuga','spinac','rucola','cavol','bietol','verza','radicchio',
+        'catalogna','cicoria','scarola','verdure'])) return '🥬';
+  if(w(['mais'])) return '🌽';
+  if(w(['avocado'])) return '🥑';
+  if(w(['limon','lime','arance','arancia'])) return '🍋';
+  if(w(['mela','mele'])) return '🍎';
+  if(w(['banan'])) return '🍌';
+  if(w(['fragol'])) return '🍓';
+  if(w(['mirtill','lampon','more','frutti di bosco','bacche','ribes','uvetta'])) return '🫐';
+  if(w(['cocco'])) return '🥥';
+  if(w(['ceci','fagiol','lenticch','legumi','piselli','edamame','cannellini',
+        'borlotti','soia','fave'])) return '🫘';
+  if(w(['arachid'])) return '🥜';
+  if(w(['zucca'])) return '🎃';
+  return '🥣';
+}
+
+/* Foto realistica ingrediente (libreria Spoonacular, come l'app).
+   Se lo slug non esiste l'immagine fallisce e si mostra l'emoji. */
+var SLUG = [
+  [['olio extraverg','olio evo','olio di oliva','olio d\'oliva','olio extra verg'],'olive-oil'],
+  [['olio di semi','olio di arachide','olio di girasole','olio di frittura','olio di mais'],'vegetable-oil'],
+  [['olio di sesamo'],'sesame-oil'], [['olio di cocco'],'coconut-oil'],
+  [['sale'],'salt'], [['pepe'],'black-pepper'], [['aglio'],'garlic'],
+  [['cipolla ross','cipolle ross'],'red-onion'], [['cipoll'],'onion'], [['scalogn'],'shallots'],
+  [['porro','porri'],'leek'], [['acqua'],'water'], [['brodo'],'broth'],
+  [['passata di pomodoro'],'tomato-sauce'], [['concentrato di pom'],'tomato-paste'],
+  [['pomodori pelati'],'canned-tomatoes'], [['pomodorini'],'cherry-tomatoes'], [['pomodor'],'tomato'],
+  [['basilico'],'basil'], [['prezzemolo'],'parsley'], [['rosmarino'],'rosemary'],
+  [['salvia'],'sage'], [['menta'],'mint'], [['coriandolo fresc'],'cilantro'],
+  [['coriandolo'],'ground-coriander'], [['origano'],'oregano'], [['timo'],'thyme'],
+  [['alloro'],'bay-leaves'], [['aneto'],'dill'], [['erba cipollina'],'chives'],
+  [['melanzan'],'eggplant'], [['zucchin'],'zucchini'], [['cetriol'],'cucumber'],
+  [['patat'],'potatoes'], [['carot'],'carrots'], [['sedano'],'celery'],
+  [['zucca'],'pumpkin'], [['cavolfiore'],'cauliflower'], [['broccoli','cime di rapa'],'broccoli'],
+  [['cavolo ner'],'kale'], [['verza','cavolo'],'cabbage'], [['spinac'],'spinach'],
+  [['cicoria','scarola','catalogna','bietol'],'chicory'], [['finocchi'],'fennel'],
+  [['ravanell'],'radish'], [['fagiolini'],'green-beans'], [['piselli'],'peas'],
+  [['mais'],'corn'], [['avocado'],'avocado'], [['barbabietol'],'beets'],
+  [['peperoncino in polvere','peperoncino secco','peperoncino rosso','peperoncin'],'chili-pepper'],
+  [['peperone ross','peperoni ross'],'red-pepper'], [['peperon'],'bell-pepper'],
+  [['funghi shiitake','shiitake'],'shiitake-mushrooms'], [['porcini'],'porcini-mushrooms'],
+  [['fungh','champignon'],'mushrooms'],
+  [['ceci'],'chickpeas'], [['fagioli ner'],'black-beans'], [['fagioli ross'],'kidney-beans'],
+  [['cannellini','fagioli bianc'],'white-beans'], [['fagiol'],'beans'],
+  [['lenticchie ross'],'red-lentils'], [['lenticch'],'lentils'], [['fave'],'fava-beans'],
+  [['germogli di soia','germogli'],'bean-sprouts'], [['bevanda di soia','latte di soia'],'soy-milk'],
+  [['latte di cocco'],'coconut-milk'], [['salsa di soia'],'soy-sauce'], [['miso'],'miso'],
+  [['tofu'],'tofu'], [['tempeh'],'tempeh'], [['seitan'],'seitan'],
+  [['lievito alimentare'],'nutritional-yeast'], [['lievito'],'yeast'],
+  [['bicarbonato'],'baking-soda'], [['farina di ceci'],'chickpea-flour'],
+  [['farina di mais','polenta'],'cornmeal'], [['semola'],'semolina'], [['farina'],'flour'],
+  [['pangrattato'],'breadcrumbs'], [['pane','crostini'],'bread'],
+  [['riso basmati'],'basmati-rice'], [['riso carnaroli','riso arborio','riso'],'arborio-rice'],
+  [['spaghetti'],'spaghetti'], [['penne'],'penne'], [['bucatini','orecchiette','pasta'],'pasta'],
+  [['couscous'],'couscous'], [['quinoa'],'quinoa'], [['bulgur'],'bulgur'],
+  [['farro','orzo'],'barley'], [['avena','fiocchi'],'rolled-oats'],
+  [['zucchero di palma','zucchero'],'sugar'], [['sciroppo d\'acero','acero'],'maple-syrup'],
+  [['aceto di riso'],'rice-vinegar'], [['aceto balsamico'],'balsamic-vinegar'], [['aceto'],'vinegar'],
+  [['vino bianco'],'white-wine'], [['vino ross'],'red-wine'],
+  [['succo di limone'],'lemon-juice'], [['scorza di limone','limon'],'lemon'],
+  [['succo di lime','lime'],'lime'], [['arance','arancia'],'orange'],
+  [['capperi'],'capers'], [['olive'],'olives'], [['uvetta'],'raisins'],
+  [['pinoli'],'pine-nuts'], [['mandorle'],'almonds'], [['anacardi'],'cashews'],
+  [['noci'],'walnuts'], [['nocciole'],'hazelnuts'], [['pistacchi'],'pistachios'],
+  [['tahina','tahini'],'tahini'], [['semi di sesamo'],'sesame-seeds'],
+  [['semi di senape','senape'],'mustard-seeds'], [['semi di cumino','cumino'],'cumin'],
+  [['curcuma'],'turmeric'], [['zenzero'],'ginger'], [['cannella'],'cinnamon'],
+  [['noce moscata'],'nutmeg'], [['paprika'],'smoked-paprika'], [['zafferano'],'saffron'],
+  [['garam masala'],'garam-masala'], [['curry'],'curry-powder'], [['chiodi di garofano'],'cloves'],
+  [['cardamomo'],'cardamom'], [['cacao'],'cocoa-powder'], [['alga nori','nori'],'nori'],
+  [['kombu','wakame','alga'],'seaweed'], [['marmellata'],'jam'], [['tamarindo'],'tamarind'],
+  [['rucola'],'arugula'], [['radicchio'],'radicchio'], [['carciof'],'artichokes'],
+  [['asparagi'],'asparagus'], [['friarielli','tenerumi','puntarelle','cardi'],'broccoli-rabe'],
+  [['arachid'],'peanuts'], [['mele','mela'],'apple'], [['albicocche'],'apricot'],
+  [['cavatelli','trofie','maccheroni','lasagne','noodles','tortellin','ravioli'],'pasta'],
+  [['cous cous'],'couscous'], [['agave'],'agave-nectar'], [['cioccolato'],'dark-chocolate'],
+  [['yogurt'],'yogurt'], [['bevanda di mandorla','latte di mandorla'],'almond-milk'],
+  [['cocco'],'coconut'], [['mentuccia'],'mint'], [['verdure'],'mixed-vegetables'],
+  [['olio vegetale','olio'],'vegetable-oil']
+];
+function ingSlug(name){
+  var s = String(name||'').toLowerCase();
+  for(var i=0;i<SLUG.length;i++){
+    var kws = SLUG[i][0];
+    for(var k=0;k<kws.length;k++){ if(s.indexOf(kws[k])>=0) return SLUG[i][1]; }
+  }
+  return null;
+}
+
+/* Ingredienti citati in un passo: port di StepIngredients.matchIn() dell'app. */
+var CK_STOP = ['di','del','della','dello','con','per','una','uno','the','fresco','fresca',
+  'freschi','fresche','secco','secca','nero','nera','neri','nere','rosso','rossa','rossi',
+  'rosse','bianco','bianca','tritato','tritata','cotto','cotta','cotti','grattugiato',
+  'grattugiata','extra','vergine','tipo','qb'];
+function matchIn(text, all){
+  var t = String(text||'').toLowerCase(), out = [], seen = {};
+  for(var i=0;i<all.length;i++){
+    var name = String(all[i].normalized_name || all[i].raw_text || '').toLowerCase().trim();
+    if(!name || seen[name]) continue;
+    var parts = name.split(/[^a-zàèéìòù]+/), tokens = [];
+    for(var p=0;p<parts.length;p++){
+      if(parts[p].length>=3 && CK_STOP.indexOf(parts[p])<0) tokens.push(parts[p]);
+    }
+    if(!tokens.length) continue;
+    var matched = false;
+    for(var q2=0;q2<tokens.length;q2++){
+      var w2 = tokens[q2];
+      /* stem: toglie l'ultima vocale -> pomodoro/pomodori, cipolla/cipolle */
+      var stem = w2.length>=5 ? w2.substring(0,w2.length-1) : w2;
+      if(new RegExp('\\b'+stem.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\w*','i').test(t)){ matched=true; break; }
+    }
+    if(matched){ out.push(all[i]); seen[name]=1; }
+  }
+  return out;
+}
+
+var CK = { steps:[], ings:[], i:0, title:'' };
+function cookOpen(title, steps, ings){
+  if(!steps || !steps.length){ alert('Questa ricetta non ha passi.'); return; }
+  CK.title = title; CK.steps = steps; CK.ings = ings || []; CK.i = 0;
+  $('ckTitle').textContent = title;
+  $('cook').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  cookRender();
+}
+function cookClose(){ $('cook').classList.remove('on'); document.body.style.overflow = ''; }
+function cookGo(d){
+  var n = CK.i + d;
+  if(n < 0 || n >= CK.steps.length) return;
+  CK.i = n; cookRender(); $('cook').querySelector('.ck-body').scrollTop = 0;
+}
+function cookRender(){
+  var n = CK.steps.length, txt = CK.steps[CK.i];
+  $('ckCount').textContent = 'Passo ' + (CK.i+1) + ' di ' + n;
+  $('ckNum').textContent = 'Passo ' + (CK.i+1);
+  $('ckText').textContent = txt;
+  $('ckBar').style.width = Math.round((CK.i+1)/n*100) + '%';
+  $('ckPrev').disabled = (CK.i === 0);
+  $('ckNext').textContent = (CK.i === n-1) ? 'Fine ✓' : 'Avanti →';
+
+  var m = matchIn(txt, CK.ings);
+  if(!m.length){ $('ckIngWrap').classList.add('hidden'); $('ckIng').innerHTML=''; return; }
+  $('ckIngWrap').classList.remove('hidden');
+  $('ckIng').innerHTML = m.map(function(x){
+    var label = x.normalized_name || x.raw_text;
+    var em = ingEmoji(label), slug = ingSlug(label);
+    var av = slug
+      ? '<img class="av" alt="" src="https://img.spoonacular.com/ingredients_250x250/'+slug+'.jpg"'
+        + ' data-em="'+esc(em)+'" data-slug="'+slug+'" onerror="ingFallback(this)">'
+      : '<div class="av">'+em+'</div>';
+    return '<figure>'+av+'<figcaption>'+esc(label)+'</figcaption></figure>';
+  }).join('');
+}
+/* .jpg -> .png -> emoji (stessa cascata dell'app: foto, poi fallback) */
+window.ingFallback = function(img){
+  if(img.src.indexOf('.jpg') > 0){
+    img.src = 'https://img.spoonacular.com/ingredients_250x250/'+img.getAttribute('data-slug')+'.png';
+    return;
+  }
+  var d = document.createElement('div');
+  d.className = 'av'; d.textContent = img.getAttribute('data-em') || '🥣';
+  img.parentNode.replaceChild(d, img);
+};
+$('ckClose').onclick = cookClose;
+$('ckPrev').onclick = function(){ cookGo(-1); };
+$('ckNext').onclick = function(){ if(CK.i === CK.steps.length-1) cookClose(); else cookGo(1); };
+document.addEventListener('keydown', function(e){
+  if(!$('cook').classList.contains('on')) return;
+  if(e.key === 'Escape') cookClose();
+  else if(e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); cookGo(1); }
+  else if(e.key === 'ArrowLeft') cookGo(-1);
+});
 
 boot().catch(function(e){ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
 </script>
