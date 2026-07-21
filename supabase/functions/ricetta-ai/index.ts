@@ -168,7 +168,9 @@ async function assistRicetta(input: Record<string, unknown>) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-5',
-      max_tokens: 3000,
+      // Il modello emette blocchi di thinking prima del testo: con un budget
+      // stretto il JSON arriva troncato e la richiesta fallisce a intermittenza.
+      max_tokens: 12000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -176,11 +178,20 @@ async function assistRicetta(input: Record<string, unknown>) {
   const d = await r.json();
   // content[0] puo' essere un blocco "thinking": va preso il primo blocco di testo.
   const block = (d.content || []).find((b: { type: string }) => b.type === 'text');
-  if (!block) throw new Error('Risposta AI senza testo');
+  if (!block) {
+    throw new Error(`Risposta AI senza testo (stop: ${d.stop_reason})`);
+  }
   const txt = block.text as string;
   const a = txt.indexOf('{'), b = txt.lastIndexOf('}');
   if (a < 0 || b < a) throw new Error(`Risposta AI non in JSON: ${txt.slice(0, 200)}`);
-  return JSON.parse(txt.slice(a, b + 1));
+  try {
+    return JSON.parse(txt.slice(a, b + 1));
+  } catch (_) {
+    // Tipicamente: risposta troncata perche' e' finito max_tokens.
+    throw new Error(
+      `JSON incompleto dall'AI (stop: ${d.stop_reason}). Riprova.`,
+    );
+  }
 }
 
 // ------------------------------------------------------------------- handler
@@ -236,6 +247,7 @@ Deno.serve(async (req) => {
 
     return json({ error: 'action sconosciuta' }, 400);
   } catch (e) {
+    console.error('ricetta-ai', body.action, e);
     return json({ error: String((e as Error).message || e) }, 500);
   }
 });

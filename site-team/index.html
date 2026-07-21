@@ -722,6 +722,29 @@ function msg(el, text, cls){ var e=$(el); e.textContent=text; e.className='msg '
 
 $('fCat').innerHTML = CATEGORIE.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
 
+/* supabase-js riporta solo "non-2xx status code" e si tiene il corpo della
+   risposta: qui lo apriamo, cosi' in pagina si legge l'errore vero. */
+async function fnCall(body){
+  await sb.auth.getSession();          /* rinnova il token se sta per scadere */
+  var res = await sb.functions.invoke('ricetta-ai', { body: body });
+  if(res.error){
+    var det = res.error.message || 'errore sconosciuto';
+    try{
+      var ctx = res.error.context;
+      if(ctx && typeof ctx.json === 'function'){
+        var j = await ctx.json();
+        if(j && j.error) det = j.error;
+      } else if(ctx && typeof ctx.text === 'function'){
+        det = (await ctx.text()) || det;
+      }
+      if(ctx && ctx.status) det = '['+ctx.status+'] '+det;
+    }catch(e){ /* corpo non leggibile: resta il messaggio generico */ }
+    console.error('ricetta-ai:', res.error, det);
+    throw new Error(det);
+  }
+  return res.data;
+}
+
 /* Il codice dipende dalla categoria (IT/WW), quindi si assegna al primo uso
    reale: generazione foto o salvataggio. */
 async function ensureCode(){
@@ -757,11 +780,10 @@ $('aiBtn').onclick = async function(){
   $('aiBtn').disabled = true;
   msg('aiMsg','Sto strutturando la ricetta... (20-40 secondi)','wait');
   try{
-    var res = await sb.functions.invoke('ricetta-ai', { body:{ action:'assist', ricetta:{
+    var data = await fnCall({ action:'assist', ricetta:{
       titolo:t, zona:$('aiZona').value.trim(), porzioni:parseInt($('aiPorz').value,10)||4,
-      note:$('aiNote').value.trim() } } });
-    if(res.error) throw new Error(res.error.message || 'errore funzione');
-    var r = res.data.ricetta;
+      note:$('aiNote').value.trim() } });
+    var r = data.ricetta;
     $('fTitle').value = r.titolo || t;
     if(CATEGORIE.indexOf(r.categoria) >= 0) $('fCat').value = r.categoria;
     $('fCui').value = r.zona || $('aiZona').value.trim();
@@ -791,11 +813,10 @@ $('fotoBtn').onclick = async function(){
   msg('fotoMsg','Genero la foto... (20-60 secondi)','wait');
   try{
     var code = await ensureCode();
-    var res = await sb.functions.invoke('ricetta-ai', { body:{ action:'foto',
+    var data = await fnCall({ action:'foto',
       titolo:t, categoria:$('fCat').value, zona:$('fCui').value.trim(),
-      ingredienti_en: NW.ingEn || 'vegetables', base_code: code } });
-    if(res.error) throw new Error(res.error.message || 'errore funzione');
-    NW.img = res.data.image_url;
+      ingredienti_en: NW.ingEn || 'vegetables', base_code: code });
+    NW.img = data.image_url;
     $('fImg').src = NW.img;
     msg('fotoMsg','Fatta. Se non convince, premi di nuovo: ogni scatto e\' diverso.','ok');
   }catch(e){ msg('fotoMsg','Errore: '+(e.message||e),'ko'); }
