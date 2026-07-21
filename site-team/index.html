@@ -830,8 +830,12 @@ $('saveBtn').onclick = async function(){
   if(!title){ msg('saveMsg','Manca il titolo.','ko'); return; }
   if(!ing.length){ msg('saveMsg','Mancano gli ingredienti.','ko'); return; }
   if(!steps.length){ msg('saveMsg','Manca il procedimento.','ko'); return; }
-  var senzaDose = ing.filter(function(x){ return !/[0-9]/.test(x); }).length;
-  if(senzaDose > 0 && !confirm(senzaDose+' ingredienti sono senza dose. Salvo lo stesso?')) return;
+  /* "q.b.", "a piacere", "un pizzico" sono dosi legittime: non sono errori. */
+  var QB = /[0-9]|q\.?\s?b\.?|quanto basta|a piacere|pizzic|a occhio/i;
+  var senzaDose = ing.filter(function(x){ return !QB.test(x); });
+  if(senzaDose.length && !confirm(
+      'Questi ingredienti non hanno la dose:\n\n  ' + senzaDose.join('\n  ') +
+      '\n\nSalvo lo stesso?')) return;
   var passiSenzaDose = steps.filter(function(x){ return !/[0-9]/.test(x); }).length;
   if(passiSenzaDose > steps.length/2 &&
      !confirm(passiSenzaDose+' passi su '+steps.length+' non citano dosi: il passo passo perde le foto degli ingredienti. Salvo lo stesso?')) return;
