@@ -14,7 +14,10 @@ const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  // supabase-js manda anche apikey e x-client-info: se non sono qui il preflight
+  // fallisce e in pagina si vede solo "Failed to send a request to the Edge Function".
+  'Access-Control-Allow-Headers':
+    'authorization, content-type, apikey, x-client-info, x-supabase-api-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const json = (body: unknown, status = 200) =>
