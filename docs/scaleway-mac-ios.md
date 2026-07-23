@@ -48,8 +48,16 @@ open ios/Runner.xcworkspace
 
 ## 5. Compila e carica su TestFlight
 ```bash
-flutter build ipa --release --dart-define=API_BASE=https://IL-TUO-BACKEND
+flutter build ipa --release \
+  --dart-define=API_BASE=http://185.218.126.96:8090 \
+  --dart-define=SUPABASE_URL=https://zffcpwtijxbbshrpsxqq.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR
 ```
+> ⚠️ **Le due define SUPABASE sono obbligatorie.** Senza, l'app parte in modalità
+> demo (dati finti, nessun login, niente piani del nutrizionista). La chiave è la
+> *publishable* (pubblica, sicura). Se usi uno script di ship (`ship.sh`/fastlane),
+> aggiungi lì le stesse due define accanto ad `API_BASE`.
+
 L'IPA esce in `build/ios/ipa/`. Caricalo su App Store Connect con **Transporter**
 (app gratis dal Mac App Store) oppure da **Xcode → Organizer → Distribute App →
 App Store Connect → Upload**.
