@@ -211,7 +211,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.23-1</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.23-2</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
@@ -574,8 +574,11 @@ async function openDetail(id){
     + '</div></div>'
     + '<h3>Ingredienti</h3><ul class="ings">'+ingHtml+'</ul>'
     + '<h3>Procedimento</h3><ol class="steps">'+stepHtml+'</ol>'
-    + (steps.length ? '<div style="margin-top:18px"><button class="btn-cook" id="cookBtn">▶ Cucina passo passo</button></div>' : '')
-    + '</div>';
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">'
+    + (steps.length ? '<button class="btn-cook" id="cookBtn">▶ Cucina passo passo</button>' : '')
+    + '<button class="btn btn-gh" id="editBtn">✎ Modifica</button>'
+    + '<button class="btn" id="delBtn" style="background:#b00020">🗑 Elimina</button>'
+    + '</div></div>';
   $('ov').classList.add('on');
   $('closeM').onclick = function(){ $('ov').classList.remove('on'); };
   if($('cookBtn')){
@@ -583,6 +586,8 @@ async function openDetail(id){
       cookOpen(r.title, steps.map(function(x){ return x.text; }), ings);
     };
   }
+  $('editBtn').onclick = function(){ $('ov').classList.remove('on'); editRecipe(r, ings, steps); };
+  $('delBtn').onclick = function(){ deleteRecipe(r); };
 }
 $('ov').onclick = function(e){ if(e.target.id==='ov') $('ov').classList.remove('on'); };
 
@@ -864,8 +869,35 @@ async function ensureCode(){
   return NW.code;
 }
 
+/* --- modifica / elimina (riusano il form nuova ricetta) --- */
+function editRecipe(r, ings, steps){
+  NW = { code:r.base_code, img:r.image_url || '', ingEn:'', nomi:{}, editId:r.id };
+  $('nwCode').textContent = 'Modifica ' + (r.base_code||'');
+  msg('aiMsg',''); msg('fotoMsg',''); msg('saveMsg','');
+  $('aiTitle').value=''; $('aiZona').value=''; $('aiNote').value=''; $('aiPorz').value=r.servings||4;
+  $('fTitle').value = r.title || '';
+  if(CATEGORIE.indexOf(r.category) >= 0) $('fCat').value = r.category; else $('fCat').selectedIndex=0;
+  $('fCui').value = r.cuisine || '';
+  $('fPorz').value = r.servings||4; $('fPrep').value = r.prep_minutes||0; $('fCott').value = r.cook_minutes||0;
+  var di = ['Facile','Media','Difficile'].indexOf(r.difficulty); $('fDiff').selectedIndex = di<0?0:di;
+  var n = r.nutrition || {};
+  $('nKcal').value=n.kcal||''; $('nPro').value=n.protein_g||''; $('nCar').value=n.carbs_g||'';
+  $('nFat').value=n.fat_g||''; $('nFib').value=n.fiber_g||'';
+  $('fIng').value = ings.map(function(i){ if(i.normalized_name) NW.nomi[i.raw_text]=i.normalized_name; return i.raw_text; }).join('\n');
+  $('fSteps').value = steps.map(function(s){ return s.text; }).join('\n');
+  if(NW.img) $('fImg').src = NW.img; else $('fImg').removeAttribute('src');
+  $('nw').classList.add('on');
+}
+async function deleteRecipe(r){
+  if(!confirm('Eliminare definitivamente "'+r.title+'" ('+(r.base_code||'')+') dal catalogo?\nSpariscono ingredienti e passi.')) return;
+  var q = await sb.from('recipes').delete().eq('id', r.id);
+  if(q.error){ alert('Errore: '+q.error.message); return; }
+  $('ov').classList.remove('on');
+  await loadRecipes();
+}
+
 $('newBtn').onclick = function(){
-  NW = { code:null, img:'', ingEn:'', nomi:{} };
+  NW = { code:null, img:'', ingEn:'', nomi:{}, editId:null };
   ['aiTitle','aiZona','aiNote','fTitle','fCui','fIng','fSteps','nKcal','nPro','nCar','nFat','nFib']
     .forEach(function(id){ $(id).value=''; });
   $('aiPorz').value=4; $('fPorz').value=4; $('fPrep').value=15; $('fCott').value=20;
@@ -947,22 +979,34 @@ $('saveBtn').onclick = async function(){
   if(!NW.img && !confirm('Nessuna foto generata: la ricetta comparira\' senza immagine. Salvo lo stesso?')) return;
 
   $('saveBtn').disabled = true;
-  msg('saveMsg','Salvo...','wait');
+  msg('saveMsg', NW.editId ? 'Aggiorno...' : 'Salvo...','wait');
   try{
-    var code = await ensureCode();
     var num = function(id){ var v=parseFloat($(id).value); return isNaN(v)?null:v; };
-    var ins = await sb.from('recipes').insert({
-      user_id:null, base_code:code, title:title, image_url:NW.img || null,
+    var fields = {
+      title:title, image_url:NW.img || null,
       category:$('fCat').value, cuisine:$('fCui').value.trim() || null,
       difficulty:$('fDiff').value, servings:parseInt($('fPorz').value,10)||1,
       prep_minutes:parseInt($('fPrep').value,10)||0, cook_minutes:parseInt($('fCott').value,10)||0,
-      /* stesso valore delle altre 149 del catalogo (l'enum non ha 'base') */
+      /* stesso valore delle altre del catalogo (l'enum non ha 'base') */
       diet_tags:['vegan'], source_type:'generated',
       nutrition:{ kcal:num('nKcal'), protein_g:num('nPro'), carbs_g:num('nCar'),
                   fat_g:num('nFat'), fiber_g:num('nFib') }
-    }).select('id').single();
-    if(ins.error) throw new Error(ins.error.message);
-    var rid = ins.data.id;
+    };
+    var rid;
+    if(NW.editId){
+      var up = await sb.from('recipes').update(fields).eq('id', NW.editId).select('id').single();
+      if(up.error) throw new Error(up.error.message);
+      rid = NW.editId;
+      /* sostituzione integrale di ingredienti e passi */
+      await sb.from('ingredients').delete().eq('recipe_id', rid);
+      await sb.from('steps').delete().eq('recipe_id', rid);
+    } else {
+      var code = await ensureCode();
+      fields.user_id = null; fields.base_code = code;
+      var ins = await sb.from('recipes').insert(fields).select('id').single();
+      if(ins.error) throw new Error(ins.error.message);
+      rid = ins.data.id;
+    }
 
     var qi = await sb.from('ingredients').insert(ing.map(function(t,k){
       return { recipe_id:rid, user_id:null, position:k, raw_text:t,
@@ -975,7 +1019,7 @@ $('saveBtn').onclick = async function(){
     }));
     if(qs.error) throw new Error('passi: '+qs.error.message);
 
-    msg('saveMsg','Salvata come '+code+'.','ok');
+    msg('saveMsg', NW.editId ? 'Aggiornata.' : ('Salvata come '+NW.code+'.'),'ok');
     await loadRecipes();
     setTimeout(function(){ nwClose(); openDetail(rid); }, 700);
   }catch(e){ msg('saveMsg','Errore: '+(e.message||e),'ko'); }

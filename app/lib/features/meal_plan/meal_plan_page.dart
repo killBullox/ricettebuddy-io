@@ -7,6 +7,7 @@ import '../../data/models/enums.dart';
 import '../../data/models/meal_plan_entry.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/meal_plan_repository.dart';
+import '../../data/repositories/plan_push_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../data/repositories/shopping_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -90,6 +91,7 @@ class MealPlanPage extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.only(bottom: 88),
             children: [
+              const _PendingPlansBanner(),
               for (final day in days)
                 _DaySection(
                   day: day,
@@ -397,6 +399,136 @@ class _EntryTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Banner in cima al piano: elenca i piani inviati dal nutrizionista ancora da
+/// importare. Importare copia le ricette base nella libreria dell'utente e
+/// riempie la settimana (via Edge Function `piano`).
+class _PendingPlansBanner extends ConsumerWidget {
+  const _PendingPlansBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plans = ref.watch(pendingPlansProvider);
+    return plans.maybeWhen(
+      orElse: () => const SizedBox.shrink(),
+      data: (list) {
+        if (list.isEmpty) return const SizedBox.shrink();
+        final df = DateFormat('d MMM', 'it');
+        return Column(
+          children: [
+            for (final p in list)
+              Card(
+                margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                color: const Color(0xFFEAF5EB),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.health_and_safety,
+                          color: Color(0xFF3B8C43)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Piano dal nutrizionista',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              [
+                                if (p.weekStart != null)
+                                  'Settimana del ${df.format(p.weekStart!)}',
+                                '${p.nItems} piatti',
+                              ].join(' · '),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            if ((p.note ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text('“${p.note}”',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            fontStyle: FontStyle.italic)),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _ImportButton(plan: p),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ImportButton extends ConsumerStatefulWidget {
+  final PushedPlan plan;
+  const _ImportButton({required this.plan});
+
+  @override
+  ConsumerState<_ImportButton> createState() => _ImportButtonState();
+}
+
+class _ImportButtonState extends ConsumerState<_ImportButton> {
+  bool _busy = false;
+
+  Future<void> _import() async {
+    setState(() => _busy = true);
+    try {
+      final n = await ref
+          .read(planPushRepositoryProvider)
+          .importPlan(widget.plan.id);
+      // La settimana del piano potrebbe non essere quella visualizzata: porta
+      // la vista sulla settimana importata e aggiorna tutto.
+      if (widget.plan.weekStart != null) {
+        ref.read(_weekStartProvider.notifier).state = widget.plan.weekStart!;
+      }
+      ref.invalidate(pendingPlansProvider);
+      ref.invalidate(recipeListProvider);
+      final ws = ref.read(_weekStartProvider);
+      ref.invalidate(mealPlanWeekProvider(ws));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Piano importato: $n piatti aggiunti alla settimana.'),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Import non riuscito: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF3B8C43)),
+      onPressed: _busy ? null : _import,
+      child: _busy
+          ? const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white))
+          : const Text('Importa'),
     );
   }
 }
