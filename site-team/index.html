@@ -139,6 +139,56 @@
   .nw-foto img{width:260px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:var(--paper2)}
   .msg{font-size:.86rem;margin:10px 0 0;min-height:1.2em}
   .msg.ok{color:var(--leaf)} .msg.ko{color:#b00020} .msg.wait{color:var(--taupe)}
+
+  /* ---- piano cliente ---- */
+  .btn-plan{background:var(--leaf);color:#fff;border:none;border-radius:9px;padding:6px 13px;
+    cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:700}
+  .btn-plan:hover{filter:brightness(1.08)}
+  #pl{position:fixed;inset:0;z-index:70;background:rgba(20,6,26,.62);display:none;
+    justify-content:center;padding:18px;overflow:auto}
+  #pl.on{display:flex}
+  .pl-box{background:#fff;border-radius:20px;max-width:1080px;width:100%;height:max-content;
+    box-shadow:0 30px 60px rgba(0,0,0,.4);overflow:hidden}
+  .pl-hd{background:var(--aub);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:12px}
+  .pl-hd h2{margin:0;font-size:1.25rem;color:#fff}
+  .pl-bd{padding:22px 24px}
+  .cli-search{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .cli-search input{margin:0;flex:1;min-width:220px}
+  .cli-list{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:7px}
+  .cli-list li{border:1px solid var(--paper2);border-radius:11px;padding:10px 13px;cursor:pointer;
+    display:flex;align-items:center;gap:10px}
+  .cli-list li:hover{border-color:var(--leaf);background:var(--paper)}
+  .cli-list .nm{font-weight:700}.cli-list .em{color:var(--taupe);font-size:.85rem}
+  .cli-chosen{display:flex;align-items:center;gap:12px;background:var(--paper);border-radius:12px;
+    padding:12px 15px;flex-wrap:wrap}
+  .cli-chosen b{font-size:1.05rem}
+  .pl-meta{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+  .pl-meta label{font-size:.78rem;font-weight:700;color:var(--taupe);text-transform:uppercase;letter-spacing:.06em}
+  .pl-meta input{margin-top:5px}
+  .grid7{overflow-x:auto;border:1px solid var(--paper2);border-radius:14px}
+  table.wk{border-collapse:collapse;width:100%;min-width:760px;font-size:.85rem}
+  table.wk th,table.wk td{border:1px solid var(--paper2);vertical-align:top;padding:0}
+  table.wk thead th{background:var(--aub);color:#fff;padding:8px 6px;font-family:'Fraunces',serif;font-weight:600;position:sticky;top:0}
+  table.wk tbody th{background:var(--paper);color:var(--taupe);text-transform:uppercase;font-size:.68rem;
+    letter-spacing:.06em;padding:8px 6px;white-space:nowrap;width:78px}
+  .cell{min-height:56px;padding:6px;display:flex;flex-direction:column;gap:5px}
+  .cell .add{border:1px dashed var(--paper2);background:transparent;color:var(--taupe);border-radius:8px;
+    padding:5px;cursor:pointer;font-family:inherit;font-size:.74rem;font-weight:700}
+  .cell .add:hover{border-color:var(--leaf);color:var(--leaf)}
+  .dish{background:var(--paper);border-radius:8px;padding:4px 6px;display:flex;align-items:center;gap:5px;
+    font-size:.76rem;line-height:1.15}
+  .dish .rm{margin-left:auto;cursor:pointer;color:var(--beet);font-weight:900;flex:none}
+  .pl-ft{display:flex;gap:12px;align-items:center;padding:16px 24px;background:var(--paper);
+    border-top:1px solid var(--paper2);flex-wrap:wrap}
+  .pl-ft .sp{margin-left:auto}
+  /* recipe picker riusa .grid/.card */
+  #pick{position:fixed;inset:0;z-index:75;background:rgba(20,6,26,.7);display:none;
+    flex-direction:column;padding:18px}
+  #pick.on{display:flex}
+  .pick-hd{display:flex;gap:10px;align-items:center;margin-bottom:12px;color:#fff}
+  .pick-hd input{margin:0;flex:1}
+  .pick-hd b{font-family:'Fraunces',serif}
+  .pick-grid{flex:1;overflow:auto;background:#fff;border-radius:14px;padding:14px}
 </style>
 </head>
 <body>
@@ -161,7 +211,8 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.21-3</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.23-1</span>
+    <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
     <button id="logout">Esci</button>
@@ -199,6 +250,59 @@
 </div>
 
 <div id="ov"><div class="modal"><div id="modalBody"></div></div></div>
+
+<div id="pl"><div class="pl-box">
+  <div class="pl-hd">
+    <h2>Piano alimentare settimanale</h2>
+    <button class="ck-x" id="plClose" title="Chiudi">&times;</button>
+  </div>
+  <div class="pl-bd">
+    <div id="plStep1">
+      <p class="hint">Cerca il cliente per <b>email</b> o <b>nome/cognome</b>.</p>
+      <div class="cli-search">
+        <input id="cliQ" placeholder="es. Mario Rossi oppure mario@..." />
+        <button class="btn" id="cliBtn">Cerca</button>
+      </div>
+      <ul class="cli-list" id="cliList"></ul>
+      <p class="msg" id="cliMsg"></p>
+    </div>
+
+    <div id="plStep2" class="hidden">
+      <div class="cli-chosen">
+        <span>👤</span>
+        <div><b id="chNm"></b><div class="em" id="chEm"></div></div>
+        <span class="sp" style="margin-left:auto"></span>
+        <button class="btn btn-gh" id="chChange">Cambia cliente</button>
+      </div>
+      <div class="pl-meta">
+        <label>Settimana (lunedì)<input id="plWeek" type="date" /></label>
+        <label style="flex:1;min-width:220px">Nota per il cliente (facoltativa)
+          <input id="plNote" placeholder="es. Prima settimana, bevi molta acqua" /></label>
+      </div>
+      <p class="hint">Tocca <b>+</b> in una casella per aggiungere un piatto. Un pasto può avere
+        più piatti (primo + secondo + dolce).</p>
+      <div class="grid7"><table class="wk">
+        <thead><tr id="wkHead"></tr></thead>
+        <tbody id="wkBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="pl-ft">
+    <p class="msg" id="plMsg" style="margin:0"></p>
+    <span class="sp"></span>
+    <button class="btn btn-gh" id="plCancel">Annulla</button>
+    <button class="btn" id="plSend" disabled>Invia piano al cliente</button>
+  </div>
+</div></div>
+
+<div id="pick">
+  <div class="pick-hd">
+    <b id="pickWhat"></b>
+    <input id="pickQ" placeholder="Cerca ricetta o ingrediente..." />
+    <button class="btn" id="pickDone">Fatto</button>
+  </div>
+  <div class="pick-grid"><div class="grid" id="pickGrid"></div></div>
+</div>
 
 <div id="nw"><div class="nw-box">
   <div class="nw-hd">
@@ -877,6 +981,158 @@ $('saveBtn').onclick = async function(){
   }catch(e){ msg('saveMsg','Errore: '+(e.message||e),'ko'); }
   $('saveBtn').disabled = false;
 };
+
+/* ===================== PIANO CLIENTE ===================== */
+
+var SLOTS = [['breakfast','Colazione'],['lunch','Pranzo'],['snack','Spuntino'],['dinner','Cena']];
+var GIORNI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+var PLAN = { client:null, cells:{} };   /* cells["day-slot"] = [{base_code,title}] */
+var pickTarget = null;
+
+function nextMonday(){
+  var d = new Date(); var day = d.getDay();       /* 0=dom..6=sab */
+  var diff = (day===0 ? 1 : (8-day));             /* giorni fino al prossimo lunedì */
+  d.setDate(d.getDate()+diff);
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+
+$('planBtn').onclick = function(){
+  PLAN = { client:null, cells:{} };
+  $('cliQ').value=''; $('cliList').innerHTML=''; msg('cliMsg','');
+  $('plStep1').classList.remove('hidden'); $('plStep2').classList.add('hidden');
+  $('plWeek').value = nextMonday(); $('plNote').value='';
+  $('plSend').disabled = true; msg('plMsg','');
+  $('pl').classList.add('on');
+};
+function plClose(){ $('pl').classList.remove('on'); }
+$('plClose').onclick = plClose; $('plCancel').onclick = plClose;
+$('pl').onclick = function(e){ if(e.target.id==='pl') plClose(); };
+
+/* --- ricerca cliente --- */
+async function cercaClienti(){
+  msg('cliMsg','Cerco...','wait'); $('cliList').innerHTML='';
+  try{
+    var data = await fnCall2({ action:'cerca_clienti', q:$('cliQ').value.trim() });
+    var cl = data.clienti || [];
+    if(!cl.length){ msg('cliMsg','Nessun cliente trovato. Il cliente deve prima registrarsi dall\'app.',''); return; }
+    msg('cliMsg', cl.length+' clienti');
+    $('cliList').innerHTML = cl.map(function(c,i){
+      return '<li data-i="'+i+'"><span>👤</span><div><div class="nm">'+esc(c.full_name||'(senza nome)')
+        +'</div><div class="em">'+esc(c.email)+'</div></div></li>';
+    }).join('');
+    var lis = $('cliList').querySelectorAll('li');
+    for(var k=0;k<lis.length;k++){ lis[k].onclick = (function(c){ return function(){ scegliCliente(c); }; })(cl[k]); }
+  }catch(e){ msg('cliMsg','Errore: '+(e.message||e),'ko'); }
+}
+$('cliBtn').onclick = cercaClienti;
+$('cliQ').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); cercaClienti(); } });
+
+function scegliCliente(c){
+  PLAN.client = c;
+  $('chNm').textContent = c.full_name || '(senza nome)';
+  $('chEm').textContent = c.email;
+  $('plStep1').classList.add('hidden'); $('plStep2').classList.remove('hidden');
+  buildWeek(); refreshSend();
+}
+$('chChange').onclick = function(){
+  $('plStep2').classList.add('hidden'); $('plStep1').classList.remove('hidden');
+};
+
+/* --- griglia settimanale --- */
+function buildWeek(){
+  $('wkHead').innerHTML = '<th></th>' + GIORNI.map(function(g){ return '<th>'+g+'</th>'; }).join('');
+  $('wkBody').innerHTML = SLOTS.map(function(s){
+    var tds = '';
+    for(var d=0; d<7; d++){ tds += '<td><div class="cell" id="c-'+d+'-'+s[0]+'"></div></td>'; }
+    return '<tr><th>'+s[1]+'</th>'+tds+'</tr>';
+  }).join('');
+  for(var d=0; d<7; d++){ for(var si=0; si<SLOTS.length; si++){ renderCell(d, SLOTS[si][0]); } }
+}
+function cellKey(d,slot){ return d+'-'+slot; }
+function renderCell(d, slot){
+  var el = $('c-'+d+'-'+slot); if(!el) return;
+  var arr = PLAN.cells[cellKey(d,slot)] || [];
+  el.innerHTML = arr.map(function(x,i){
+    return '<div class="dish">'+esc(x.title)+'<span class="rm" data-i="'+i+'">&times;</span></div>';
+  }).join('') + '<button class="add">+ aggiungi</button>';
+  el.querySelector('.add').onclick = function(){ openPicker(d, slot); };
+  var rms = el.querySelectorAll('.rm');
+  for(var k=0;k<rms.length;k++){ rms[k].onclick = (function(idx){ return function(){
+    PLAN.cells[cellKey(d,slot)].splice(idx,1); renderCell(d,slot); refreshSend();
+  }; })(k); }
+}
+
+/* --- picker ricette (riusa RECIPES) --- */
+function openPicker(d, slot){
+  pickTarget = { d:d, slot:slot };
+  var sl = SLOTS.filter(function(s){ return s[0]===slot; })[0][1];
+  $('pickWhat').textContent = GIORNI[d]+' · '+sl;
+  $('pickQ').value=''; renderPick(); $('pick').classList.add('on'); $('pickQ').focus();
+}
+function renderPick(){
+  var q = $('pickQ').value.trim().toLowerCase();
+  var list = RECIPES.filter(function(r){
+    if(!q) return true;
+    return r.title.toLowerCase().indexOf(q)>=0 || (r.base_code||'').toLowerCase().indexOf(q)>=0;
+  }).slice(0,120);
+  $('pickGrid').innerHTML = list.map(function(r){
+    var kc = kcalOf(r);
+    return '<div class="card" data-id="'+r.id+'"><img loading="lazy" src="'+r.image_url+'" alt="">'
+      + '<div class="b"><div class="t">'+esc(r.title)+'</div>'
+      + '<div class="m">'+esc(r.category||'')+(kc!=null?(' · '+Math.round(kc)+' kcal'):'')+'</div></div></div>';
+  }).join('');
+  var cards = $('pickGrid').querySelectorAll('.card');
+  for(var i=0;i<cards.length;i++){ cards[i].onclick = (function(r){ return function(){ addDish(r); }; })(list[i]); }
+}
+$('pickQ').oninput = renderPick;
+function addDish(r){
+  var key = cellKey(pickTarget.d, pickTarget.slot);
+  if(!PLAN.cells[key]) PLAN.cells[key] = [];
+  if(!PLAN.cells[key].some(function(x){ return x.base_code===r.base_code; })){
+    PLAN.cells[key].push({ base_code:r.base_code, title:r.title });
+    renderCell(pickTarget.d, pickTarget.slot); refreshSend();
+  }
+}
+$('pickDone').onclick = function(){ $('pick').classList.remove('on'); };
+$('pick').addEventListener('keydown', function(e){ if(e.key==='Escape') $('pick').classList.remove('on'); });
+
+/* --- invio --- */
+function planItems(){
+  var out = [];
+  for(var d=0; d<7; d++){ for(var si=0; si<SLOTS.length; si++){
+    var slot = SLOTS[si][0]; var arr = PLAN.cells[cellKey(d,slot)] || [];
+    arr.forEach(function(x){ out.push({ day_index:d, slot:slot, base_code:x.base_code, title:x.title }); });
+  } }
+  return out;
+}
+function refreshSend(){ $('plSend').disabled = !(PLAN.client && planItems().length); }
+$('plSend').onclick = async function(){
+  var items = planItems();
+  if(!PLAN.client || !items.length) return;
+  $('plSend').disabled = true; msg('plMsg','Invio il piano...','wait');
+  try{
+    var data = await fnCall2({ action:'push', client_id:PLAN.client.id,
+      week_start:$('plWeek').value || null, note:$('plNote').value.trim() || null, items:items });
+    msg('plMsg','Piano inviato: '+data.n_items+' piatti. '+PLAN.client.email+' lo vedrà nell\'app.','ok');
+    setTimeout(plClose, 1600);
+  }catch(e){ msg('plMsg','Errore: '+(e.message||e),'ko'); $('plSend').disabled=false; }
+};
+
+/* stessa apertura-errore di fnCall, ma sulla funzione "piano" */
+async function fnCall2(body){
+  await sb.auth.getSession();
+  var res = await sb.functions.invoke('piano', { body: body });
+  if(res.error){
+    var det = res.error.message || 'errore';
+    try{
+      var ctx = res.error.context;
+      if(ctx && typeof ctx.json === 'function'){ var j = await ctx.json(); if(j && j.error) det = j.error; }
+      if(ctx && ctx.status) det = '['+ctx.status+'] '+det;
+    }catch(e){}
+    throw new Error(det);
+  }
+  return res.data;
+}
 
 boot().catch(function(e){ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
 </script>
