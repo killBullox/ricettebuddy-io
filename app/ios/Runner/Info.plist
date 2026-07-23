@@ -29,6 +29,15 @@
 				<string>ShareMedia-io.beetit.recipes</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- Redirect OAuth (Google/Apple via Supabase): io.beetit.recipes://login-callback/ -->
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.beetit.recipes</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
