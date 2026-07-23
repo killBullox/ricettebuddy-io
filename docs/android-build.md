@@ -35,9 +35,16 @@ ln -sfn "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-
 
 ## Build
 ```bash
-flutter build apk --release --dart-define=API_BASE=http://185.218.126.96:8090
+flutter build apk --release \
+  --dart-define=API_BASE=http://185.218.126.96:8090 \
+  --dart-define=SUPABASE_URL=https://zffcpwtijxbbshrpsxqq.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR
 # -> build/app/outputs/flutter-apk/app-release.apk  (firmato debug, installabile per test)
 ```
+
+> **Le define Supabase sono obbligatorie** perché l'app esca dalla modalità demo
+> e usi account reali, catalogo base e piani del nutrizionista. La chiave qui è la
+> *publishable* (pubblica per design, sicura da committare) — mai la service_role.
 
 Lo share (menu Condividi) è già dichiarato nel manifest (`ACTION_SEND` text/image),
 gestito lato Flutter da `ShareReceiver`. La release usa la firma **debug**: per la

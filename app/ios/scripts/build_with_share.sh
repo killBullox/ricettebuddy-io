@@ -11,7 +11,7 @@ rm -f ios/Podfile ios/Podfile.lock; rm -rf ios/Pods
 
 # 1. config-only: rigenera l'integrazione SPM (FlutterGeneratedPluginSwiftPackage)
 echo "=== flutter build ios --config-only (SPM) ==="
-flutter build ios --config-only --release --dart-define=API_BASE=http://185.218.126.96:8090 2>&1 | tail -4
+flutter build ios --config-only --release --dart-define=API_BASE=http://185.218.126.96:8090 --dart-define=SUPABASE_URL=https://zffcpwtijxbbshrpsxqq.supabase.co --dart-define=SUPABASE_ANON_KEY=sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR 2>&1 | tail -4
 
 # 2. xcodeproj: aggiunge il target app-extension (Swift puro, nessuna dipendenza)
 echo "=== xcodeproj: add ShareExtension target ==="
@@ -19,7 +19,7 @@ ruby ~/add_share_target.rb ios/Runner.xcodeproj || { echo "XCODEPROJ_FAIL"; exit
 
 # 3. Verifica: build senza firma (compilazione + embed dell'extension)
 echo "=== flutter build ipa --no-codesign (build 3, verifica) ==="
-flutter build ipa --no-codesign --dart-define=API_BASE=http://185.218.126.96:8090 --build-number=3 2>&1 | tail -22
+flutter build ipa --no-codesign --dart-define=API_BASE=http://185.218.126.96:8090 --dart-define=SUPABASE_URL=https://zffcpwtijxbbshrpsxqq.supabase.co --dart-define=SUPABASE_ANON_KEY=sb_publishable_PaKU0cAnn701i04XkFl-Eg_Xt7YUXLR --build-number=3 2>&1 | tail -22
 echo "BUILD_EXIT=${PIPESTATUS[0]}"
 
 # 4. Conferma che il target e' presente e l'app-extension e' dentro l'ipa/app
