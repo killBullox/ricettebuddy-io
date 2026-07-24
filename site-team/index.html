@@ -211,7 +211,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.23-2</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.24-1</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
@@ -279,8 +279,35 @@
         <label style="flex:1;min-width:220px">Nota per il cliente (facoltativa)
           <input id="plNote" placeholder="es. Prima settimana, bevi molta acqua" /></label>
       </div>
-      <p class="hint">Tocca <b>+</b> in una casella per aggiungere un piatto. Un pasto può avere
-        più piatti (primo + secondo + dolce).</p>
+
+      <div class="nw-ai" style="margin-bottom:16px">
+        <p class="hint" style="margin-bottom:10px"><b>⚡ Genera automatico.</b> Imposta i criteri e
+          il piano si compone da solo (poi lo puoi modificare a mano prima di inviarlo).</p>
+        <div class="row">
+          <label style="flex:0 0 150px">Kcal al giorno
+            <input id="gKcal" type="number" min="800" step="50" value="2000" /></label>
+          <label style="flex:0 0 130px">Settimane (diverse)
+            <input id="gWeeks" type="number" min="1" max="8" value="1" /></label>
+        </div>
+        <div class="row">
+          <label style="flex:1;min-width:200px">Ingredienti preferiti (separati da virgola)
+            <input id="gPref" placeholder="es. ceci, pomodoro, zucca" /></label>
+          <label style="flex:1;min-width:200px">Ingredienti da evitare
+            <input id="gAvoid" placeholder="es. aglio, cipolla, glutine" /></label>
+        </div>
+        <div class="chips" style="margin:12px 0 8px">
+          <span class="chip gopt on" data-opt="colazione">Colazione</span>
+          <span class="chip gopt on" data-opt="spuntini">Spuntini</span>
+          <span class="chip gopt" data-opt="dolci">Dolci</span>
+          <span class="chip gopt" data-opt="frutta">Frutta</span>
+        </div>
+        <button class="btn" id="genBtn">⚡ Genera piano</button>
+        <p class="msg" id="genMsg"></p>
+      </div>
+
+      <p class="hint"><b id="wkLabel">Settimana 1</b> — tocca <b>+</b> per aggiungere un piatto.
+        Un pasto può avere più piatti (primo + secondo + dolce).
+        <span id="wkNav"></span></p>
       <div class="grid7"><table class="wk">
         <thead><tr id="wkHead"></tr></thead>
         <tbody id="wkBody"></tbody>
@@ -1030,7 +1057,10 @@ $('saveBtn').onclick = async function(){
 
 var SLOTS = [['breakfast','Colazione'],['lunch','Pranzo'],['snack','Spuntino'],['dinner','Cena']];
 var GIORNI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
-var PLAN = { client:null, cells:{} };   /* cells["day-slot"] = [{base_code,title}] */
+/* PLAN.weeks = array (una mappa per settimana); PLAN.cells punta alla settimana
+   corrente. cells["day-slot"] = [{base_code,title}] */
+var PLAN = { client:null, weeks:[{}], curWeek:0, cells:{} };
+PLAN.cells = PLAN.weeks[0];
 var pickTarget = null;
 
 function nextMonday(){
@@ -1041,10 +1071,11 @@ function nextMonday(){
 }
 
 $('planBtn').onclick = function(){
-  PLAN = { client:null, cells:{} };
+  PLAN = { client:null, weeks:[{}], curWeek:0, cells:{} };
+  PLAN.cells = PLAN.weeks[0];
   $('cliQ').value=''; $('cliList').innerHTML=''; msg('cliMsg','');
   $('plStep1').classList.remove('hidden'); $('plStep2').classList.add('hidden');
-  $('plWeek').value = nextMonday(); $('plNote').value='';
+  $('plWeek').value = nextMonday(); $('plNote').value=''; msg('genMsg','');
   $('plSend').disabled = true; msg('plMsg','');
   $('pl').classList.add('on');
 };
@@ -1076,10 +1107,73 @@ function scegliCliente(c){
   $('chNm').textContent = c.full_name || '(senza nome)';
   $('chEm').textContent = c.email;
   $('plStep1').classList.add('hidden'); $('plStep2').classList.remove('hidden');
-  buildWeek(); refreshSend();
+  renderWeekNav(); buildWeek(); refreshSend();
 }
 $('chChange').onclick = function(){
   $('plStep2').classList.add('hidden'); $('plStep1').classList.remove('hidden');
+};
+
+/* --- navigazione tra settimane --- */
+function setWeek(i){
+  PLAN.curWeek = i; PLAN.cells = PLAN.weeks[i];
+  renderWeekNav(); buildWeek(); refreshSend();
+}
+function renderWeekNav(){
+  var n = PLAN.weeks.length;
+  $('wkLabel').textContent = 'Settimana ' + (PLAN.curWeek+1) + (n>1 ? ' di '+n : '');
+  if(n<=1){ $('wkNav').innerHTML=''; return; }
+  var h = ' &nbsp; ';
+  for(var i=0;i<n;i++){
+    h += '<button class="chip'+(i===PLAN.curWeek?' on':'')+'" data-w="'+i+'" '
+       + 'style="padding:2px 10px;margin-left:4px">S'+(i+1)+'</button>';
+  }
+  $('wkNav').innerHTML = h;
+  var bs = $('wkNav').querySelectorAll('button');
+  for(var k=0;k<bs.length;k++){ bs[k].onclick = (function(w){ return function(){ setWeek(w); }; })(k); }
+}
+
+/* --- opzioni generatore (chip on/off) --- */
+var genOpts = { colazione:true, spuntini:true, dolci:false, frutta:false };
+(function(){
+  var chips = document.querySelectorAll('.chip.gopt');
+  for(var i=0;i<chips.length;i++){
+    chips[i].onclick = (function(ch){ return function(){
+      var k = ch.getAttribute('data-opt');
+      ch.classList.toggle('on'); genOpts[k] = ch.classList.contains('on');
+    }; })(chips[i]);
+  }
+})();
+function csv(id){
+  return $(id).value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+}
+
+/* --- genera piano automatico --- */
+$('genBtn').onclick = async function(){
+  $('genBtn').disabled = true; msg('genMsg','Genero il piano... (10-30 secondi)','wait');
+  try{
+    var data = await fnCall2({ action:null,   /* genera-piano non usa "action" */
+      kcal:parseInt($('gKcal').value,10)||null,
+      preferiti:csv('gPref'), evitare:csv('gAvoid'),
+      colazione:genOpts.colazione, spuntini:genOpts.spuntini,
+      dolci:genOpts.dolci, frutta:genOpts.frutta,
+      settimane:parseInt($('gWeeks').value,10)||1
+    }, 'genera-piano');
+    /* costruisci PLAN.weeks dalle settimane restituite */
+    PLAN.weeks = data.settimane.map(function(sett){
+      var cells = {};
+      sett.items.forEach(function(it){
+        var key = it.day_index + '-' + it.slot;
+        (cells[key] = cells[key] || []).push({ base_code:it.base_code, title:it.title });
+      });
+      return cells;
+    });
+    if(!PLAN.weeks.length) PLAN.weeks = [{}];
+    PLAN.curWeek = 0; PLAN.cells = PLAN.weeks[0];
+    renderWeekNav(); buildWeek(); refreshSend();
+    var tot = data.settimane.reduce(function(s,w){ return s + w.items.length; }, 0);
+    msg('genMsg','Generato: '+PLAN.weeks.length+' settiman'+(PLAN.weeks.length>1?'e':'a')+', '+tot+' piatti. Rivedi e invia.','ok');
+  }catch(e){ msg('genMsg','Errore: '+(e.message||e),'ko'); }
+  $('genBtn').disabled = false;
 };
 
 /* --- griglia settimanale --- */
@@ -1140,32 +1234,52 @@ function addDish(r){
 $('pickDone').onclick = function(){ $('pick').classList.remove('on'); };
 $('pick').addEventListener('keydown', function(e){ if(e.key==='Escape') $('pick').classList.remove('on'); });
 
-/* --- invio --- */
-function planItems(){
+/* --- invio (tutte le settimane) --- */
+function itemsOf(cells){
   var out = [];
   for(var d=0; d<7; d++){ for(var si=0; si<SLOTS.length; si++){
-    var slot = SLOTS[si][0]; var arr = PLAN.cells[cellKey(d,slot)] || [];
+    var slot = SLOTS[si][0]; var arr = cells[cellKey(d,slot)] || [];
     arr.forEach(function(x){ out.push({ day_index:d, slot:slot, base_code:x.base_code, title:x.title }); });
   } }
   return out;
 }
-function refreshSend(){ $('plSend').disabled = !(PLAN.client && planItems().length); }
+function totItems(){
+  return PLAN.weeks.reduce(function(s,c){ return s + itemsOf(c).length; }, 0);
+}
+function refreshSend(){ $('plSend').disabled = !(PLAN.client && totItems()); }
+
+/* aggiunge g giorni a una data YYYY-MM-DD */
+function addDays(iso, g){
+  var p = iso.split('-'); var d = new Date(Date.UTC(+p[0], +p[1]-1, +p[2]));
+  d.setUTCDate(d.getUTCDate()+g);
+  return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);
+}
+
 $('plSend').onclick = async function(){
-  var items = planItems();
-  if(!PLAN.client || !items.length) return;
-  $('plSend').disabled = true; msg('plMsg','Invio il piano...','wait');
+  if(!PLAN.client || !totItems()) return;
+  var base = $('plWeek').value || nextMonday();
+  var note = $('plNote').value.trim() || null;
+  $('plSend').disabled = true;
   try{
-    var data = await fnCall2({ action:'push', client_id:PLAN.client.id,
-      week_start:$('plWeek').value || null, note:$('plNote').value.trim() || null, items:items });
-    msg('plMsg','Piano inviato: '+data.n_items+' piatti. '+PLAN.client.email+' lo vedrà nell\'app.','ok');
-    setTimeout(plClose, 1600);
+    var inviate = 0, piatti = 0;
+    for(var w=0; w<PLAN.weeks.length; w++){
+      var items = itemsOf(PLAN.weeks[w]);
+      if(!items.length) continue;
+      msg('plMsg','Invio settimana '+(w+1)+' di '+PLAN.weeks.length+'...','wait');
+      var wnote = PLAN.weeks.length>1 ? ('Settimana '+(w+1)+(note?(' — '+note):'')) : note;
+      var data = await fnCall2({ action:'push', client_id:PLAN.client.id,
+        week_start:addDays(base, w*7), note:wnote, items:items });
+      inviate++; piatti += data.n_items;
+    }
+    msg('plMsg','Inviato: '+inviate+' settiman'+(inviate>1?'e':'a')+', '+piatti+' piatti. '+PLAN.client.email+' li vedrà nell\'app.','ok');
+    setTimeout(plClose, 1900);
   }catch(e){ msg('plMsg','Errore: '+(e.message||e),'ko'); $('plSend').disabled=false; }
 };
 
-/* stessa apertura-errore di fnCall, ma sulla funzione "piano" */
-async function fnCall2(body){
+/* invoca una Edge Function (default "piano") aprendo l'errore vero */
+async function fnCall2(body, fnName){
   await sb.auth.getSession();
-  var res = await sb.functions.invoke('piano', { body: body });
+  var res = await sb.functions.invoke(fnName || 'piano', { body: body });
   if(res.error){
     var det = res.error.message || 'errore';
     try{

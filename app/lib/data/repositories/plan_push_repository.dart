@@ -70,6 +70,56 @@ class PlanPushRepository {
       throw Exception(msg ?? 'Errore ${e.status}');
     }
   }
+
+  /// Genera un piano automatico via Edge Function `genera-piano` e lo scrive
+  /// nelle meal_plan_entries del cliente, a partire da [weekStart] e per tutte
+  /// le settimane restituite. Le voci puntano direttamente alle ricette base
+  /// (leggibili dal cliente), quindi non serve copiarle. Ritorna quanti piatti
+  /// ha inserito. [idByBaseCode] mappa il codice base all'id ricetta.
+  Future<int> generateAndFill({
+    required DateTime weekStart,
+    required Map<String, dynamic> input,
+    required Map<String, String> idByBaseCode,
+  }) async {
+    if (_demo || _db == null) return 0;
+    final String uid = _db.auth.currentUser!.id;
+    try {
+      final res = await _db.functions.invoke('genera-piano', body: input);
+      final settimane = (res.data is Map ? res.data['settimane'] : null) as List? ?? [];
+
+      final rows = <Map<String, dynamic>>[];
+      final dates = <String>{};
+      String fmt(DateTime d) => d.toIso8601String().split('T').first;
+
+      for (var w = 0; w < settimane.length; w++) {
+        final items = (settimane[w]['items'] as List?) ?? [];
+        for (final it in items) {
+          final rid = idByBaseCode[it['base_code']];
+          if (rid == null) continue;
+          final date = DateTime(weekStart.year, weekStart.month, weekStart.day)
+              .add(Duration(days: w * 7 + (it['day_index'] as int)));
+          dates.add(fmt(date));
+          rows.add({
+            'user_id': uid,
+            'date': fmt(date),
+            'slot': it['slot'],
+            'recipe_id': rid,
+            'servings': 2,
+          });
+        }
+      }
+      if (rows.isEmpty) return 0;
+      // sostituisce il piano nelle date coinvolte, poi inserisce in blocco
+      await _db.from('meal_plan_entries')
+          .delete().eq('user_id', uid).inFilter('date', dates.toList());
+      await _db.from('meal_plan_entries').insert(rows);
+      return rows.length;
+    } on FunctionException catch (e) {
+      final d = e.details;
+      final msg = (d is Map && d['error'] != null) ? d['error'].toString() : null;
+      throw Exception(msg ?? 'Errore ${e.status}');
+    }
+  }
 }
 
 final planPushRepositoryProvider = Provider<PlanPushRepository>(

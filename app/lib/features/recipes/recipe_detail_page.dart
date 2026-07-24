@@ -249,13 +249,32 @@ class _RecipeTab extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 32),
       children: [
           if (recipe.fromNutritionService)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: Chip(
-                avatar: Icon(Icons.health_and_safety,
-                    size: 18, color: Color(0xFF3B8C43)),
-                backgroundColor: Color(0xFFEAF5EB),
-                label: Text('Elaborata dal servizio di consulenza nutrizionale'),
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF5EB),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.health_and_safety,
+                      size: 18, color: Color(0xFF3B8C43)),
+                  SizedBox(width: 8),
+                  // Expanded → il testo va a capo invece di essere troncato.
+                  Expanded(
+                    child: Text(
+                      'Elaborata dal servizio di consulenza nutrizionale',
+                      style: TextStyle(
+                          fontSize: 13,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2E6B33)),
+                    ),
+                  ),
+                ],
               ),
             )
           else if (recipe.source == RecipeSource.generated)

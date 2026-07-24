@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/recipe.dart';
 import '../../data/repositories/meal_plan_repository.dart';
+import '../../data/repositories/plan_push_repository.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
-import 'auto_planner.dart';
 
 /// Sheet "pianifica settimana": tre modalità.
 /// 1. Manuale (com'è ora: aggiungi tu le ricette ai pasti)
@@ -23,48 +22,63 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
   bool _auto = false; // config automatica aperta
   bool _busy = false;
 
-  int? _maxKcal = 1800;
-  final Set<String> _excl = {};
-  final Set<String> _labels = {};
-  bool _snack = false;
+  final _kcal = TextEditingController(text: '2000');
+  final _pref = TextEditingController();
+  final _avoid = TextEditingController();
+  bool _colazione = true;
+  bool _snack = true;
   bool _dessert = false;
+  bool _frutta = false;
+  int _settimane = 1;
 
-  void _toggle(Set<String> s, String v) =>
-      setState(() => s.contains(v) ? s.remove(v) : s.add(v));
+  List<String> _csv(String s) =>
+      s.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+  @override
+  void dispose() {
+    _kcal.dispose();
+    _pref.dispose();
+    _avoid.dispose();
+    super.dispose();
+  }
 
   Future<void> _generate() async {
-    final l = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
+      // mappa codice base -> id ricetta (le voci del piano puntano alle basi)
       final recipes = await ref.read(recipeRepositoryProvider).list();
-      final existing = await ref
-          .read(mealPlanRepositoryProvider)
-          .forWeek(widget.weekStart);
-      final res = await generateAutoPlan(
-        planRepo: ref.read(mealPlanRepositoryProvider),
-        recipes: recipes,
-        existing: existing,
+      final idByCode = <String, String>{
+        for (final r in recipes)
+          if (r.baseCode != null && r.id != null) r.baseCode!: r.id!,
+      };
+      final n = await ref.read(planPushRepositoryProvider).generateAndFill(
         weekStart: widget.weekStart,
-        opts: AutoPlanOptions(
-          maxKcalPerDay: _maxKcal,
-          excludeAllergens: _excl,
-          labels: _labels,
-          includeSnack: _snack,
-          includeDessert: _dessert,
-        ),
+        idByBaseCode: idByCode,
+        input: {
+          'kcal': int.tryParse(_kcal.text.trim()),
+          'preferiti': _csv(_pref.text),
+          'evitare': _csv(_avoid.text),
+          'colazione': _colazione,
+          'spuntini': _snack,
+          'dolci': _dessert,
+          'frutta': _frutta,
+          'settimane': _settimane,
+        },
       );
       if (!mounted) return;
+      // porta la vista sulle settimane generate
+      ref.invalidate(mealPlanWeekProvider(widget.weekStart));
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(res.complete
-            ? l.planResultAll('${res.filled}')
-            : l.planResultPartial('${res.filled}', '${res.total - res.filled}')),
+        content: Text(_settimane > 1
+            ? 'Piano generato: $n piatti su $_settimane settimane.'
+            : 'Piano generato: $n piatti nella settimana.'),
       ));
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(SnackBar(content: Text('Generazione non riuscita: $e')));
       }
     }
   }
@@ -116,66 +130,81 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
             ),
             if (_auto) ...[
               const Divider(height: 24),
-              Text(l.planMaxKcal,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 15)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, children: [
-                for (final k in [1400, 1800, 2200])
-                  ChoiceChip(
-                    label: Text('$k kcal'),
-                    selected: _maxKcal == k,
-                    onSelected: (_) => setState(() => _maxKcal = k),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: _kcal,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Kcal al giorno',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
                   ),
-                ChoiceChip(
-                  label: Text(l.planNoLimit),
-                  selected: _maxKcal == null,
-                  onSelected: (_) => setState(() => _maxKcal = null),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _settimane,
+                    decoration: const InputDecoration(
+                      labelText: 'Settimane',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final w in [1, 2, 3, 4])
+                        DropdownMenuItem(value: w, child: Text('$w')),
+                    ],
+                    onChanged: (v) => setState(() => _settimane = v ?? 1),
+                  ),
                 ),
               ]),
-              const SizedBox(height: 14),
-              Text(l.filterNoAllergens,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 15)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, children: [
-                for (final e in {
-                  l.allergenGluten: 'glutine',
-                  l.allergenSoy: 'soia',
-                  l.allergenNuts: 'frutta a guscio',
-                  l.allergenLactose: 'lattosio',
-                }.entries)
-                  FilterChip(
-                    label: Text(e.key),
-                    selected: _excl.contains(e.value),
-                    onSelected: (_) => _toggle(_excl, e.value),
-                  ),
-              ]),
-              const SizedBox(height: 14),
-              Text(l.filterLabels,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 15)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, children: [
-                for (final key in Recipe.nutritionLabelKeys)
-                  FilterChip(
-                    label: Text(nutritionLabelTextOf(l, key)),
-                    selected: _labels.contains(key),
-                    onSelected: (_) => _toggle(_labels, key),
-                  ),
-              ]),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _pref,
+                decoration: const InputDecoration(
+                  labelText: 'Ingredienti preferiti',
+                  hintText: 'es. ceci, pomodoro, zucca',
+                  helperText: 'separati da virgola',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _avoid,
+                decoration: const InputDecoration(
+                  labelText: 'Ingredienti da evitare',
+                  hintText: 'es. aglio, cipolla, glutine',
+                  helperText: 'separati da virgola',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
               const SizedBox(height: 6),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(l.planIncludeSnack),
+                title: const Text('Colazione'),
+                value: _colazione,
+                onChanged: (v) => setState(() => _colazione = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Spuntini'),
                 value: _snack,
                 onChanged: (v) => setState(() => _snack = v),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(l.planIncludeDessert),
+                title: const Text('Dolci'),
                 value: _dessert,
                 onChanged: (v) => setState(() => _dessert = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Frutta'),
+                value: _frutta,
+                onChanged: (v) => setState(() => _frutta = v),
               ),
               const SizedBox(height: 6),
               SizedBox(
@@ -198,15 +227,6 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
     );
   }
 }
-
-/// Testo localizzato label nutrizionale (evita import incrociato).
-String nutritionLabelTextOf(AppLocalizations l, String key) => switch (key) {
-      'HIGH PROTEIN' => l.labelHighProtein,
-      'LOW CARB' => l.labelLowCarb,
-      'LIGHT' => l.labelLight,
-      'HIGH FIBER' => l.labelHighFiber,
-      _ => key,
-    };
 
 class _ModeTile extends StatelessWidget {
   final IconData icon;
