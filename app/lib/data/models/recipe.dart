@@ -43,6 +43,11 @@ class Recipe {
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
 
+  // Codice del catalogo base (IT001, WW051...): presente sia sulle ricette base
+  // sia sulle loro copie importate. Se valorizzato, la ricetta proviene dal
+  // servizio di consulenza nutrizionale.
+  final String? baseCode;
+
   const Recipe({
     this.id,
     required this.title,
@@ -74,7 +79,11 @@ class Recipe {
     this.allergens = const [],
     this.ingredients = const [],
     this.steps = const [],
+    this.baseCode,
   });
+
+  /// True se la ricetta viene dal catalogo del servizio di consulenza.
+  bool get fromNutritionService => baseCode != null && baseCode!.isNotEmpty;
 
   int? get totalMinutes {
     final t = (prepMinutes ?? 0) + (cookMinutes ?? 0);
@@ -159,6 +168,7 @@ class Recipe {
       allergens: (m['allergens'] as List?)?.cast<String>() ?? const [],
       ingredients: ing,
       steps: st,
+      baseCode: m['base_code'] as String?,
     );
   }
 
@@ -230,6 +240,7 @@ class Recipe {
         stepGallery: stepGallery,
         ingredients: ingredients ?? this.ingredients,
         steps: steps ?? this.steps,
+        baseCode: baseCode,
       );
 
   static DateTime? _date(dynamic v) =>

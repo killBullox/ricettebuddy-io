@@ -248,7 +248,17 @@ class _RecipeTab extends ConsumerWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 32),
       children: [
-          if (recipe.source == RecipeSource.generated)
+          if (recipe.fromNutritionService)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: Chip(
+                avatar: Icon(Icons.health_and_safety,
+                    size: 18, color: Color(0xFF3B8C43)),
+                backgroundColor: Color(0xFFEAF5EB),
+                label: Text('Elaborata dal servizio di consulenza nutrizionale'),
+              ),
+            )
+          else if (recipe.source == RecipeSource.generated)
             const Padding(
               padding: EdgeInsets.all(12),
               child: Chip(
