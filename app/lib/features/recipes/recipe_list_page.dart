@@ -58,6 +58,8 @@ class RecipeListPage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                _SortButton(),
+                const SizedBox(width: 4),
                 Badge(
                   isLabelVisible: filters.count > 0,
                   label: Text('${filters.count}'),
@@ -253,6 +255,34 @@ class _EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Bottone di ordinamento della lista (Più recenti / Kcal ↑ / Kcal ↓ / Nome A-Z).
+class _SortButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sort = ref.watch(recipeSortProvider);
+    const labels = {
+      RecipeSort.recenti: 'Più recenti',
+      RecipeSort.kcalAsc: 'Kcal crescenti',
+      RecipeSort.kcalDesc: 'Kcal decrescenti',
+      RecipeSort.nomeAZ: 'Nome A-Z',
+    };
+    return PopupMenuButton<RecipeSort>(
+      tooltip: 'Ordina',
+      icon: Badge(
+        isLabelVisible: sort != RecipeSort.recenti,
+        smallSize: 8,
+        child: const Icon(Icons.sort),
+      ),
+      initialValue: sort,
+      onSelected: (v) => ref.read(recipeSortProvider.notifier).state = v,
+      itemBuilder: (_) => [
+        for (final e in labels.entries)
+          PopupMenuItem(value: e.key, child: Text(e.value)),
+      ],
     );
   }
 }

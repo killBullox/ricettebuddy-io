@@ -211,7 +211,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.24-1</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.26-1</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
@@ -371,6 +371,12 @@
       <label style="flex:0 0 130px">Cottura (min) <input id="fCott" type="number" min="0" value="20" /></label>
       <label style="flex:0 0 140px">Difficolta'
         <select id="fDiff"><option>Facile</option><option>Media</option><option>Difficile</option></select></label>
+    </div>
+    <div class="row" style="margin-top:4px">
+      <label style="flex:0 0 auto;display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+        <input id="fPiattoUnico" type="checkbox" style="width:auto;margin:0" /> Piatto unico</label>
+      <label style="flex:0 0 auto;display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+        <input id="fInsalatona" type="checkbox" style="width:auto;margin:0" /> Insalatona</label>
     </div>
 
     <h3>Valori nutrizionali <span style="font-weight:400;color:var(--taupe);font-size:.85rem">&mdash; per porzione</span></h3>
@@ -897,8 +903,11 @@ async function ensureCode(){
 }
 
 /* --- modifica / elimina (riusano il form nuova ricetta) --- */
+function tagOf(r,t){ return (r.tags||[]).map(function(x){return String(x).toLowerCase();}).indexOf(t)>=0; }
 function editRecipe(r, ings, steps){
   NW = { code:r.base_code, img:r.image_url || '', ingEn:'', nomi:{}, editId:r.id };
+  $('fPiattoUnico').checked = tagOf(r,'piatto_unico');
+  $('fInsalatona').checked = tagOf(r,'insalatona');
   $('nwCode').textContent = 'Modifica ' + (r.base_code||'');
   msg('aiMsg',''); msg('fotoMsg',''); msg('saveMsg','');
   $('aiTitle').value=''; $('aiZona').value=''; $('aiNote').value=''; $('aiPorz').value=r.servings||4;
@@ -929,6 +938,7 @@ $('newBtn').onclick = function(){
     .forEach(function(id){ $(id).value=''; });
   $('aiPorz').value=4; $('fPorz').value=4; $('fPrep').value=15; $('fCott').value=20;
   $('fCat').selectedIndex=0; $('fDiff').selectedIndex=0;
+  $('fPiattoUnico').checked=false; $('fInsalatona').checked=false;
   $('fImg').removeAttribute('src'); $('nwCode').textContent='';
   msg('aiMsg',''); msg('fotoMsg',''); msg('saveMsg','');
   $('nw').classList.add('on');
@@ -1016,6 +1026,9 @@ $('saveBtn').onclick = async function(){
       prep_minutes:parseInt($('fPrep').value,10)||0, cook_minutes:parseInt($('fCott').value,10)||0,
       /* stesso valore delle altre del catalogo (l'enum non ha 'base') */
       diet_tags:['vegan'], source_type:'generated',
+      /* classificazione trasversale usata dai filtri dell'app */
+      tags:[].concat($('fPiattoUnico').checked?['piatto_unico']:[])
+             .concat($('fInsalatona').checked?['insalatona']:[]),
       nutrition:{ kcal:num('nKcal'), protein_g:num('nPro'), carbs_g:num('nCar'),
                   fat_g:num('nFat'), fiber_g:num('nFib') }
     };

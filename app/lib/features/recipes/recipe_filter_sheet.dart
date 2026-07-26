@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/recipe.dart';
 import '../../data/repositories/recipe_repository.dart';
 import '../../l10n/app_localizations.dart';
+import 'recipe_course.dart';
 import 'recipe_labels.dart';
 
 /// Pannello filtri per la ricerca ricette: allergeni da escludere (glutine,
@@ -19,6 +20,7 @@ class RecipeFilterSheet extends ConsumerStatefulWidget {
 class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
   late Set<String> _excl;
   late Set<String> _labels;
+  late Set<String> _courses;
   int? _maxKcal;
   int? _minProtein;
 
@@ -28,6 +30,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
     final f = ref.read(recipeFiltersProvider);
     _excl = {...f.excludeAllergens};
     _labels = {...f.labels};
+    _courses = {...f.courses};
     _maxKcal = f.maxKcal;
     _minProtein = f.minProtein;
   }
@@ -57,6 +60,15 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
           children: [
             Text(l.filtersTitle,
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            _title('Portata'),
+            Wrap(spacing: 8, children: [
+              for (final c in courseOptions)
+                FilterChip(
+                  label: Text(c),
+                  selected: _courses.contains(c),
+                  onSelected: (_) => _toggle(_courses, c),
+                ),
+            ]),
             _title(l.filterNoAllergens),
             Wrap(spacing: 8, children: [
               for (final e in allergens.entries)
@@ -109,6 +121,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
                   ref.read(recipeFiltersProvider.notifier).state = RecipeFilters(
                     excludeAllergens: _excl,
                     labels: _labels,
+                    courses: _courses,
                     maxKcal: _maxKcal,
                     minProtein: _minProtein,
                   );

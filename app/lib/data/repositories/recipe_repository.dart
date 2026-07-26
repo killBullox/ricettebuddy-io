@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
+import '../../features/recipes/recipe_course.dart';
 import '../local_api.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
@@ -143,6 +144,7 @@ class RecipeFilters {
   final Set<String> diets; // Diet.name richiesti
   final Set<String> excludeAllergens; // allergeni da escludere (es. "soia")
   final Set<String> labels; // label nutrizionali richieste
+  final Set<String> courses; // portate richieste (OR): Primi, Antipasti, ...
   final int? maxKcal; // per porzione
   final int? minProtein; // g per porzione
 
@@ -150,6 +152,7 @@ class RecipeFilters {
     this.diets = const {},
     this.excludeAllergens = const {},
     this.labels = const {},
+    this.courses = const {},
     this.maxKcal,
     this.minProtein,
   });
@@ -158,6 +161,7 @@ class RecipeFilters {
       diets.isEmpty &&
       excludeAllergens.isEmpty &&
       labels.isEmpty &&
+      courses.isEmpty &&
       maxKcal == null &&
       minProtein == null;
 
@@ -165,6 +169,7 @@ class RecipeFilters {
       diets.length +
       excludeAllergens.length +
       labels.length +
+      courses.length +
       (maxKcal != null ? 1 : 0) +
       (minProtein != null ? 1 : 0);
 
@@ -172,6 +177,7 @@ class RecipeFilters {
     Set<String>? diets,
     Set<String>? excludeAllergens,
     Set<String>? labels,
+    Set<String>? courses,
     int? maxKcal,
     int? minProtein,
     bool clearMaxKcal = false,
@@ -181,6 +187,7 @@ class RecipeFilters {
         diets: diets ?? this.diets,
         excludeAllergens: excludeAllergens ?? this.excludeAllergens,
         labels: labels ?? this.labels,
+        courses: courses ?? this.courses,
         maxKcal: clearMaxKcal ? null : (maxKcal ?? this.maxKcal),
         minProtein: clearMinProtein ? null : (minProtein ?? this.minProtein),
       );
@@ -201,6 +208,10 @@ class RecipeFilters {
         if (!have.contains(l)) return false;
       }
     }
+    // Portata: la ricetta passa se rientra in ALMENO una portata selezionata.
+    if (courses.isNotEmpty && !courses.any((c) => recipeInCourse(r, c))) {
+      return false;
+    }
     final kcal = (r.nutrition?['kcal'] as num?)?.toDouble();
     if (maxKcal != null && (kcal == null || kcal > maxKcal!)) return false;
     final protein = (r.nutrition?['protein_g'] as num?)?.toDouble();
@@ -214,13 +225,41 @@ class RecipeFilters {
 final recipeFiltersProvider =
     StateProvider<RecipeFilters>((ref) => const RecipeFilters());
 
-/// Lista finale mostrata: testo (server) + filtri avanzati (client).
+/// Ordinamento della lista ricette.
+enum RecipeSort { recenti, kcalAsc, kcalDesc, nomeAZ }
+
+final recipeSortProvider = StateProvider<RecipeSort>((ref) => RecipeSort.recenti);
+
+/// Lista finale mostrata: testo (server) + filtri avanzati + ordinamento (client).
 final filteredRecipeListProvider =
     FutureProvider.autoDispose<List<Recipe>>((ref) async {
   final list = await ref.watch(recipeListProvider.future);
   final f = ref.watch(recipeFiltersProvider);
-  if (f.isEmpty) return list;
-  return list.where(f.matches).toList();
+  final sort = ref.watch(recipeSortProvider);
+  var out = f.isEmpty ? list : list.where(f.matches).toList();
+  if (sort != RecipeSort.recenti) {
+    double kc(Recipe r) => (r.nutrition?['kcal'] as num?)?.toDouble() ?? -1;
+    out = [...out];
+    switch (sort) {
+      case RecipeSort.kcalAsc:
+        // le ricette senza kcal (-1) finiscono in fondo
+        out.sort((a, b) {
+          final ka = kc(a), kb = kc(b);
+          if (ka < 0 && kb < 0) return 0;
+          if (ka < 0) return 1;
+          if (kb < 0) return -1;
+          return ka.compareTo(kb);
+        });
+      case RecipeSort.kcalDesc:
+        out.sort((a, b) => kc(b).compareTo(kc(a)));
+      case RecipeSort.nomeAZ:
+        out.sort((a, b) =>
+            a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      case RecipeSort.recenti:
+        break;
+    }
+  }
+  return out;
 });
 
 final recipeDetailProvider =

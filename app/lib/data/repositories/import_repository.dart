@@ -5,9 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config.dart';
 import '../../features/import/social_extractor.dart';
 import '../local_api.dart';
-import '../models/ingredient.dart';
-import '../models/recipe.dart';
-import '../models/recipe_step.dart';
 
 /// Import ricette. L'estrazione robusta (JSON-LD, fallback euristico,
 /// structuring AI di video/foto, traduzione) avviene nella Edge Function
@@ -18,7 +15,21 @@ class ImportRepository {
   ImportRepository(this._db);
 
   bool get _demo => Config.demo;
-  String get _uid => _db!.auth.currentUser!.id;
+
+  /// Invoca la Edge Function import-recipe (che salva la ricetta) e ne ricava
+  /// l'id. Apre l'errore vero della funzione se fallisce.
+  Future<({String id, bool duplicate})> _invokeImport(
+      Map<String, dynamic> body) async {
+    try {
+      final res = await _db!.functions.invoke('import-recipe', body: body);
+      final data = res.data as Map<String, dynamic>;
+      return (id: data['id'] as String, duplicate: data['duplicate'] == true);
+    } on FunctionException catch (e) {
+      final d = e.details;
+      final msg = (d is Map && d['error'] != null) ? d['error'].toString() : null;
+      throw Exception(msg ?? 'Import non riuscito (${e.status})');
+    }
+  }
 
   /// Importa da un URL (web o social) e salva la ricetta. Ritorna l'id e se era
   /// un doppione (ricetta già presente in libreria).
@@ -50,10 +61,12 @@ class ImportRepository {
       );
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
-    final res =
-        await _db!.functions.invoke('import-recipe', body: {'text': post.text});
-    final recipe = _parse(res.data as Map<String, dynamic>);
-    return (id: await _save(recipe), duplicate: false);
+    return _invokeImport({
+      'text': post.text,
+      'title': post.title,
+      if (post.imageUrl != null) 'image_url': post.imageUrl,
+      'source_url': post.sourceUrl,
+    });
   }
 
   /// Importa da testo GIÀ disponibile (fallback: l'utente incolla la ricetta,
@@ -73,9 +86,12 @@ class ImportRepository {
       );
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
-    final res = await _db!.functions.invoke('import-recipe', body: {'text': text});
-    final recipe = _parse(res.data as Map<String, dynamic>);
-    return (id: await _save(recipe), duplicate: false);
+    return _invokeImport({
+      'text': text,
+      if (title != null) 'title': title,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (sourceUrl != null) 'source_url': sourceUrl,
+    });
   }
 
   /// [onPhase] riceve i passi REALI: 'reading' (estrazione sul dispositivo),
@@ -102,43 +118,24 @@ class ImportRepository {
       final r = await localApi.importUrl(url);
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
+    // Social su mobile: estrazione SUL DISPOSITIVO, poi enrich AI lato server.
+    if (!kIsWeb && isSocial(url)) {
+      if (isFacebook(url)) {
+        throw Exception(
+            'Facebook non è ancora supportato. Copia il testo della ricetta e usa "Incolla testo".');
+      }
+      onPhase?.call('reading');
+      final post = await SocialExtractor.extract(url);
+      onPhase?.call('processing');
+      return _invokeImport({
+        'text': post.text,
+        'title': post.title,
+        if (post.imageUrl != null) 'image_url': post.imageUrl,
+        'source_url': post.sourceUrl,
+      });
+    }
     onPhase?.call('processing');
-    final res = await _db!.functions.invoke('import-recipe', body: {'url': url});
-    final data = res.data as Map<String, dynamic>;
-    final recipe = _parse(data);
-    return (id: await _save(recipe), duplicate: false);
-  }
-
-  Recipe _parse(Map<String, dynamic> m) => Recipe.fromMap(
-        m,
-        ingredients: ((m['ingredients'] as List?) ?? const [])
-            .map((e) => Ingredient.fromMap(e as Map<String, dynamic>))
-            .toList(),
-        steps: ((m['steps'] as List?) ?? const [])
-            .map((e) => RecipeStep.fromMap(e as Map<String, dynamic>))
-            .toList(),
-      );
-
-  Future<String> _save(Recipe recipe) async {
-    final inserted = await _db!
-        .from('recipes')
-        .insert({...recipe.toMap(), 'user_id': _uid})
-        .select('id')
-        .single();
-    final id = inserted['id'] as String;
-    if (recipe.ingredients.isNotEmpty) {
-      await _db.from('ingredients').insert([
-        for (final (i, ing) in recipe.ingredients.indexed)
-          {...ing.toMap(), 'recipe_id': id, 'user_id': _uid, 'position': i}
-      ]);
-    }
-    if (recipe.steps.isNotEmpty) {
-      await _db.from('steps').insert([
-        for (final (i, s) in recipe.steps.indexed)
-          {...s.toMap(), 'recipe_id': id, 'user_id': _uid, 'position': i}
-      ]);
-    }
-    return id;
+    return _invokeImport({'url': url});
   }
 }
 
