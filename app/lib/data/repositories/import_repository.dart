@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
 import '../../features/import/social_extractor.dart';
-import '../../features/import/webview_extractor.dart';
 import '../local_api.dart';
 
 /// Import ricette. L'estrazione robusta (JSON-LD, fallback euristico,
@@ -119,23 +118,23 @@ class ImportRepository {
       final r = await localApi.importUrl(url);
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
-    // Social: estrazione della didascalia SUL TELEFONO (unico IP non bloccato).
-    // YouTube usa l'API interna (InnerTube); gli altri passano per la webview
-    // headless (rende il JS come un browser, supera i muri di login), con
-    // ripiego sulla fetch semplice. Poi enrich+salvataggio su Supabase.
+    // Social: estrazione SUL TELEFONO con timeout brevi (niente webview che si
+    // impalla). YouTube usa l'API interna (InnerTube) e funziona col solo link;
+    // Instagram/TikTok/ecc. col solo link spesso danno il muro di login → in tal
+    // caso si fallisce SUBITO indirizzando alla Condivisione (che porta la
+    // didascalia). Nessun loop.
     if (!kIsWeb && isSocial(url)) {
       onPhase?.call('reading');
-      final isYt =
-          RegExp(r'youtube\.com|youtu\.be', caseSensitive: false).hasMatch(url);
-      ExtractedPost post;
-      if (isYt) {
+      ExtractedPost? post;
+      try {
         post = await SocialExtractor.extract(url);
-      } else {
-        post = await extractViaWebView(url) ?? await SocialExtractor.extract(url);
+      } catch (_) {
+        post = null;
       }
-      if (post.text.trim().length < 20) {
+      if (post == null || post.text.trim().length < 20) {
         throw Exception(
-            'Non riesco a leggere la ricetta da questo post. Se è privato, copia il testo e usa "Incolla testo".');
+            'Per Instagram/TikTok apri il post nell\'app → Condividi → Beet It! '
+            '(il solo link non basta). Oppure incolla il testo della ricetta.');
       }
       onPhase?.call('processing');
       return _invokeImport({
