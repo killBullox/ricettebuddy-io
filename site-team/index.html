@@ -189,6 +189,28 @@
   .pick-hd input{margin:0;flex:1}
   .pick-hd b{font-family:'Fraunces',serif}
   .pick-grid{flex:1;overflow:auto;background:#fff;border-radius:14px;padding:14px}
+
+  /* ---- cibi pronti (gestione DB) ---- */
+  #fd{position:fixed;inset:0;z-index:72;background:rgba(20,6,26,.62);display:none;justify-content:center;padding:18px;overflow:auto}
+  #fd.on{display:flex}
+  .fd-box{background:#fff;border-radius:20px;max-width:1000px;width:100%;height:max-content;box-shadow:0 30px 60px rgba(0,0,0,.4);overflow:hidden}
+  .fd-hd{background:var(--aub);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:12px}
+  .fd-hd h2{margin:0;font-size:1.2rem;color:#fff}
+  .fd-bd{padding:18px 22px}
+  .fd-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .fd-tools input{margin:0}
+  .fd-tools #fdQ{flex:1;min-width:200px}
+  .fd-list{list-style:none;padding:0;margin:0;max-height:60vh;overflow:auto}
+  .fd-item{display:flex;align-items:center;gap:12px;padding:9px 6px;border-bottom:1px solid var(--paper2)}
+  .fd-item img{width:44px;height:44px;border-radius:9px;object-fit:cover;background:var(--paper2);flex:none}
+  .fd-item .nm{font-weight:700;line-height:1.15}
+  .fd-item .mt{color:var(--taupe);font-size:.8rem}
+  .fd-item .sp{margin-left:auto;display:flex;gap:6px;flex:none}
+  .fd-item .sp button{border:1px solid var(--paper2);background:#fff;border-radius:8px;padding:4px 9px;cursor:pointer;font-family:inherit;font-size:.8rem}
+  .nutriscore{display:inline-block;min-width:18px;text-align:center;border-radius:5px;padding:1px 6px;font-weight:800;font-size:.72rem;color:#fff;text-transform:uppercase}
+  #scan{margin-top:10px}
+  #scanBox{width:100%;max-width:360px}
+  .fd-edit{background:var(--paper);border-radius:12px;padding:14px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -211,8 +233,9 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-2</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-3</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
+    <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
     <button id="logout">Esci</button>
@@ -251,6 +274,41 @@
 </div>
 
 <div id="ov"><div class="modal"><div id="modalBody"></div></div></div>
+
+<div id="fd"><div class="fd-box">
+  <div class="fd-hd">
+    <h2>🥫 Cibi pronti · database</h2>
+    <span class="code" id="fdCount" style="margin-left:auto;font-size:.8rem;opacity:.85"></span>
+    <button class="ck-x" id="fdClose" title="Chiudi">&times;</button>
+  </div>
+  <div class="fd-bd">
+    <div class="fd-tools">
+      <input id="fdQ" type="text" placeholder="Cerca prodotto, marca o codice a barre…" />
+      <input id="fdEan" type="text" inputmode="numeric" placeholder="EAN / codice a barre" style="flex:0 0 190px" />
+      <button class="btn" id="fdAdd">+ Aggiungi da EAN</button>
+      <button class="btn btn-gh" id="fdScan">📷 Scansiona</button>
+    </div>
+    <div id="scan"></div>
+    <p class="msg" id="fdMsg"></p>
+    <div id="fdEditWrap"></div>
+    <ul class="fd-list" id="fdList"></ul>
+  </div>
+</div></div>
+
+<div id="fp"><div class="fd-box" style="max-width:640px">
+  <div class="fd-hd">
+    <h2>Aggiungi prodotto pronto</h2>
+    <button class="ck-x" id="fpClose" title="Chiudi">&times;</button>
+  </div>
+  <div class="fd-bd">
+    <div class="fd-tools">
+      <input id="fpQ" type="text" placeholder="Cerca un prodotto dal database…" />
+      <input id="fpQty" type="text" placeholder="Quantità (es. 150 g)" style="flex:0 0 150px" />
+    </div>
+    <p class="hint">Cerca il prodotto, imposta la quantità e clicca: lo aggiungo come ingrediente.</p>
+    <ul class="fd-list" id="fpList"></ul>
+  </div>
+</div></div>
 
 <div id="pl"><div class="pl-box">
   <div class="pl-hd">
@@ -392,7 +450,8 @@
     </div>
 
     <h3>Ingredienti</h3>
-    <p class="hint">Uno per riga, <b>sempre con la dose</b> &mdash; es. <i>800 g di melanzane</i>.</p>
+    <p class="hint">Uno per riga, <b>sempre con la dose</b> &mdash; es. <i>800 g di melanzane</i>.
+      <button type="button" class="btn btn-gh" id="pickFoodBtn" style="padding:4px 10px;font-size:.8rem;margin-left:6px">🥫 Aggiungi prodotto pronto</button></p>
     <textarea id="fIng" rows="9"></textarea>
 
     <h3>Procedimento</h3>
@@ -442,6 +501,7 @@
 </div>
 
 <script src="supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 window.onerror = function(msg, src, line, col){
   var d = document.createElement('div');
@@ -1308,6 +1368,133 @@ async function fnCall2(body, fnName){
     throw new Error(det);
   }
   return res.data;
+}
+
+/* ======================= CIBI PRONTI (database) ======================= */
+var NSCOL={a:'#038141',b:'#85BB2F',c:'#FECB02',d:'#EE8100',e:'#E63E11'};
+function nsPill(g){ return (g&&NSCOL[g])?'<span class="nutriscore" style="background:'+NSCOL[g]+'">'+g+'</span>':''; }
+function debounce(fn,ms){ var t; return function(){ var a=arguments,me=this; clearTimeout(t); t=setTimeout(function(){fn.apply(me,a);},ms); }; }
+function foodMeta(r){
+  var n=r.nutrition||{}; var parts=[];
+  if(r.brand) parts.push(esc(r.brand));
+  if(r.quantity) parts.push(esc(r.quantity));
+  if(n.kcal!=null) parts.push(Math.round(n.kcal)+' kcal/100g');
+  return parts.join(' · ');
+}
+async function searchFoods(q){
+  var query=sb.from('packaged_foods').select('code,name,brand,quantity,image_url,nutrition,nutriscore,nova_group').order('name').limit(60);
+  q=(q||'').trim();
+  if(q) query=query.or('name.ilike.%'+q+'%,brand.ilike.%'+q+'%,code.ilike.%'+q+'%');
+  var r=await query; return (r.data)||[];
+}
+function foodInvoke(body){ return fnCall2(body,'off-product'); }
+
+/* --- manager --- */
+$('foodsBtn').onclick=function(){ $('fd').classList.add('on'); $('fdEditWrap').innerHTML=''; msg('fdMsg',''); $('fdQ').value=''; $('fdEan').value=''; fdRender(); };
+function fdClose(){ stopScan(); $('fd').classList.remove('on'); }
+$('fdClose').onclick=fdClose; $('fd').onclick=function(e){ if(e.target.id==='fd') fdClose(); };
+var fdRows={};
+async function fdRender(){
+  var list=await searchFoods($('fdQ').value);
+  fdRows={}; list.forEach(function(r){ fdRows[r.code]=r; });
+  var tot=await sb.from('packaged_foods').select('code',{count:'exact',head:true});
+  $('fdCount').textContent=(tot.count||list.length)+' prodotti';
+  $('fdList').innerHTML=list.map(function(r){
+    return '<li class="fd-item"><img loading="lazy" src="'+(r.image_url||'')+'" alt="">'
+      +'<div><div class="nm">'+esc(r.name)+' '+nsPill(r.nutriscore)+'</div><div class="mt">'+foodMeta(r)+' · '+esc(r.code||'')+'</div></div>'
+      +'<div class="sp"><button data-a="ed" data-c="'+esc(r.code)+'" title="Modifica">✎</button>'
+      +'<button data-a="up" data-c="'+esc(r.code)+'" title="Aggiorna da OFF">↻</button>'
+      +'<button data-a="del" data-c="'+esc(r.code)+'" style="color:#b00020" title="Elimina">🗑</button></div></li>';
+  }).join('') || '<li style="padding:12px;color:var(--taupe)">Nessun prodotto.</li>';
+  $('fdList').querySelectorAll('button[data-a]').forEach(function(b){
+    b.onclick=function(){ var r=fdRows[b.getAttribute('data-c')]; var a=b.getAttribute('data-a');
+      if(a==='ed') fdEdit(r); else if(a==='up') fdUpdate(r); else fdDelete(r); };
+  });
+}
+$('fdQ').oninput=debounce(fdRender,280);
+
+async function addByEan(ean){
+  ean=(ean||'').replace(/\D/g,'');
+  if(ean.length<6){ msg('fdMsg','Codice a barre non valido.','ko'); return; }
+  msg('fdMsg','Cerco '+ean+' su Open Food Facts…','wait');
+  try{
+    var d=await foodInvoke({ean:ean});
+    $('fdEan').value=''; $('fdQ').value=d.product.name;
+    msg('fdMsg','Aggiunto: '+d.product.name+(d.vegan_label?' ✓':' — ⚠️ NON etichettato vegan su OFF: verifica prima di usarlo'), d.vegan_label?'ok':'');
+    fdRender();
+  }catch(e){ msg('fdMsg','Errore: '+(e.message||e),'ko'); }
+}
+$('fdAdd').onclick=function(){ addByEan($('fdEan').value); };
+$('fdEan').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('fdAdd').click(); } });
+
+async function fdUpdate(r){
+  msg('fdMsg','Aggiorno '+r.name+' da OFF…','wait');
+  try{ var d=await foodInvoke({ean:r.code}); msg('fdMsg','Aggiornato: '+d.product.name,'ok'); fdRender(); }
+  catch(e){ msg('fdMsg','Errore: '+(e.message||e),'ko'); }
+}
+async function fdDelete(r){
+  if(!confirm('Eliminare "'+r.name+'" dal database?')) return;
+  var q=await sb.from('packaged_foods').delete().eq('code',r.code);
+  if(q.error){ msg('fdMsg','Errore: '+q.error.message,'ko'); return; }
+  msg('fdMsg','Eliminato: '+r.name,'ok'); fdRender();
+}
+function fdEdit(r){
+  var n=r.nutrition||{};
+  function f(id,lbl,val,w){ return '<label style="flex:'+(w||'1 1 100px')+';font-size:.75rem;font-weight:700;color:var(--taupe)">'+lbl+'<input id="'+id+'" value="'+esc(val==null?'':val)+'" style="margin-top:4px"></label>'; }
+  $('fdEditWrap').innerHTML='<div class="fd-edit"><div style="font-weight:800;margin-bottom:8px">Modifica · '+esc(r.code)+'</div>'
+    +'<div class="row">'+f('eNm','Nome',r.name,'2 1 240px')+f('eBr','Marca',r.brand)+f('eQt','Formato',r.quantity,'0 0 120px')+'</div>'
+    +'<div class="row" style="margin-top:8px">'+f('eKc','Kcal',n.kcal)+f('ePr','Prot',n.protein_g)+f('eCa','Carbo',n.carbs_g)+f('eZu','Zucch',n.sugars_g)+f('eGr','Grassi',n.fat_g)+f('eFi','Fibre',n.fiber_g)+f('eSa','Sale',n.salt_g)+f('eNs','Nutri',r.nutriscore,'0 0 70px')+'</div>'
+    +'<div style="margin-top:10px;display:flex;gap:8px"><button class="btn" id="eSave">Salva</button><button class="btn btn-gh" id="eCanc">Annulla</button></div></div>';
+  $('eCanc').onclick=function(){ $('fdEditWrap').innerHTML=''; };
+  $('eSave').onclick=async function(){
+    var nn=function(id){ var v=parseFloat($(id).value); return isNaN(v)?null:v; };
+    var upd={ name:$('eNm').value.trim(), brand:$('eBr').value.trim()||null, quantity:$('eQt').value.trim()||null,
+      nutriscore:$('eNs').value.trim().toLowerCase()||null, updated_at:new Date().toISOString(),
+      nutrition:{ kcal:nn('eKc'),protein_g:nn('ePr'),carbs_g:nn('eCa'),sugars_g:nn('eZu'),fat_g:nn('eGr'),fiber_g:nn('eFi'),salt_g:nn('eSa') } };
+    var q=await sb.from('packaged_foods').update(upd).eq('code',r.code);
+    if(q.error){ msg('fdMsg','Errore: '+q.error.message,'ko'); return; }
+    $('fdEditWrap').innerHTML=''; msg('fdMsg','Salvato: '+upd.name,'ok'); fdRender();
+  };
+}
+
+/* --- scanner codice a barre (html5-qrcode) --- */
+var scanner=null;
+function stopScan(){ if(scanner){ try{ scanner.stop(); }catch(e){} scanner=null; } $('scan').innerHTML=''; }
+$('fdScan').onclick=async function(){
+  if(scanner){ stopScan(); return; }
+  if(typeof Html5Qrcode==='undefined'){ msg('fdMsg','Scanner non caricato (rete?). Digita l\'EAN a mano.','ko'); return; }
+  $('scan').innerHTML='<div id="scanBox"></div>';
+  scanner=new Html5Qrcode('scanBox');
+  var fmts=[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E];
+  try{
+    await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:160},formatsToSupport:fmts},
+      function(txt){ var ean=String(txt).replace(/\D/g,''); if(ean.length>=6){ stopScan(); $('fdEan').value=ean; addByEan(ean); } },
+      function(){});
+    msg('fdMsg','Inquadra il codice a barre…','wait');
+  }catch(e){ msg('fdMsg','Fotocamera non disponibile: '+(e.message||e),'ko'); stopScan(); }
+};
+
+/* ======================= SELETTORE PRODOTTO in RICETTA ======================= */
+$('pickFoodBtn').onclick=function(){ $('fpQ').value=''; $('fpQty').value=''; $('fp').classList.add('on'); $('fpQ').focus(); fpRender(); };
+function fpClose(){ $('fp').classList.remove('on'); }
+$('fpClose').onclick=fpClose; $('fp').onclick=function(e){ if(e.target.id==='fp') fpClose(); };
+async function fpRender(){
+  var list=await searchFoods($('fpQ').value);
+  $('fpList').innerHTML=list.map(function(r){
+    return '<li class="fd-item" data-c="'+esc(r.code)+'" style="cursor:pointer"><img loading="lazy" src="'+(r.image_url||'')+'" alt="">'
+      +'<div><div class="nm">'+esc(r.name)+'</div><div class="mt">'+foodMeta(r)+'</div></div><div class="sp" style="font-size:1.3rem;color:var(--leaf)">＋</div></li>';
+  }).join('') || '<li style="padding:12px;color:var(--taupe)">Nessun prodotto.</li>';
+  var rowsByCode={}; list.forEach(function(r){ rowsByCode[r.code]=r; });
+  $('fpList').querySelectorAll('li[data-c]').forEach(function(li){ li.onclick=function(){ addFoodToRecipe(rowsByCode[li.getAttribute('data-c')]); }; });
+}
+$('fpQ').oninput=debounce(fpRender,280);
+function addFoodToRecipe(r){
+  var qty=$('fpQty').value.trim();
+  var line=(qty?(qty+' di '):'')+r.name+(r.brand?(' ('+r.brand+')'):'');
+  var cur=$('fIng').value;
+  $('fIng').value=cur+((cur && !/\n$/.test(cur))?'\n':'')+line;
+  NW.nomi[line]=r.name;
+  fpClose();
 }
 
 boot().catch(function(e){ show('login'); $('loginErr').textContent='Errore: '+(e && e.message ? e.message : e); });
