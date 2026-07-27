@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config.dart';
 import '../../features/import/social_extractor.dart';
+import '../../features/import/webview_extractor.dart';
 import '../local_api.dart';
 
 /// Import ricette. L'estrazione robusta (JSON-LD, fallback euristico,
@@ -118,14 +119,24 @@ class ImportRepository {
       final r = await localApi.importUrl(url);
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
-    // Social su mobile: estrazione SUL DISPOSITIVO, poi enrich AI lato server.
+    // Social: estrazione della didascalia SUL TELEFONO (unico IP non bloccato).
+    // YouTube usa l'API interna (InnerTube); gli altri passano per la webview
+    // headless (rende il JS come un browser, supera i muri di login), con
+    // ripiego sulla fetch semplice. Poi enrich+salvataggio su Supabase.
     if (!kIsWeb && isSocial(url)) {
-      if (isFacebook(url)) {
-        throw Exception(
-            'Facebook non è ancora supportato. Copia il testo della ricetta e usa "Incolla testo".');
-      }
       onPhase?.call('reading');
-      final post = await SocialExtractor.extract(url);
+      final isYt =
+          RegExp(r'youtube\.com|youtu\.be', caseSensitive: false).hasMatch(url);
+      ExtractedPost post;
+      if (isYt) {
+        post = await SocialExtractor.extract(url);
+      } else {
+        post = await extractViaWebView(url) ?? await SocialExtractor.extract(url);
+      }
+      if (post.text.trim().length < 20) {
+        throw Exception(
+            'Non riesco a leggere la ricetta da questo post. Se è privato, copia il testo e usa "Incolla testo".');
+      }
       onPhase?.call('processing');
       return _invokeImport({
         'text': post.text,

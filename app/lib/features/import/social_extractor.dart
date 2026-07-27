@@ -3,8 +3,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../config.dart';
-
 /// Contenuto estratto da un post social, PRIMA dell'AI.
 class ExtractedPost {
   final String title;
@@ -33,6 +31,11 @@ class SocialExtractor {
   // Gli UA da crawler ricevono i meta og: (anteprime link) senza muri.
   static const _crawlerUA = 'Mozilla/5.0 (compatible; Twitterbot/1.0)';
 
+  // NB (2026): Instagram, TikTok e YouTube bloccano gli IP dei datacenter, quindi
+  // l'estrazione via server (yt-dlp sul VPS) non è più affidabile. L'unico IP non
+  // bloccato è quello del TELEFONO dell'utente: l'estrazione resta ON-DEVICE.
+  // YouTube: InnerTube (API interna) dall'IP utente. Instagram/Pinterest/siti:
+  // meta og: (funziona per i post pubblici che non mostrano il muro di login).
   static Future<ExtractedPost> extract(String url) async {
     final u = url.trim();
     if (RegExp(r'youtube\.com|youtu\.be', caseSensitive: false).hasMatch(u)) {
@@ -41,35 +44,8 @@ class SocialExtractor {
     if (RegExp(r'tiktok\.com', caseSensitive: false).hasMatch(u)) {
       return _tiktok(u);
     }
-    if (isFacebook(u)) {
-      // FB non è leggibile dal dispositivo: estrazione server-side (yt-dlp,
-      // didascalia completa senza login).
-      return _viaServer(u);
-    }
     // Instagram / Pinterest / siti generici: fetch HTTP + meta og:.
     return _viaHttp(u);
-  }
-
-  static bool isFacebook(String url) =>
-      RegExp(r'facebook\.com|fb\.watch', caseSensitive: false).hasMatch(url);
-
-  // ---- Estrazione server-side (yt-dlp sul backend) ----
-  static Future<ExtractedPost> _viaServer(String url) async {
-    final r = await http
-        .post(Config.backendUri('api/extract-social'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'url': url}))
-        .timeout(const Duration(seconds: 150));
-    final m = Map<String, dynamic>.from(jsonDecode(r.body) as Map);
-    if (r.statusCode >= 400) {
-      throw (m['error'] ?? 'Estrazione non riuscita').toString();
-    }
-    return ExtractedPost(
-      title: (m['title'] ?? 'Ricetta').toString(),
-      text: (m['text'] ?? '').toString(),
-      imageUrl: m['image_url']?.toString(),
-      sourceUrl: (m['source_url'] ?? url).toString(),
-    );
   }
 
   // ---- Fetch HTTP + parsing meta og: (veloce) ----
@@ -90,7 +66,17 @@ class SocialExtractor {
     final r = await http
         .get(Uri.parse(url), headers: {'User-Agent': _crawlerUA})
         .timeout(const Duration(seconds: 15));
-    final html = r.body;
+    final post = fromRenderedHtml(r.body, url);
+    if (post.text.trim().length < 40) {
+      throw 'Non riesco a leggere la ricetta da questo link.';
+    }
+    return post;
+  }
+
+  /// Costruisce l'ExtractedPost dai meta og: di una pagina già scaricata o
+  /// RENDERIZZATA (dalla webview headless). `text` vuoto se la didascalia manca
+  /// (il chiamante decide se ripiegare).
+  static ExtractedPost fromRenderedHtml(String html, String url) {
     final title = _htmlDecode(_meta(html, 'og:title') ?? '');
     final desc = _htmlDecode(_meta(html, 'og:description') ?? '');
     // NB: gli URL immagine nei meta contengono entità HTML (&amp;) → decodifica,
@@ -103,12 +89,9 @@ class SocialExtractor {
       final slug = _deslug(ogUrl);
       if (slug.length > caption.length) caption = slug;
     }
-    if (caption.length < 40) {
-      throw 'Non riesco a leggere la ricetta da questo link.';
-    }
     return ExtractedPost(
       title: title.isNotEmpty ? title : 'Ricetta',
-      text: '$title\n\n$caption',
+      text: caption.length < 40 ? '' : '$title\n\n$caption',
       imageUrl: img.isEmpty ? null : img,
       sourceUrl: ogUrl,
     );

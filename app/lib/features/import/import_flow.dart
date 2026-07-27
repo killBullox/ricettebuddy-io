@@ -42,6 +42,34 @@ Future<({String id, bool duplicate})?> runImport(
   }
 }
 
+/// Import dalla RICETTA INCOLLATA A MANO (didascalia copiata dal social). È la
+/// via che funziona SEMPRE, su qualsiasi piattaforma: l'AI struttura il testo.
+Future<({String id, bool duplicate})?> runImportText(
+    BuildContext context, WidgetRef ref, String text) async {
+  final l = AppLocalizations.of(context);
+  final live = ValueNotifier<String>(phaseText(l, 'processing'));
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: const Color(0xFFFBFAF7),
+    useSafeArea: false,
+    builder: (_) => Center(
+      child: CookingLoader(size: 230, liveMessage: live, payoff: kPayoff),
+    ),
+  );
+  try {
+    final res =
+        await ref.read(importRepositoryProvider).importFromText(text: text);
+    if (context.mounted) Navigator.of(context).pop();
+    return res;
+  } catch (_) {
+    if (context.mounted) Navigator.of(context).pop();
+    rethrow;
+  } finally {
+    live.dispose();
+  }
+}
+
 /// Import da una CONDIVISIONE: se l'app social loggata ha passato anche la
 /// didascalia ([caption]), la elaboriamo direttamente (contenuto autenticato,
 /// come fa il concorrente). Altrimenti si estrae dall'[url].

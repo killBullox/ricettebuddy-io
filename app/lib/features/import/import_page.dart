@@ -14,21 +14,20 @@ class ImportPage extends ConsumerStatefulWidget {
 
 class _ImportPageState extends ConsumerState<ImportPage> {
   final _url = TextEditingController();
+  final _text = TextEditingController();
   bool _importing = false;
 
-  Future<void> _import() async {
-    final url = _url.text.trim();
-    if (url.isEmpty) return;
+  Future<void> _run(
+      Future<({String id, bool duplicate})?> Function() action,
+      {VoidCallback? onDone}) async {
     final l = AppLocalizations.of(context);
     setState(() => _importing = true);
-    // Fase REALE mostrata nel loader: cambia man mano che il processo avanza
-    // davvero (estrazione sul dispositivo → stream dell'AI).
     try {
-      final res = await runImport(context, ref, url);
-      if (res == null) return; // annullato (es. webview Facebook chiusa)
+      final res = await action();
+      if (res == null) return; // annullato
       ref.invalidate(recipeListProvider);
       if (!mounted) return;
-      _url.clear();
+      onDone?.call();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(res.duplicate ? l.alreadyInLibrary : l.recipeImported),
       ));
@@ -42,9 +41,22 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
   }
 
+  Future<void> _import() async {
+    final url = _url.text.trim();
+    if (url.isEmpty) return;
+    await _run(() => runImport(context, ref, url), onDone: _url.clear);
+  }
+
+  Future<void> _importText() async {
+    final text = _text.text.trim();
+    if (text.length < 20) return;
+    await _run(() => runImportText(context, ref, text), onDone: _text.clear);
+  }
+
   @override
   void dispose() {
     _url.dispose();
+    _text.dispose();
     super.dispose();
   }
 
@@ -78,6 +90,33 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.download),
             label: Text(l.importFromLink),
+          ),
+          const Divider(height: 40),
+          Text('Incolla il testo della ricetta',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Se il link non funziona (post privato o social che blocca la lettura), '
+            'copia la didascalia dal social e incollala qui: la trasformo in ricetta.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _text,
+            minLines: 4,
+            maxLines: 10,
+            keyboardType: TextInputType.multiline,
+            decoration: const InputDecoration(
+              hintText: 'Incolla qui ingredienti e procedimento…',
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            onPressed: _importing ? null : _importText,
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('Crea ricetta dal testo'),
           ),
           const Divider(height: 40),
           Text(l.fromCamera, style: Theme.of(context).textTheme.titleMedium),
