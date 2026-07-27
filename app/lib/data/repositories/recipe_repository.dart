@@ -145,6 +145,7 @@ class RecipeFilters {
   final Set<String> excludeAllergens; // allergeni da escludere (es. "soia")
   final Set<String> labels; // label nutrizionali richieste
   final Set<String> courses; // portate richieste (OR): Primi, Antipasti, ...
+  final Set<String> traits; // caratteristiche (AND): Facile, Veloce, Di stagione
   final int? maxKcal; // per porzione
   final int? minProtein; // g per porzione
 
@@ -153,6 +154,7 @@ class RecipeFilters {
     this.excludeAllergens = const {},
     this.labels = const {},
     this.courses = const {},
+    this.traits = const {},
     this.maxKcal,
     this.minProtein,
   });
@@ -162,6 +164,7 @@ class RecipeFilters {
       excludeAllergens.isEmpty &&
       labels.isEmpty &&
       courses.isEmpty &&
+      traits.isEmpty &&
       maxKcal == null &&
       minProtein == null;
 
@@ -170,6 +173,7 @@ class RecipeFilters {
       excludeAllergens.length +
       labels.length +
       courses.length +
+      traits.length +
       (maxKcal != null ? 1 : 0) +
       (minProtein != null ? 1 : 0);
 
@@ -178,6 +182,7 @@ class RecipeFilters {
     Set<String>? excludeAllergens,
     Set<String>? labels,
     Set<String>? courses,
+    Set<String>? traits,
     int? maxKcal,
     int? minProtein,
     bool clearMaxKcal = false,
@@ -188,6 +193,7 @@ class RecipeFilters {
         excludeAllergens: excludeAllergens ?? this.excludeAllergens,
         labels: labels ?? this.labels,
         courses: courses ?? this.courses,
+        traits: traits ?? this.traits,
         maxKcal: clearMaxKcal ? null : (maxKcal ?? this.maxKcal),
         minProtein: clearMinProtein ? null : (minProtein ?? this.minProtein),
       );
@@ -211,6 +217,10 @@ class RecipeFilters {
     // Portata: la ricetta passa se rientra in ALMENO una portata selezionata.
     if (courses.isNotEmpty && !courses.any((c) => recipeInCourse(r, c))) {
       return false;
+    }
+    // Caratteristiche: devono valere TUTTE quelle selezionate (facile E veloce…).
+    for (final t in traits) {
+      if (!recipeHasTrait(r, t)) return false;
     }
     final kcal = (r.nutrition?['kcal'] as num?)?.toDouble();
     if (maxKcal != null && (kcal == null || kcal > maxKcal!)) return false;

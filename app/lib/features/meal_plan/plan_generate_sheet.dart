@@ -29,6 +29,8 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
   bool _snack = true;
   bool _dessert = false;
   bool _frutta = false;
+  bool _diStagione = false;
+  bool _soloItaliane = false;
   int _settimane = 1;
 
   List<String> _csv(String s) =>
@@ -62,6 +64,8 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
           'spuntini': _snack,
           'dolci': _dessert,
           'frutta': _frutta,
+          'di_stagione': _diStagione,
+          'escludi_internazionali': _soloItaliane,
           'settimane': _settimane,
         },
       );
@@ -205,6 +209,18 @@ class _PlanGenerateSheetState extends ConsumerState<PlanGenerateSheet> {
                 title: const Text('Frutta'),
                 value: _frutta,
                 onChanged: (v) => setState(() => _frutta = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Preferisci di stagione'),
+                value: _diStagione,
+                onChanged: (v) => setState(() => _diStagione = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Solo piatti italiani'),
+                value: _soloItaliane,
+                onChanged: (v) => setState(() => _soloItaliane = v),
               ),
               const SizedBox(height: 6),
               SizedBox(

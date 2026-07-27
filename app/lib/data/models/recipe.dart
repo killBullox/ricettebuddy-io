@@ -48,6 +48,9 @@ class Recipe {
   // servizio di consulenza nutrizionale.
   final String? baseCode;
 
+  // Mesi (1-12) in cui la ricetta è di stagione (dagli ingredienti).
+  final List<int> seasonMonths;
+
   const Recipe({
     this.id,
     required this.title,
@@ -80,6 +83,7 @@ class Recipe {
     this.ingredients = const [],
     this.steps = const [],
     this.baseCode,
+    this.seasonMonths = const [],
   });
 
   /// True se la ricetta viene dal catalogo del servizio di consulenza.
@@ -169,6 +173,9 @@ class Recipe {
       ingredients: ing,
       steps: st,
       baseCode: m['base_code'] as String?,
+      seasonMonths:
+          (m['season_months'] as List?)?.map((e) => (e as num).toInt()).toList() ??
+              const [],
     );
   }
 
@@ -241,6 +248,7 @@ class Recipe {
         ingredients: ingredients ?? this.ingredients,
         steps: steps ?? this.steps,
         baseCode: baseCode,
+        seasonMonths: seasonMonths,
       );
 
   static DateTime? _date(dynamic v) =>

@@ -77,3 +77,39 @@ bool recipeInCourse(Recipe r, String course) {
   if (course == courseInsalatona) return isInsalatona(r);
   return courseOf(r) == course;
 }
+
+// ---- Caratteristiche trasversali (facile / veloce / di stagione) ----
+
+const traitFacile = 'Facile';
+const traitVeloce = 'Veloce';
+const traitStagione = 'Di stagione';
+const traitOptions = <String>[traitFacile, traitVeloce, traitStagione];
+
+/// "Facile" = difficoltà indicata come Facile.
+bool isFacile(Recipe r) => (r.difficulty ?? '').toLowerCase() == 'facile';
+
+/// "Veloce" = tempo totale (prep + cottura) entro 30 minuti.
+bool isVeloce(Recipe r) {
+  final t = (r.prepMinutes ?? 0) + (r.cookMinutes ?? 0);
+  return t > 0 && t <= 30;
+}
+
+/// "Di stagione" = il mese corrente è tra i mesi di stagione della ricetta.
+/// (Nessun dato stagione => la consideriamo sempre disponibile.)
+bool isDiStagione(Recipe r, {DateTime? now}) {
+  if (r.seasonMonths.isEmpty) return true;
+  final m = (now ?? DateTime.now()).month;
+  return r.seasonMonths.contains(m);
+}
+
+bool recipeHasTrait(Recipe r, String trait) {
+  switch (trait) {
+    case traitFacile:
+      return isFacile(r);
+    case traitVeloce:
+      return isVeloce(r);
+    case traitStagione:
+      return isDiStagione(r);
+  }
+  return false;
+}

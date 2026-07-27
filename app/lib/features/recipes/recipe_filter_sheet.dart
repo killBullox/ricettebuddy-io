@@ -21,6 +21,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
   late Set<String> _excl;
   late Set<String> _labels;
   late Set<String> _courses;
+  late Set<String> _traits;
   int? _maxKcal;
   int? _minProtein;
 
@@ -31,6 +32,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
     _excl = {...f.excludeAllergens};
     _labels = {...f.labels};
     _courses = {...f.courses};
+    _traits = {...f.traits};
     _maxKcal = f.maxKcal;
     _minProtein = f.minProtein;
   }
@@ -67,6 +69,15 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
                   label: Text(c),
                   selected: _courses.contains(c),
                   onSelected: (_) => _toggle(_courses, c),
+                ),
+            ]),
+            _title('Caratteristiche'),
+            Wrap(spacing: 8, children: [
+              for (final t in traitOptions)
+                FilterChip(
+                  label: Text(t),
+                  selected: _traits.contains(t),
+                  onSelected: (_) => _toggle(_traits, t),
                 ),
             ]),
             _title(l.filterNoAllergens),
@@ -122,6 +133,7 @@ class _RecipeFilterSheetState extends ConsumerState<RecipeFilterSheet> {
                     excludeAllergens: _excl,
                     labels: _labels,
                     courses: _courses,
+                    traits: _traits,
                     maxKcal: _maxKcal,
                     minProtein: _minProtein,
                   );

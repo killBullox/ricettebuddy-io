@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/diet.dart';
 import '../../data/models/recipe.dart';
 import '../../l10n/app_localizations.dart';
+import 'recipe_course.dart';
 
 /// Testo localizzato di una label nutrizionale (chiave stabile → testo lingua).
 String nutritionLabelText(AppLocalizations l, String key) => switch (key) {
@@ -28,7 +29,15 @@ class RecipeLabels extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final diets = Diet.fromNames(recipe.dietTags).toList();
     final nutri = recipe.nutritionLabels;
-    if (!recipe.isVeganized && diets.isEmpty && nutri.isEmpty) {
+    final facile = isFacile(recipe);
+    final veloce = isVeloce(recipe);
+    final stagione = recipe.seasonMonths.isNotEmpty && isDiStagione(recipe);
+    if (!recipe.isVeganized &&
+        diets.isEmpty &&
+        nutri.isEmpty &&
+        !facile &&
+        !veloce &&
+        !stagione) {
       return const SizedBox.shrink();
     }
     return Wrap(
@@ -41,6 +50,23 @@ class RecipeLabels extends StatelessWidget {
               icon: Icons.eco,
               bg: const Color(0xFF2E7D32),
               fg: Colors.white),
+        if (stagione)
+          const _Pill(
+              text: 'Di stagione',
+              icon: Icons.spa,
+              bg: Color(0xFFEAF5EB),
+              fg: Color(0xFF2E6B33)),
+        if (veloce)
+          const _Pill(
+              text: 'Veloce',
+              icon: Icons.bolt,
+              bg: Color(0xFFFFF0D6),
+              fg: Color(0xFF9A6B00)),
+        if (facile)
+          const _Pill(
+              text: 'Facile',
+              bg: Color(0xFFEFEDE6),
+              fg: Color(0xFF3A0E2A)),
         for (final d in diets)
           _Pill(
               text: dietLabelText(l, d),
