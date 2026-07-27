@@ -114,11 +114,22 @@ Deno.serve(async (req) => {
   const dolci = !!b.dolci;
   const frutta = !!b.frutta;
   const settimane = Math.max(1, Math.min(8, parseInt(b.settimane, 10) || 1));
+  const escludiInternazionali = !!b.escludi_internazionali;
+  const diStagione = !!b.di_stagione;
+  // mese corrente (1-12) per la preferenza di stagione
+  const meseCorrente = new Date().getUTCMonth() + 1;
+
+  // Categorie del catalogo italiano: tutto il resto è "internazionale".
+  const CAT_ITALIANE = new Set([
+    'Antipasti e contorni', 'Primi di pasta', 'Riso e cereali', 'Zuppe e minestre',
+    'Legumi e secondi vegetali', 'Lievitati, pane e pizza', 'Dolci',
+  ]);
+  const isInternazionale = (r: any) => !CAT_ITALIANE.has(r.category);
 
   try {
     // catalogo base + ingredienti (per il match preferiti/evitare)
     const { data: recipes } = await admin.from('recipes')
-      .select('id, base_code, title, category, tags, nutrition')
+      .select('id, base_code, title, category, tags, nutrition, season_months')
       .is('user_id', null);
 
     // Gli ingredienti sono ~1500: PostgREST ne restituisce max 1000 per volta,
@@ -143,6 +154,7 @@ Deno.serve(async (req) => {
     const pool = (recipes || [])
       .filter((r) => courseOf(r) !== 'base')
       .filter((r) => kcal == null || kcalOf(r) != null)
+      .filter((r) => !escludiInternazionali || !isInternazionale(r))
       .filter((r) => {
         if (!evitare.length) return true;
         const txt = ingByRecipe[r.id] || '';
@@ -150,8 +162,13 @@ Deno.serve(async (req) => {
       })
       .map((r) => {
         const txt = ingByRecipe[r.id] || '';
-        const score = preferiti.reduce((s, p) => s + (txt.includes(p) ? 1 : 0), 0);
-        return { ...r, _course: courseOf(r), _score: score };
+        const pref = preferiti.reduce((s, p) => s + (txt.includes(p) ? 1 : 0), 0);
+        // di stagione: bonus se il mese corrente è tra i mesi della ricetta.
+        const inSeason = Array.isArray(r.season_months) &&
+          r.season_months.includes(meseCorrente);
+        const seasonBonus = diStagione && inSeason ? 2 : 0;
+        // _score guida sia i preferiti sia la stagione (pesano insieme).
+        return { ...r, _course: courseOf(r), _score: pref + seasonBonus };
       });
 
     // indice per portata, ordinando i preferiti in cima
@@ -228,10 +245,17 @@ Deno.serve(async (req) => {
               if (f) add(f);
             }
           } else {
+            // Pranzo/cena: il budget dipende dalla QUOTA del pasto, NON dal
+            // residuo — così se il pranzo sfora la cena non resta senza budget
+            // (era la causa dei giorni senza cena).
+            const mealBudget = kcal == null
+              ? Infinity
+              : (SHARE[slot] / shareSum) * kcal * 1.6;
+            let placed = false;
             for (const combo of shuffle(COMBOS, rnd)) {
               const dishes: any[] = [];
               const comboUsed = new Set(dayUsed);
-              let budget = slotBudget;
+              let budget = mealBudget;
               let ok = true;
               for (const course of combo) {
                 const r = pick(course, budget, comboUsed);
@@ -246,7 +270,18 @@ Deno.serve(async (req) => {
                 if (dolce) dishes.push(dolce);
               }
               dishes.forEach(add);
+              placed = true;
               break;
+            }
+            // GARANZIA: pranzo e cena non restano MAI vuoti. Se nessuna combo
+            // passa (catalogo ridotto dopo il dedup), metti almeno un piatto
+            // ignorando il budget.
+            if (!placed) {
+              const r = pick('piattoUnico', Infinity, dayUsed)
+                || pick('primo', Infinity, dayUsed)
+                || pick('secondo', Infinity, dayUsed)
+                || pick('antipasto', Infinity, dayUsed);
+              if (r) add(r);
             }
           }
         }

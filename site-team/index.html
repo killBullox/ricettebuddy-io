@@ -211,7 +211,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.26-1</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-1</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
@@ -300,6 +300,8 @@
           <span class="chip gopt on" data-opt="spuntini">Spuntini</span>
           <span class="chip gopt" data-opt="dolci">Dolci</span>
           <span class="chip gopt" data-opt="frutta">Frutta</span>
+          <span class="chip gopt" data-opt="di_stagione">Di stagione</span>
+          <span class="chip gopt" data-opt="escludi_internazionali">Solo italiane</span>
         </div>
         <button class="btn" id="genBtn">⚡ Genera piano</button>
         <p class="msg" id="genMsg"></p>
@@ -1146,7 +1148,7 @@ function renderWeekNav(){
 }
 
 /* --- opzioni generatore (chip on/off) --- */
-var genOpts = { colazione:true, spuntini:true, dolci:false, frutta:false };
+var genOpts = { colazione:true, spuntini:true, dolci:false, frutta:false, di_stagione:false, escludi_internazionali:false };
 (function(){
   var chips = document.querySelectorAll('.chip.gopt');
   for(var i=0;i<chips.length;i++){
@@ -1169,6 +1171,7 @@ $('genBtn').onclick = async function(){
       preferiti:csv('gPref'), evitare:csv('gAvoid'),
       colazione:genOpts.colazione, spuntini:genOpts.spuntini,
       dolci:genOpts.dolci, frutta:genOpts.frutta,
+      di_stagione:genOpts.di_stagione, escludi_internazionali:genOpts.escludi_internazionali,
       settimane:parseInt($('gWeeks').value,10)||1
     }, 'genera-piano');
     /* costruisci PLAN.weeks dalle settimane restituite */
