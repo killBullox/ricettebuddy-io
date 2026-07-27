@@ -233,7 +233,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-3</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-4</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -905,7 +905,7 @@ var CATEGORIE = ['Antipasti e contorni','Primi di pasta','Zuppe e minestre','Ris
   'Legumi e secondi vegetali','Lievitati, pane e pizza','Dolci','Medio Oriente e Nord Africa',
   'India e subcontinente','Asia orientale e Sud Est','Americhe','Europa','Africa subsahariana'];
 var CAT_IT = CATEGORIE.slice(0,7);   /* le italiane -> codice ITxxx, le altre WWxxx */
-var NW = { code:null, img:'', ingEn:'', nomi:{} };
+var NW = { code:null, img:'', ingEn:'', nomi:{}, foods:[] };
 
 /* Nome "da comprare" ripulito da dose, unita' e preparazione.
    Port di cleanIngredientName() dell'app: e' quello che finisce in
@@ -969,7 +969,7 @@ async function ensureCode(){
 /* --- modifica / elimina (riusano il form nuova ricetta) --- */
 function tagOf(r,t){ return (r.tags||[]).map(function(x){return String(x).toLowerCase();}).indexOf(t)>=0; }
 function editRecipe(r, ings, steps){
-  NW = { code:r.base_code, img:r.image_url || '', ingEn:'', nomi:{}, editId:r.id };
+  NW = { code:r.base_code, img:r.image_url || '', ingEn:'', nomi:{}, foods:[], editId:r.id };
   $('fPiattoUnico').checked = tagOf(r,'piatto_unico');
   $('fInsalatona').checked = tagOf(r,'insalatona');
   $('nwCode').textContent = 'Modifica ' + (r.base_code||'');
@@ -997,7 +997,7 @@ async function deleteRecipe(r){
 }
 
 $('newBtn').onclick = function(){
-  NW = { code:null, img:'', ingEn:'', nomi:{}, editId:null };
+  NW = { code:null, img:'', ingEn:'', nomi:{}, foods:[], editId:null };
   ['aiTitle','aiZona','aiNote','fTitle','fCui','fIng','fSteps','nKcal','nPro','nCar','nFat','nFib']
     .forEach(function(id){ $(id).value=''; });
   $('aiPorz').value=4; $('fPorz').value=4; $('fPrep').value=15; $('fCott').value=20;
@@ -1020,7 +1020,7 @@ $('aiBtn').onclick = async function(){
   try{
     var data = await fnCall({ action:'assist', ricetta:{
       titolo:t, zona:$('aiZona').value.trim(), porzioni:parseInt($('aiPorz').value,10)||4,
-      note:$('aiNote').value.trim() } });
+      note:$('aiNote').value.trim(), prodotti_pronti:NW.foods } });
     var r = data.ricetta;
     $('fTitle').value = r.titolo || t;
     if(CATEGORIE.indexOf(r.categoria) >= 0) $('fCat').value = r.categoria;
@@ -1494,6 +1494,9 @@ function addFoodToRecipe(r){
   var cur=$('fIng').value;
   $('fIng').value=cur+((cur && !/\n$/.test(cur))?'\n':'')+line;
   NW.nomi[line]=r.name;
+  /* conserva i dati REALI del prodotto: l'AI li usa per calcolare la ricetta */
+  if(!NW.foods) NW.foods=[];
+  NW.foods.push({ code:r.code, name:r.name, brand:r.brand||'', qty:qty||'q.b.', nutrition:r.nutrition||{} });
   fpClose();
 }
 

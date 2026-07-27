@@ -145,9 +145,31 @@ const SCHEMA_HINT = `{
 }`;
 
 async function assistRicetta(input: Record<string, unknown>) {
+  // Prodotti pronti (confezionati) con valori nutrizionali REALI per 100 g:
+  // vanno usati esattamente, non stimati.
+  const foods = Array.isArray((input as any).prodotti_pronti)
+    ? (input as any).prodotti_pronti as any[]
+    : [];
+  let foodsBlock = '';
+  if (foods.length) {
+    foodsBlock = `\n\nPRODOTTI PRONTI usati nella ricetta (valori REALI per 100 g — ` +
+      `USALI ESATTAMENTE, NON stimarli):\n` +
+      foods.map((f) => {
+        const n = f.nutrition || {};
+        return `- ${f.name}${f.brand ? ' (' + f.brand + ')' : ''}: ${f.qty || '?'} nella ricetta. ` +
+          `Per 100 g: ${n.kcal ?? '?'} kcal, ${n.protein_g ?? '?'} g prot, ` +
+          `${n.carbs_g ?? '?'} g carbo, ${n.fat_g ?? '?'} g grassi, ${n.fiber_g ?? '?'} g fibre.`;
+      }).join('\n') +
+      `\nIncludi questi prodotti tra gli ingredienti con la loro quantita'. ` +
+      `Nel calcolo nutrizionale PER PORZIONE somma il loro contributo reale ` +
+      `(valori per 100 g x grammi usati / porzioni) piu' gli ingredienti freschi che aggiungi. ` +
+      `Il procedimento deve dire come si assembla/usa il prodotto pronto.`;
+  }
+
   const prompt =
     `Sei il nutrizionista che compila il database ricette base di Beet It! (100% vegetale).\n\n` +
-    `Ricetta da strutturare:\n${JSON.stringify(input, null, 1)}\n\n` +
+    `Ricetta da strutturare:\n${JSON.stringify(input, null, 1)}\n` +
+    foodsBlock + `\n\n` +
     `Regole NON negoziabili:\n` +
     `1. La ricetta e' VEGANA: mai uovo, latte, burro, formaggio, panna, miele, carne, pesce.\n` +
     `2. Ogni ingrediente ha la DOSE esplicita per il numero di porzioni indicato ` +
@@ -156,7 +178,8 @@ async function assistRicetta(input: Record<string, unknown>) {
     `usato (es. "Friggi le 800 g di melanzane...", "Unisci i 400 g di pomodori pelati...").\n` +
     `4. "nome" di ogni ingrediente e' il sostantivo pulito, senza dose ne' preparazione ` +
     `(es. "melanzane", "olio extravergine di oliva").\n` +
-    `5. La nutrizione e' PER PORZIONE, realistica per gli ingredienti e le dosi indicate.\n\n` +
+    `5. La nutrizione e' PER PORZIONE. Per i PRODOTTI PRONTI usa i valori reali forniti; ` +
+    `per gli ingredienti freschi stima realisticamente.\n\n` +
     `Rispondi SOLO con JSON valido in questa forma:\n${SCHEMA_HINT}`;
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
