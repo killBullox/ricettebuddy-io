@@ -234,7 +234,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-6</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-7</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -1010,7 +1010,7 @@ $('newBtn').onclick = function(){
 };
 function nwClose(){ $('nw').classList.remove('on'); }
 $('nwClose').onclick = nwClose; $('nwCancel').onclick = nwClose;
-$('nw').onclick = function(e){ if(e.target.id==='nw') nwClose(); };
+/* niente chiusura al click fuori: si perde il lavoro. Solo X / Annulla. */
 
 /* --- compilazione assistita --- */
 $('aiBtn').onclick = async function(){
@@ -1159,7 +1159,7 @@ $('planBtn').onclick = function(){
 };
 function plClose(){ $('pl').classList.remove('on'); }
 $('plClose').onclick = plClose; $('plCancel').onclick = plClose;
-$('pl').onclick = function(e){ if(e.target.id==='pl') plClose(); };
+/* niente chiusura al click fuori: solo X / Annulla. */
 
 /* --- ricerca cliente --- */
 async function cercaClienti(){
@@ -1393,7 +1393,7 @@ function foodInvoke(body){ return fnCall2(body,'off-product'); }
 /* --- manager --- */
 $('foodsBtn').onclick=function(){ $('fd').classList.add('on'); $('fdEditWrap').innerHTML=''; msg('fdMsg',''); $('fdQ').value=''; $('fdEan').value=''; fdRender(); };
 function fdClose(){ stopScan(); $('fd').classList.remove('on'); }
-$('fdClose').onclick=fdClose; $('fd').onclick=function(e){ if(e.target.id==='fd') fdClose(); };
+$('fdClose').onclick=fdClose; /* solo X: niente chiusura al click fuori */
 var fdRows={};
 async function fdRender(){
   var list=await searchFoods($('fdQ').value);
@@ -1481,7 +1481,7 @@ function fpClose(){ $('fp').classList.remove('on'); }
 $('fpClose').onclick=fpClose;
 /* delega robusta: click sulla X (o sullo sfondo) chiude comunque */
 $('fp').addEventListener('click', function(e){
-  if(e.target.id==='fp' || e.target.id==='fpClose' || (e.target.closest && e.target.closest('#fpClose'))) fpClose();
+  if(e.target.id==='fpClose' || (e.target.closest && e.target.closest('#fpClose'))) fpClose();
 });
 document.addEventListener('keydown', function(e){ if(e.key==='Escape' && $('fp').classList.contains('on')) fpClose(); });
 async function fpRender(){
