@@ -20,9 +20,11 @@ const num = (v: unknown): number | null => {
   return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
 };
 
-async function getPage(sort: string, page: number, tries = 4): Promise<any[]> {
-  const u = `${OFF}/api/v2/search?labels_tags_en=vegan&countries_tags_en=italy` +
-    `&fields=${FIELDS}&sort_by=${sort}&page_size=100&page=${page}`;
+// Marche 100% vegetali: OFF spesso non tagga "vegan" i loro prodotti, quindi
+// vanno presi per marca (a prescindere dall'etichetta).
+const VEGAN_BRANDS = ['kioene', 'valsoia', 'vemondo', 'amo-essere-veg', 'verso-natura-veg', 'mopur'];
+
+async function getUrl(u: string, tries = 4): Promise<any[]> {
   for (let a = 0; a < tries; a++) {
     try {
       const r = await fetch(u, { headers: { 'User-Agent': UA, Authorization: OFF_AUTH } });
@@ -32,6 +34,10 @@ async function getPage(sort: string, page: number, tries = 4): Promise<any[]> {
   }
   return [];
 }
+const getPage = (sort: string, page: number) =>
+  getUrl(`${OFF}/api/v2/search?labels_tags_en=vegan&countries_tags_en=italy&fields=${FIELDS}&sort_by=${sort}&page_size=100&page=${page}`);
+const getBrandPage = (brand: string, page: number) =>
+  getUrl(`${OFF}/api/v2/search?brands_tags=${brand}&countries_tags_en=italy&fields=${FIELDS}&page_size=100&page=${page}`);
 
 function toRow(p: any) {
   const name = (p.product_name_it || p.product_name || '').trim();
@@ -71,21 +77,33 @@ Deno.serve(async (req) => {
     // prodotti PIÙ RECENTI (per beccare le novità) e i più diffusi (aggiorna i
     // dati di quelli già noti). L'upsert non duplica. Il backfill completo del
     // catalogo storico si fa a parte, da uno script senza limiti di tempo.
+    const flush = async (prods: any[]) => {
+      const rows: any[] = [];
+      for (const p of prods) {
+        const row = toRow(p);
+        if (!row || seen.has(row.code)) continue;
+        seen.add(row.code); rows.push(row);
+      }
+      if (rows.length) {
+        const { error } = await admin.from('packaged_foods')
+          .upsert(rows, { onConflict: 'code', ignoreDuplicates: false });
+        if (!error) added += rows.length;
+      }
+    };
+    // 1) prodotti taggati vegan: piu' recenti + piu' diffusi
     for (const sort of ['created_t', 'unique_scans_n']) {
       for (let page = 1; page <= 6; page++) {
         const prods = await getPage(sort, page);
         if (!prods.length) break;
-        const rows: any[] = [];
-        for (const p of prods) {
-          const row = toRow(p);
-          if (!row || seen.has(row.code)) continue;
-          seen.add(row.code); rows.push(row);
-        }
-        if (rows.length) {
-          const { error } = await admin.from('packaged_foods')
-            .upsert(rows, { onConflict: 'code', ignoreDuplicates: false });
-          if (!error) added += rows.length;
-        }
+        await flush(prods);
+      }
+    }
+    // 2) marche 100% vegetali (anche prodotti non taggati vegan su OFF)
+    for (const brand of VEGAN_BRANDS) {
+      for (let page = 1; page <= 3; page++) {
+        const prods = await getBrandPage(brand, page);
+        if (!prods.length) break;
+        await flush(prods);
       }
     }
     const { count } = await admin.from('packaged_foods')
