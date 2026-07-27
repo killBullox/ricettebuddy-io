@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
   // Categorie del catalogo italiano: tutto il resto è "internazionale".
   const CAT_ITALIANE = new Set([
     'Antipasti e contorni', 'Primi di pasta', 'Riso e cereali', 'Zuppe e minestre',
-    'Legumi e secondi vegetali', 'Lievitati, pane e pizza', 'Dolci',
+    'Legumi e secondi vegetali', 'Lievitati, pane e pizza', 'Dolci', 'Colazione',
   ]);
   const isInternazionale = (r: any) => !CAT_ITALIANE.has(r.category);
 
