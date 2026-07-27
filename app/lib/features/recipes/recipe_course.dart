@@ -8,6 +8,7 @@ import '../../data/models/recipe.dart';
 /// kcal, ma il team può correggere le eccezioni con i tag `piatto_unico` /
 /// `insalatona` (o `no_piatto_unico` / `no_insalatona`) sulla ricetta.
 
+const courseColazione = 'Colazione';
 const courseAntipasti = 'Antipasti';
 const coursePrimi = 'Primi';
 const courseZuppe = 'Zuppe';
@@ -20,12 +21,13 @@ const courseInsalatona = 'Insalatona';
 
 /// Le opzioni mostrate nel filtro "Portata" (in ordine).
 const courseOptions = <String>[
-  courseAntipasti, coursePrimi, courseZuppe, courseSecondi,
+  courseColazione, courseAntipasti, coursePrimi, courseZuppe, courseSecondi,
   coursePanePizza, courseDolci, courseInternazionali,
   coursePiattoUnico, courseInsalatona,
 ];
 
 const _courseMap = {
+  'Colazione': courseColazione,
   'Antipasti e contorni': courseAntipasti,
   'Primi di pasta': coursePrimi,
   'Riso e cereali': coursePrimi,

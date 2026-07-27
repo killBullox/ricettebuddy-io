@@ -211,7 +211,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-1</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-2</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
     <button id="chpwd">Cambia password</button>
@@ -229,6 +229,7 @@
       <span class="count" id="count"></span>
     </div>
     <div class="chips" id="chips">
+      <span class="chip course" data-course="Colazione">Colazione</span>
       <span class="chip course" data-course="Antipasti">Antipasti/contorni</span>
       <span class="chip course" data-course="Primi">Primi</span>
       <span class="chip course" data-course="Zuppe">Zuppe</span>
@@ -455,6 +456,7 @@ var RECIPES = [];
 var TAG_IT = {'HIGH PROTEIN':'Proteico','LOW CARB':'Low carb','LIGHT':'Leggera','HIGH FIBER':'Ricca di fibre'};
 var filt = { kcal:0, tags:[], course:'' };
 var COURSE_MAP = {
+  'Colazione':'Colazione',
   'Antipasti e contorni':'Antipasti', 'Primi di pasta':'Primi', 'Riso e cereali':'Primi',
   'Zuppe e minestre':'Zuppe', 'Legumi e secondi vegetali':'Secondi',
   'Lievitati, pane e pizza':'Pane/Pizza', 'Dolci':'Dolci'

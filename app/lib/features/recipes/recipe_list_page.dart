@@ -212,7 +212,12 @@ class _RecipeTile extends StatelessWidget {
                         const SizedBox(width: 3),
                         Text('${(kcal as num).round()} kcal',
                             style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                        const SizedBox(width: 12),
                       ],
+                      Icon(Icons.people_outline, size: 14, color: Theme.of(context).hintColor),
+                      const SizedBox(width: 3),
+                      Text('${recipe.servings} porz.',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
                     ]),
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
