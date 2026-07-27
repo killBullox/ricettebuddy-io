@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../config.dart';
+
 /// Contenuto estratto da un post social, PRIMA dell'AI.
 class ExtractedPost {
   final String title;
@@ -31,11 +33,30 @@ class SocialExtractor {
   // Gli UA da crawler ricevono i meta og: (anteprime link) senza muri.
   static const _crawlerUA = 'Mozilla/5.0 (compatible; Twitterbot/1.0)';
 
-  // NB (2026): Instagram, TikTok e YouTube bloccano gli IP dei datacenter, quindi
-  // l'estrazione via server (yt-dlp sul VPS) non è più affidabile. L'unico IP non
-  // bloccato è quello del TELEFONO dell'utente: l'estrazione resta ON-DEVICE.
-  // YouTube: InnerTube (API interna) dall'IP utente. Instagram/Pinterest/siti:
-  // meta og: (funziona per i post pubblici che non mostrano il muro di login).
+  /// Estrazione via SERVER (yt-dlp sul VPS, endpoint /api/extract-social): è il
+  /// metodo che legge la didascalia COMPLETA di Facebook/Instagram/TikTok/
+  /// YouTube senza login. È il percorso storico che funzionava: va provato per
+  /// PRIMO per tutti i social (specie Facebook, che non è leggibile altrimenti).
+  static Future<ExtractedPost> extractViaServer(String url) async {
+    final r = await http
+        .post(Config.backendUri('api/extract-social'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'url': url}))
+        .timeout(const Duration(seconds: 60));
+    final m = Map<String, dynamic>.from(jsonDecode(r.body) as Map);
+    if (r.statusCode >= 400) {
+      throw (m['error'] ?? 'Estrazione non riuscita').toString();
+    }
+    return ExtractedPost(
+      title: (m['title'] ?? 'Ricetta').toString(),
+      text: (m['text'] ?? '').toString(),
+      imageUrl: m['image_url']?.toString(),
+      sourceUrl: (m['source_url'] ?? url).toString(),
+    );
+  }
+
+  /// Estrazione ON-DEVICE (fallback se il server non ce la fa): YouTube via
+  /// InnerTube (IP utente), TikTok via oembed, Instagram/siti via meta og:.
   static Future<ExtractedPost> extract(String url) async {
     final u = url.trim();
     if (RegExp(r'youtube\.com|youtu\.be', caseSensitive: false).hasMatch(u)) {

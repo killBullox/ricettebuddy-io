@@ -118,23 +118,29 @@ class ImportRepository {
       final r = await localApi.importUrl(url);
       return (id: r.recipe.id!, duplicate: r.duplicate);
     }
-    // Social: estrazione SUL TELEFONO con timeout brevi (niente webview che si
-    // impalla). YouTube usa l'API interna (InnerTube) e funziona col solo link;
-    // Instagram/TikTok/ecc. col solo link spesso danno il muro di login → in tal
-    // caso si fallisce SUBITO indirizzando alla Condivisione (che porta la
-    // didascalia). Nessun loop.
+    // Social (il percorso che funzionava): PRIMA il server (yt-dlp sul VPS,
+    // /api/extract-social) — legge la didascalia di FB/IG/TikTok/YT senza login;
+    // se il server non ce la fa, ripiego ON-DEVICE (YouTube InnerTube, ecc.).
+    // Poi enrich+salvataggio su Supabase (import-recipe {text}).
     if (!kIsWeb && isSocial(url)) {
       onPhase?.call('reading');
       ExtractedPost? post;
       try {
-        post = await SocialExtractor.extract(url);
+        post = await SocialExtractor.extractViaServer(url);
       } catch (_) {
         post = null;
       }
+      if (post == null || post.text.trim().length < 40) {
+        try {
+          post = await SocialExtractor.extract(url);
+        } catch (_) {
+          post = null;
+        }
+      }
       if (post == null || post.text.trim().length < 20) {
         throw Exception(
-            'Per Instagram/TikTok apri il post nell\'app → Condividi → Beet It! '
-            '(il solo link non basta). Oppure incolla il testo della ricetta.');
+            'Non riesco a leggere la ricetta da questo link. Prova a condividere '
+            'il post dall\'app (Condividi → Beet It!) o incolla il testo.');
       }
       onPhase?.call('processing');
       return _invokeImport({
