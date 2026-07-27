@@ -68,8 +68,44 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(l.importFromWebOrSocial,
+          // METODO PRINCIPALE per i social: CONDIVIDERE dal post (arriva la
+          // didascalia dall'account loggato → l'AI ricava la ricetta).
+          Card(
+            color: const Color(0xFFF7E4EE),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(children: [
+                    Icon(Icons.ios_share, color: Color(0xFFB5326B)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Da Instagram, TikTok, YouTube',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 16)),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Apri il post nell\'app social → tocca Condividi → scegli '
+                    '“Beet It!”. Arriva la didascalia e la trasformo in ricetta.\n'
+                    'È il modo che funziona meglio: non incollare il link qui sotto '
+                    'per i social (spesso lo bloccano).',
+                    style: TextStyle(fontSize: 13.5, height: 1.35),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Siti web di ricette (GialloZafferano e simili con dati strutturati).
+          Text('Da un sito di ricette',
               style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('Incolla il link di una pagina di ricetta (es. GialloZafferano).',
+              style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
           TextField(
             controller: _url,
@@ -91,13 +127,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 : const Icon(Icons.download),
             label: Text(l.importFromLink),
           ),
+
           const Divider(height: 40),
-          Text('Incolla il testo della ricetta',
+          // Rete di sicurezza: incolla il testo della ricetta.
+          Text('Oppure incolla il testo',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
-            'Se il link non funziona (post privato o social che blocca la lettura), '
-            'copia la didascalia dal social e incollala qui: la trasformo in ricetta.',
+            'Copia la didascalia/ricetta da qualunque parte e incollala qui: '
+            'la trasformo in ricetta. Funziona sempre.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -118,18 +156,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             icon: const Icon(Icons.auto_awesome),
             label: const Text('Crea ricetta dal testo'),
           ),
-          const Divider(height: 40),
-          Text(l.fromCamera, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            // TODO(F3): image_picker + google_mlkit_text_recognition (OCR)
-            //           poi structuring AI via Edge Function.
-            onPressed: null,
-            icon: const Icon(Icons.camera_alt),
-            label: Text(l.scanRecipeSoon),
-          ),
-          const SizedBox(height: 24),
-          Text(l.shareHint, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
