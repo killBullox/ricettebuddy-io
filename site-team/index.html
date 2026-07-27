@@ -191,8 +191,9 @@
   .pick-grid{flex:1;overflow:auto;background:#fff;border-radius:14px;padding:14px}
 
   /* ---- cibi pronti (gestione DB) ---- */
-  #fd{position:fixed;inset:0;z-index:72;background:rgba(20,6,26,.62);display:none;justify-content:center;padding:18px;overflow:auto}
-  #fd.on{display:flex}
+  #fd,#fp{position:fixed;inset:0;z-index:72;background:rgba(20,6,26,.62);display:none;justify-content:center;align-items:flex-start;padding:18px;overflow:auto}
+  #fd.on,#fp.on{display:flex}
+  #fp{z-index:90}  /* sopra il form "Nuova ricetta" */
   .fd-box{background:#fff;border-radius:20px;max-width:1000px;width:100%;height:max-content;box-shadow:0 30px 60px rgba(0,0,0,.4);overflow:hidden}
   .fd-hd{background:var(--aub);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:12px}
   .fd-hd h2{margin:0;font-size:1.2rem;color:#fff}
@@ -233,7 +234,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-4</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-6</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -297,7 +298,7 @@
 
 <div id="fp"><div class="fd-box" style="max-width:640px">
   <div class="fd-hd">
-    <h2>Aggiungi prodotto pronto</h2>
+    <h2 style="flex:1">Aggiungi prodotto pronto</h2>
     <button class="ck-x" id="fpClose" title="Chiudi">&times;</button>
   </div>
   <div class="fd-bd">
@@ -1477,7 +1478,12 @@ $('fdScan').onclick=async function(){
 /* ======================= SELETTORE PRODOTTO in RICETTA ======================= */
 $('pickFoodBtn').onclick=function(){ $('fpQ').value=''; $('fpQty').value=''; $('fp').classList.add('on'); $('fpQ').focus(); fpRender(); };
 function fpClose(){ $('fp').classList.remove('on'); }
-$('fpClose').onclick=fpClose; $('fp').onclick=function(e){ if(e.target.id==='fp') fpClose(); };
+$('fpClose').onclick=fpClose;
+/* delega robusta: click sulla X (o sullo sfondo) chiude comunque */
+$('fp').addEventListener('click', function(e){
+  if(e.target.id==='fp' || e.target.id==='fpClose' || (e.target.closest && e.target.closest('#fpClose'))) fpClose();
+});
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && $('fp').classList.contains('on')) fpClose(); });
 async function fpRender(){
   var list=await searchFoods($('fpQ').value);
   $('fpList').innerHTML=list.map(function(r){
