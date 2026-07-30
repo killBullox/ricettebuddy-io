@@ -22,6 +22,13 @@ import 'recipe_image.dart';
 import 'recipe_labels.dart';
 import 'step_ingredients.dart';
 
+/// Override LOCALE delle porzioni mostrate nel dettaglio (chiave = id ricetta).
+/// NON tocca il database: è solo una regolazione di visualizzazione. Scrivere
+/// sul catalogo (user_id null) fallisce per gli utenti non-team a causa della
+/// RLS — porzioni "bloccate" — e per il team cambierebbe il valore per TUTTI.
+final _servingsOverrideProvider =
+    StateProvider.autoDispose.family<int?, String>((ref, id) => null);
+
 class RecipeDetailPage extends ConsumerWidget {
   final String recipeId;
   const RecipeDetailPage({super.key, required this.recipeId});
@@ -243,6 +250,9 @@ class _RecipeTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final steps = [...recipe.steps]..sort((a, b) => a.position - b.position);
+    // Porzioni mostrate = override locale se presente, altrimenti quelle base.
+    final displayServings =
+        ref.watch(_servingsOverrideProvider(recipe.id ?? '')) ?? recipe.servings;
     return ListView(
       // Sempre trascinabile (per il pull-to-refresh) anche se il contenuto è corto.
       physics: const AlwaysScrollableScrollPhysics(),
@@ -294,25 +304,20 @@ class _RecipeTab extends ConsumerWidget {
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: recipe.servings > 1
-                      ? () async {
-                          await ref
-                              .read(recipeRepositoryProvider)
-                              .setServings(recipe.id!, recipe.servings - 1);
-                          ref.invalidate(recipeDetailProvider(recipe.id!));
-                        }
+                  onPressed: displayServings > 1
+                      ? () => ref
+                          .read(_servingsOverrideProvider(recipe.id ?? '')
+                              .notifier)
+                          .state = displayServings - 1
                       : null,
                 ),
-                Text('${recipe.servings}',
+                Text('$displayServings',
                     style: Theme.of(context).textTheme.titleMedium),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () async {
-                    await ref
-                        .read(recipeRepositoryProvider)
-                        .setServings(recipe.id!, recipe.servings + 1);
-                    ref.invalidate(recipeDetailProvider(recipe.id!));
-                  },
+                  onPressed: () => ref
+                      .read(_servingsOverrideProvider(recipe.id ?? '').notifier)
+                      .state = displayServings + 1,
                 ),
               ],
             ),
@@ -326,7 +331,7 @@ class _RecipeTab extends ConsumerWidget {
           if (recipe.wasVegan == false)
             _VeganizedBanner(substitutions: recipe.substitutions),
           if (recipe.nutrition != null)
-            NutritionDonut(n: recipe.nutrition!, servings: recipe.servings),
+            NutritionDonut(n: recipe.nutrition!, servings: displayServings),
           if (recipe.category != null ||
               recipe.difficulty != null ||
               recipe.allergens.isNotEmpty)
