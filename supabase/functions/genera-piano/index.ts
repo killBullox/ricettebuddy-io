@@ -119,6 +119,29 @@ Deno.serve(async (req) => {
   // mese corrente (1-12) per la preferenza di stagione
   const meseCorrente = new Date().getUTCMonth() + 1;
 
+  // Profilo nutrizionale: % MASSIMA delle calorie per ciascun macro (null = nessun limite).
+  const pctIn = (v: unknown): number | null => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.min(100, n) : null;
+  };
+  const pIn = (b.profilo && typeof b.profilo === 'object') ? b.profilo as Record<string, unknown> : {};
+  const profilo = {
+    protein: pctIn(pIn.protein), carbs: pctIn(pIn.carbs), sugars: pctIn(pIn.sugars),
+    fat: pctIn(pIn.fat), saturated: pctIn(pIn.saturated),
+  };
+  const hasCaps = Object.values(profilo).some((v) => v != null);
+  // kcal per grammo di ciascun macro (zuccheri come i carbo, saturi come i grassi)
+  const FACT: Record<string, number> = { protein: 4, carbs: 4, sugars: 4, fat: 9, saturated: 9 };
+  const MACROS = ['protein', 'carbs', 'sugars', 'fat', 'saturated'] as const;
+  const numOrNull = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const macrosOf = (r: any): Record<string, number | null> => {
+    const n = r?.nutrition || {};
+    return {
+      protein: numOrNull(n.protein_g), carbs: numOrNull(n.carbs_g), sugars: numOrNull(n.sugars_g),
+      fat: numOrNull(n.fat_g), saturated: numOrNull(n.saturated_fat_g),
+    };
+  };
+
   // Categorie del catalogo italiano: tutto il resto è "internazionale".
   const CAT_ITALIANE = new Set([
     'Antipasti e contorni', 'Primi di pasta', 'Riso e cereali', 'Zuppe e minestre',
@@ -202,17 +225,52 @@ Deno.serve(async (req) => {
     const used = new Set<string>();   // varietà tra i giorni e tra le settimane
     const rnd = mulberry32(0x9e37 ^ (kcal || 0) ^ settimane);
 
+    // Violazione dei vincoli se aggiungo il candidato allo stato nutrizionale
+    // corrente del giorno (pesata in kcal, così i macro sono confrontabili).
+    // I macro non calcolati (null) contano 0: non possono violare finché non ci sono i dati.
+    const violation = (r: any, accN: Record<string, number>, caps: Record<string, number | null> | null): number => {
+      if (!caps) return 0;
+      const g = macrosOf(r);
+      let v = 0;
+      for (const k of MACROS) {
+        if (caps[k] == null) continue;
+        const proj = (accN[k] || 0) + (g[k] || 0);
+        if (proj > (caps[k] as number)) v += (proj - (caps[k] as number)) * FACT[k];
+      }
+      return v;
+    };
+
     // dayUsed: mai la stessa ricetta due volte nello stesso giorno (esclusione
     // netta); used: varietà tra i giorni e le settimane (solo preferenza).
-    function pick(c: string, budget: number, dayUsed: Set<string>): any | null {
+    // accN/caps: stato nutrizionale corrente del giorno e limiti (per i vincoli).
+    function pick(c: string, budget: number, dayUsed: Set<string>,
+                  accN: Record<string, number>, caps: Record<string, number | null> | null): any | null {
       const all = forCourse(c, budget).filter((r) => !dayUsed.has(r.base_code));
       if (!all.length) return null;
       let cands = all.filter((r) => !used.has(r.base_code));
       if (!cands.length) cands = all;
-      const best = cands[0]._score;
-      const top = cands.filter((r) => r._score === best);
-      return shuffle(top.length ? top : cands, rnd)[0];
+      // ordina per: minima violazione dei vincoli, poi punteggio (preferiti+stagione)
+      cands = cands.slice().sort((a, b) => {
+        const va = violation(a, accN, caps), vb = violation(b, accN, caps);
+        if (va !== vb) return va - vb;
+        return b._score - a._score;
+      });
+      const minV = violation(cands[0], accN, caps);
+      const bestS = cands[0]._score;
+      // fra i migliori a pari violazione e punteggio, scegli a caso (varietà)
+      const top = cands.filter((r) => violation(r, accN, caps) <= minV + 1e-6 && r._score === bestS);
+      return shuffle(top.length ? top : [cands[0]], rnd)[0];
     }
+
+    // Limiti giornalieri in GRAMMI, ricavati dalle % max sulle calorie del giorno.
+    // Senza kcal target non si possono calcolare i limiti (restano null = liberi).
+    const dayCaps: Record<string, number | null> | null = (hasCaps && kcal != null)
+      ? Object.fromEntries(MACROS.map((k) => [k, profilo[k] != null ? (profilo[k] as number) / 100 * kcal / FACT[k] : null]))
+      : null;
+
+    // Accumulatore per il RIEPILOGO macro dell'intero piano.
+    const agg: Record<string, number> = { kcal: 0, protein: 0, carbs: 0, sugars: 0, fat: 0, saturated: 0 };
+    let missingData = 0; // ricette senza zuccheri/grassi saturi calcolati
 
     const settimaneOut: any[] = [];
     for (let w = 0; w < settimane; w++) {
@@ -223,6 +281,8 @@ Deno.serve(async (req) => {
       for (let d = 0; d < 7; d++) {
         let remaining = kcal == null ? Infinity : kcal;
         const dayUsed = new Set<string>();
+        // stato nutrizionale del giorno (grammi) per i vincoli
+        const dayN: Record<string, number> = { protein: 0, carbs: 0, sugars: 0, fat: 0, saturated: 0 };
 
         for (const slot of slots) {
           const slotBudget = kcal == null
@@ -234,14 +294,19 @@ Deno.serve(async (req) => {
             used.add(r.base_code);
             dayUsed.add(r.base_code);
             remaining -= kcalOf(r) || 0;
+            // aggiorna stato giorno + totali piano
+            const g = macrosOf(r);
+            for (const k of MACROS) { dayN[k] += g[k] || 0; agg[k] += g[k] || 0; }
+            agg.kcal += kcalOf(r) || 0;
+            if (g.sugars == null || g.saturated == null) missingData++;
           };
 
           if (slot === 'breakfast' || slot === 'snack') {
-            const r = pick(slot === 'breakfast' ? 'breakfast' : 'snack', slotBudget, dayUsed);
+            const r = pick(slot === 'breakfast' ? 'breakfast' : 'snack', slotBudget, dayUsed, dayN, dayCaps);
             if (r) add(r);
             // frutta a colazione/spuntino se richiesta
             if (frutta && remaining > 0) {
-              const f = pick('frutta', Math.max(150, remaining), dayUsed);
+              const f = pick('frutta', Math.max(150, remaining), dayUsed, dayN, dayCaps);
               if (f) add(f);
             }
           } else {
@@ -255,18 +320,22 @@ Deno.serve(async (req) => {
             for (const combo of shuffle(COMBOS, rnd)) {
               const dishes: any[] = [];
               const comboUsed = new Set(dayUsed);
+              // stato nutrizionale provvisorio del pasto (parte da quello del giorno)
+              const comboN: Record<string, number> = { ...dayN };
               let budget = mealBudget;
               let ok = true;
               for (const course of combo) {
-                const r = pick(course, budget, comboUsed);
+                const r = pick(course, budget, comboUsed, comboN, dayCaps);
                 if (!r) { ok = false; break; }
                 dishes.push(r);
                 comboUsed.add(r.base_code);
                 budget -= kcalOf(r) || 0;
+                const g = macrosOf(r);
+                for (const k of MACROS) comboN[k] += g[k] || 0;
               }
               if (!ok) continue;
               if (dolci && budget > 80) {
-                const dolce = pick('dolce', budget, comboUsed);
+                const dolce = pick('dolce', budget, comboUsed, comboN, dayCaps);
                 if (dolce) dishes.push(dolce);
               }
               dishes.forEach(add);
@@ -277,10 +346,10 @@ Deno.serve(async (req) => {
             // passa (catalogo ridotto dopo il dedup), metti almeno un piatto
             // ignorando il budget.
             if (!placed) {
-              const r = pick('piattoUnico', Infinity, dayUsed)
-                || pick('primo', Infinity, dayUsed)
-                || pick('secondo', Infinity, dayUsed)
-                || pick('antipasto', Infinity, dayUsed);
+              const r = pick('piattoUnico', Infinity, dayUsed, dayN, dayCaps)
+                || pick('primo', Infinity, dayUsed, dayN, dayCaps)
+                || pick('secondo', Infinity, dayUsed, dayN, dayCaps)
+                || pick('antipasto', Infinity, dayUsed, dayN, dayCaps);
               if (r) add(r);
             }
           }
@@ -289,7 +358,23 @@ Deno.serve(async (req) => {
       settimaneOut.push({ items });
     }
 
-    return json({ settimane: settimaneOut, catalogo: pool.length });
+    // Riepilogo macro medio del piano (% delle calorie) + avvisi sui limiti.
+    const LABEL: Record<string, string> = {
+      protein: 'Proteine', carbs: 'Carboidrati', sugars: 'Zuccheri', fat: 'Grassi', saturated: 'Grassi saturi',
+    };
+    const pctOf = (k: string): number | null =>
+      agg.kcal > 0 ? Math.round((agg[k] * FACT[k] / agg.kcal * 100) * 10) / 10 : null;
+    const macro: Record<string, any> = {
+      protein_pct: pctOf('protein'), carbs_pct: pctOf('carbs'), sugars_pct: pctOf('sugars'),
+      fat_pct: pctOf('fat'), saturated_pct: pctOf('saturated'),
+      warnings: [] as string[], missing_data: missingData,
+    };
+    for (const k of MACROS) {
+      const cap = profilo[k], p = macro[k + '_pct'];
+      if (cap != null && p != null && p > cap + 0.5) macro.warnings.push(`${LABEL[k]} ${Math.round(p)}% oltre il max ${cap}%`);
+    }
+
+    return json({ settimane: settimaneOut, catalogo: pool.length, macro });
   } catch (e) {
     console.error('genera-piano', e);
     return json({ error: String((e as Error).message || e) }, 500);

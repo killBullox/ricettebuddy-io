@@ -18,7 +18,29 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const FIELDS =
-  'code,product_name,product_name_it,brands,quantity,image_front_url,image_url,categories,nutriments,nova_group,nutriscore_grade,labels_tags';
+  'code,product_name,product_name_it,brands,quantity,image_front_url,image_url,categories,nutriments,nova_group,nutriscore_grade,labels_tags,ingredients_text,ingredients_text_it,ingredients_analysis_tags';
+
+// "puo' contenere tracce" NON conta (avvertenza allergeni, non ingrediente)
+const TRACES = /(pu[oò][\s']*contenere|may contain|tracce di|traces of|possibile presenza|prodotto in uno stabilimento)/i;
+// frasi vegetali da togliere prima della scansione (evita falsi positivi)
+const PLANT_SAFE =
+  /(coconut|almond|soy|soya|oat|rice|cashew|hazelnut|hemp|nut|seed)\s+(milk|cream|butter)|cocoa butter|cream of tartar|latte di (cocco|mandorl\w*|soia|riso|avena|nocciol\w*|anacardi|arachid\w*|sesamo)|burro di (cacao|arachid\w*|mandorl\w*|nocciol\w*|semi|sesamo|anacardi|karit\w*)|(panna|formaggi\w*|yogurt|mozzarella)\s+(vegetal\w*|vegan\w*|di soia)|latte vegetale|bevanda (di|a base di) (soia|avena|riso|mandorl\w*|cocco)/gi;
+// termini animali
+const NEG =
+  /\buov[oa]\b|albume|tuorl|ovoprodott|\begg\b|albumen|\byolk|(?<!senza )latte|lattosi|siero di latte|\bcasein|lattoalbumin|formagg|mozzarella|parmigian|pecorino|ricotta|mascarpone|\bmilk\b|\bwhey\b|lactose|\bcheese\b|\bbutter\b|\bcream\b|\bmiele\b|\bhoney\b|gelatin|\bstrutto\b|\blardo\b|\bsego\b|\btallow\b|\bcarne\b|pollo|tacchino|\bmanzo\b|maial|prosciutt|\bsalame\b|salamin|pancett|\bspeck\b|wurstel|mortadella|bresaola|\bbacon\b|\bham\b|sausage|\bmeat\b|chicken|\bbeef\b|\bpork\b|guancial|\bpesce\b|\btonno\b|acciugh|\balici\b|salmon|merluzz|gamber|crostace|mollusch|vongol|calamar|surimi|\bfish\b|\btuna\b|anchov|shrimp|prawn|colla di pesce|carminio|cocciniglia/i;
+
+function veganCheck(p: any): { check: string; ingredients: string | null } {
+  const a: string[] = p.ingredients_analysis_tags || [];
+  let body = (p.ingredients_text_it || p.ingredients_text || '').toLowerCase();
+  const m = body.match(TRACES);
+  if (m && m.index !== undefined) body = body.slice(0, m.index); // via le tracce
+  const ing = body.trim() ? body.slice(0, 1000) : null;
+  if (a.includes('en:vegan')) return { check: 'vegan', ingredients: ing };
+  if (a.includes('en:non-vegan')) return { check: 'non_vegan', ingredients: ing };
+  const scan = body.replace(PLANT_SAFE, ' ');
+  if (scan.trim() && NEG.test(scan)) return { check: 'non_vegan', ingredients: ing };
+  return { check: 'da_verificare', ingredients: ing };
+}
 
 const num = (v: unknown): number | null => {
   const n = Number(v);
@@ -88,13 +110,25 @@ Deno.serve(async (req) => {
   try {
     const p = await fetchOff(ean);
     if (!p) return json({ error: 'Prodotto non trovato su Open Food Facts.', ean }, 404);
-    const row = toRow(p);
+    const vc = veganCheck(p);
     const veganLabel = Array.isArray(p.labels_tags) && p.labels_tags.includes('en:vegan');
+    // Prodotto NON vegano: non entra nel catalogo (che deve restare vegano).
+    if (vc.check === 'non_vegan') {
+      return json({
+        rejected: true,
+        vegan_check: 'non_vegan',
+        error: 'Questo prodotto NON è vegano (contiene ingredienti di origine animale): non è stato aggiunto.',
+        message: 'Questo prodotto NON è vegano (contiene ingredienti di origine animale) e non è stato aggiunto.',
+        name: (p.product_name_it || p.product_name || '').trim() || `Prodotto ${p.code}`,
+        ingredients: vc.ingredients,
+      }, 422);
+    }
+    const row = { ...toRow(p), vegan_check: vc.check, ingredients_text: vc.ingredients };
     const { data: saved, error } = await admin.from('packaged_foods')
       .upsert(row, { onConflict: 'code', ignoreDuplicates: false })
       .select('*').single();
     if (error) throw new Error(error.message);
-    return json({ product: saved, vegan_label: veganLabel });
+    return json({ product: saved, vegan_label: veganLabel, vegan_check: vc.check });
   } catch (e) {
     console.error('off-product', e);
     return json({ error: String((e as Error).message || e) }, 500);

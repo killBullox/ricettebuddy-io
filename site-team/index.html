@@ -210,7 +210,9 @@
   .fd-item .sp button{border:1px solid var(--paper2);background:#fff;border-radius:8px;padding:4px 9px;cursor:pointer;font-family:inherit;font-size:.8rem}
   .nutriscore{display:inline-block;min-width:18px;text-align:center;border-radius:5px;padding:1px 6px;font-weight:800;font-size:.72rem;color:#fff;text-transform:uppercase}
   #scan{margin-top:10px}
-  #scanBox{width:100%;max-width:360px}
+  #scanBox{width:100%;max-width:420px;min-height:240px;background:#000;border-radius:14px;overflow:hidden;position:relative}
+  #scanBox video,#scanBox canvas{width:100%!important;height:auto!important;display:block;border-radius:14px}
+  #scanBox #scanStop{position:absolute;top:8px;right:8px;z-index:3;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:20px;padding:6px 12px;font-weight:700;cursor:pointer}
   .fd-edit{background:var(--paper);border-radius:12px;padding:14px;margin-top:12px}
 </style>
 </head>
@@ -234,7 +236,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-7</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-12</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -288,6 +290,7 @@
       <input id="fdEan" type="text" inputmode="numeric" placeholder="EAN / codice a barre" style="flex:0 0 190px" />
       <button class="btn" id="fdAdd">+ Aggiungi da EAN</button>
       <button class="btn btn-gh" id="fdScan">📷 Scansiona</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--taupe);white-space:nowrap"><input type="checkbox" id="fdDaVer" style="width:auto"> solo da verificare</label>
     </div>
     <div id="scan"></div>
     <p class="msg" id="fdMsg"></p>
@@ -363,8 +366,20 @@
           <span class="chip gopt" data-opt="di_stagione">Di stagione</span>
           <span class="chip gopt" data-opt="escludi_internazionali">Solo italiane</span>
         </div>
+        <div style="margin:6px 0 10px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:12px">
+          <div style="font-size:.82rem;font-weight:800;color:var(--taupe);margin-bottom:6px">Profilo nutrizionale
+            <span style="font-weight:400">— % <b>massima</b> delle calorie giornaliere (vuoto = nessun limite)</span></div>
+          <div class="row" style="gap:8px">
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Proteine %<input id="gPctProtein" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Carboidrati %<input id="gPctCarbs" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Zuccheri %<input id="gPctSugars" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Grassi %<input id="gPctFat" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Grassi saturi %<input id="gPctSat" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+          </div>
+        </div>
         <button class="btn" id="genBtn">⚡ Genera piano</button>
         <p class="msg" id="genMsg"></p>
+        <div id="genMacro"></div>
       </div>
 
       <p class="hint"><b id="wkLabel">Settimana 1</b> — tocca <b>+</b> per aggiungere un piatto.
@@ -446,7 +461,9 @@
       <label style="flex:1 1 100px">Kcal <input id="nKcal" type="number" step="0.1" /></label>
       <label style="flex:1 1 100px">Proteine g <input id="nPro" type="number" step="0.1" /></label>
       <label style="flex:1 1 100px">Carboidrati g <input id="nCar" type="number" step="0.1" /></label>
+      <label style="flex:1 1 100px">di cui zuccheri g <input id="nZuc" type="number" step="0.1" /></label>
       <label style="flex:1 1 100px">Grassi g <input id="nFat" type="number" step="0.1" /></label>
+      <label style="flex:1 1 100px">di cui saturi g <input id="nSat" type="number" step="0.1" /></label>
       <label style="flex:1 1 100px">Fibre g <input id="nFib" type="number" step="0.1" /></label>
     </div>
 
@@ -665,8 +682,8 @@ async function openDetail(id){
     + '<div class="nutriblock">'+donut(n)
     + '<div class="legend"><div style="font-family:Georgia,serif;font-weight:700;margin-bottom:6px">Valori nutrizionali &middot; per porzione</div>'
     + '<div><span class="dot" style="background:#C42B6E"></span> Proteine <b>'+g(n.protein_g)+' g</b></div>'
-    + '<div><span class="dot" style="background:#E39B2E"></span> Carboidrati <b>'+g(n.carbs_g)+' g</b></div>'
-    + '<div><span class="dot" style="background:#3B8C43"></span> Grassi <b>'+g(n.fat_g)+' g</b></div>'
+    + '<div><span class="dot" style="background:#E39B2E"></span> Carboidrati <b>'+g(n.carbs_g)+' g</b>'+(n.sugars_g!=null?' <span style="color:var(--taupe)">(di cui zuccheri '+g(n.sugars_g)+' g)</span>':'')+'</div>'
+    + '<div><span class="dot" style="background:#3B8C43"></span> Grassi <b>'+g(n.fat_g)+' g</b>'+(n.saturated_fat_g!=null?' <span style="color:var(--taupe)">(di cui saturi '+g(n.saturated_fat_g)+' g)</span>':'')+'</div>'
     + '<div><span class="dot" style="background:#6E5560"></span> Fibre <b>'+g(n.fiber_g)+' g</b></div>'
     + '<div class="totrec">Totale ricetta ('+sv+' porz.): '+Math.round((n.kcal||0)*sv)+' kcal &middot; P '+Math.round((n.protein_g||0)*sv)+' &middot; C '+Math.round((n.carbs_g||0)*sv)+' &middot; G '+Math.round((n.fat_g||0)*sv)+' g</div>'
     + '</div></div>'
@@ -687,7 +704,7 @@ async function openDetail(id){
   $('editBtn').onclick = function(){ $('ov').classList.remove('on'); editRecipe(r, ings, steps); };
   $('delBtn').onclick = function(){ deleteRecipe(r); };
 }
-$('ov').onclick = function(e){ if(e.target.id==='ov') $('ov').classList.remove('on'); };
+/* niente chiusura al click fuori: la finestra ricetta si chiude solo con la X */
 
 /* ================= PASSO PASSO (cook mode) — stessa logica dell'app ================= */
 
@@ -982,8 +999,8 @@ function editRecipe(r, ings, steps){
   $('fPorz').value = r.servings||4; $('fPrep').value = r.prep_minutes||0; $('fCott').value = r.cook_minutes||0;
   var di = ['Facile','Media','Difficile'].indexOf(r.difficulty); $('fDiff').selectedIndex = di<0?0:di;
   var n = r.nutrition || {};
-  $('nKcal').value=n.kcal||''; $('nPro').value=n.protein_g||''; $('nCar').value=n.carbs_g||'';
-  $('nFat').value=n.fat_g||''; $('nFib').value=n.fiber_g||'';
+  $('nKcal').value=n.kcal||''; $('nPro').value=n.protein_g||''; $('nCar').value=n.carbs_g||''; $('nZuc').value=n.sugars_g||'';
+  $('nFat').value=n.fat_g||''; $('nSat').value=n.saturated_fat_g||''; $('nFib').value=n.fiber_g||'';
   $('fIng').value = ings.map(function(i){ if(i.normalized_name) NW.nomi[i.raw_text]=i.normalized_name; return i.raw_text; }).join('\n');
   $('fSteps').value = steps.map(function(s){ return s.text; }).join('\n');
   if(NW.img) $('fImg').src = NW.img; else $('fImg').removeAttribute('src');
@@ -999,7 +1016,7 @@ async function deleteRecipe(r){
 
 $('newBtn').onclick = function(){
   NW = { code:null, img:'', ingEn:'', nomi:{}, foods:[], editId:null };
-  ['aiTitle','aiZona','aiNote','fTitle','fCui','fIng','fSteps','nKcal','nPro','nCar','nFat','nFib']
+  ['aiTitle','aiZona','aiNote','fTitle','fCui','fIng','fSteps','nKcal','nPro','nCar','nZuc','nFat','nSat','nFib']
     .forEach(function(id){ $(id).value=''; });
   $('aiPorz').value=4; $('fPorz').value=4; $('fPrep').value=15; $('fCott').value=20;
   $('fCat').selectedIndex=0; $('fDiff').selectedIndex=0;
@@ -1030,8 +1047,8 @@ $('aiBtn').onclick = async function(){
     $('fPrep').value = r.prep_min || 0; $('fCott').value = r.cottura_min || 0;
     if(r.difficolta) $('fDiff').value = r.difficolta;
     var n = r.nutrizione || {};
-    $('nKcal').value=n.kcal||''; $('nPro').value=n.protein_g||''; $('nCar').value=n.carbs_g||'';
-    $('nFat').value=n.fat_g||''; $('nFib').value=n.fiber_g||'';
+    $('nKcal').value=n.kcal||''; $('nPro').value=n.protein_g||''; $('nCar').value=n.carbs_g||''; $('nZuc').value=n.sugars_g||'';
+    $('nFat').value=n.fat_g||''; $('nSat').value=n.saturated_fat_g||''; $('nFib').value=n.fiber_g||'';
     NW.nomi = {};
     $('fIng').value = (r.ingredienti||[]).map(function(i){
       if(i.nome) NW.nomi[i.testo] = i.nome;
@@ -1094,8 +1111,8 @@ $('saveBtn').onclick = async function(){
       /* classificazione trasversale usata dai filtri dell'app */
       tags:[].concat($('fPiattoUnico').checked?['piatto_unico']:[])
              .concat($('fInsalatona').checked?['insalatona']:[]),
-      nutrition:{ kcal:num('nKcal'), protein_g:num('nPro'), carbs_g:num('nCar'),
-                  fat_g:num('nFat'), fiber_g:num('nFib') }
+      nutrition:{ kcal:num('nKcal'), protein_g:num('nPro'), carbs_g:num('nCar'), sugars_g:num('nZuc'),
+                  fat_g:num('nFat'), saturated_fat_g:num('nSat'), fiber_g:num('nFib') }
     };
     var rid;
     if(NW.editId){
@@ -1226,15 +1243,18 @@ function csv(id){
 }
 
 /* --- genera piano automatico --- */
+function pct(id){ var v=parseFloat($(id).value); return (isNaN(v)||v<=0)?null:Math.min(100,v); }
 $('genBtn').onclick = async function(){
-  $('genBtn').disabled = true; msg('genMsg','Genero il piano... (10-30 secondi)','wait');
+  $('genBtn').disabled = true; msg('genMsg','Genero il piano... (10-30 secondi)','wait'); $('genMacro').innerHTML='';
   try{
+    var profilo = { protein:pct('gPctProtein'), carbs:pct('gPctCarbs'), sugars:pct('gPctSugars'), fat:pct('gPctFat'), saturated:pct('gPctSat') };
     var data = await fnCall2({ action:null,   /* genera-piano non usa "action" */
       kcal:parseInt($('gKcal').value,10)||null,
       preferiti:csv('gPref'), evitare:csv('gAvoid'),
       colazione:genOpts.colazione, spuntini:genOpts.spuntini,
       dolci:genOpts.dolci, frutta:genOpts.frutta,
       di_stagione:genOpts.di_stagione, escludi_internazionali:genOpts.escludi_internazionali,
+      profilo:profilo,
       settimane:parseInt($('gWeeks').value,10)||1
     }, 'genera-piano');
     /* costruisci PLAN.weeks dalle settimane restituite */
@@ -1251,9 +1271,40 @@ $('genBtn').onclick = async function(){
     renderWeekNav(); buildWeek(); refreshSend();
     var tot = data.settimane.reduce(function(s,w){ return s + w.items.length; }, 0);
     msg('genMsg','Generato: '+PLAN.weeks.length+' settiman'+(PLAN.weeks.length>1?'e':'a')+', '+tot+' piatti. Rivedi e invia.','ok');
+    renderMacro(data.macro, profilo);
   }catch(e){ msg('genMsg','Errore: '+(e.message||e),'ko'); }
   $('genBtn').disabled = false;
 };
+/* riepilogo profilo macro medio del piano (% delle calorie), con avvisi sui limiti */
+function renderMacro(m, prof){
+  if(!m){ $('genMacro').innerHTML=''; return; }
+  var rows=[
+    ['Proteine','protein',m.protein_pct, prof&&prof.protein],
+    ['Carboidrati','carbs',m.carbs_pct, prof&&prof.carbs],
+    ['di cui zuccheri','sugars',m.sugars_pct, prof&&prof.sugars],
+    ['Grassi','fat',m.fat_pct, prof&&prof.fat],
+    ['di cui saturi','saturated',m.saturated_pct, prof&&prof.saturated]
+  ];
+  var html='<div style="margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:12px">'
+    +'<div style="font-size:.82rem;font-weight:800;color:var(--taupe);margin-bottom:6px">Profilo medio del piano (% delle calorie · media giornaliera)</div>'
+    +'<div class="row" style="gap:14px;flex-wrap:wrap">';
+  rows.forEach(function(r){
+    var val=(r[2]==null?'—':Math.round(r[2])+'%');
+    var over=(r[3]!=null && r[2]!=null && r[2]>r[3]+0.5);
+    var col=over?'#b00020':'var(--ink,#333)';
+    var cap=(r[3]!=null?' <span style="color:var(--taupe)">/ max '+r[3]+'%</span>':'');
+    html+='<div style="font-size:.85rem"><span style="color:var(--taupe)">'+r[0]+'</span> <b style="color:'+col+'">'+val+'</b>'+cap+(over?' ⚠️':'')+'</div>';
+  });
+  html+='</div>';
+  if(m.warnings && m.warnings.length){
+    html+='<div style="margin-top:6px;font-size:.8rem;color:#b00020">⚠️ '+m.warnings.map(esc).join(' · ')+'</div>';
+  }
+  if(m.missing_data){
+    html+='<div style="margin-top:6px;font-size:.78rem;color:var(--taupe)">Nota: '+m.missing_data+' ricette senza zuccheri/grassi saturi calcolati: quelle percentuali sono stimate al ribasso finché non completi i valori.</div>';
+  }
+  html+='</div>';
+  $('genMacro').innerHTML=html;
+}
 
 /* --- griglia settimanale --- */
 function buildWeek(){
@@ -1382,11 +1433,17 @@ function foodMeta(r){
   if(n.kcal!=null) parts.push(Math.round(n.kcal)+' kcal/100g');
   return parts.join(' · ');
 }
-async function searchFoods(q){
-  var query=sb.from('packaged_foods').select('code,name,brand,quantity,image_url,nutrition,nutriscore,nova_group').order('name').limit(60);
+async function searchFoods(q,veganOnly){
+  var query=sb.from('packaged_foods').select('code,name,brand,quantity,image_url,nutrition,nutriscore,nova_group,vegan_check').order('name').limit(60);
   q=(q||'').trim();
   if(q) query=query.or('name.ilike.%'+q+'%,brand.ilike.%'+q+'%,code.ilike.%'+q+'%');
+  if(veganOnly) query=query.eq('vegan_check','vegan'); /* nelle ricette solo prodotti vegani confermati */
   var r=await query; return (r.data)||[];
+}
+function veganPill(vc){
+  if(vc==='vegan') return '<span class="nutriscore" style="background:#2e7d32">vegano</span>';
+  if(vc==='non_vegan') return '<span class="nutriscore" style="background:#b00020">NON vegano</span>';
+  return '<span class="nutriscore" style="background:#b8860b" title="Open Food Facts non ha gli ingredienti: da verificare a mano">da verificare</span>';
 }
 function foodInvoke(body){ return fnCall2(body,'off-product'); }
 
@@ -1397,12 +1454,13 @@ $('fdClose').onclick=fdClose; /* solo X: niente chiusura al click fuori */
 var fdRows={};
 async function fdRender(){
   var list=await searchFoods($('fdQ').value);
+  if($('fdDaVer').checked) list=list.filter(function(r){ return r.vegan_check==='da_verificare'; });
   fdRows={}; list.forEach(function(r){ fdRows[r.code]=r; });
   var tot=await sb.from('packaged_foods').select('code',{count:'exact',head:true});
   $('fdCount').textContent=(tot.count||list.length)+' prodotti';
   $('fdList').innerHTML=list.map(function(r){
     return '<li class="fd-item"><img loading="lazy" src="'+(r.image_url||'')+'" alt="">'
-      +'<div><div class="nm">'+esc(r.name)+' '+nsPill(r.nutriscore)+'</div><div class="mt">'+foodMeta(r)+' · '+esc(r.code||'')+'</div></div>'
+      +'<div><div class="nm">'+esc(r.name)+' '+nsPill(r.nutriscore)+' '+veganPill(r.vegan_check)+'</div><div class="mt">'+foodMeta(r)+' · '+esc(r.code||'')+'</div></div>'
       +'<div class="sp"><button data-a="ed" data-c="'+esc(r.code)+'" title="Modifica">✎</button>'
       +'<button data-a="up" data-c="'+esc(r.code)+'" title="Aggiorna da OFF">↻</button>'
       +'<button data-a="del" data-c="'+esc(r.code)+'" style="color:#b00020" title="Elimina">🗑</button></div></li>';
@@ -1413,6 +1471,7 @@ async function fdRender(){
   });
 }
 $('fdQ').oninput=debounce(fdRender,280);
+$('fdDaVer').onchange=fdRender;
 
 async function addByEan(ean){
   ean=(ean||'').replace(/\D/g,'');
@@ -1421,7 +1480,8 @@ async function addByEan(ean){
   try{
     var d=await foodInvoke({ean:ean});
     $('fdEan').value=''; $('fdQ').value=d.product.name;
-    msg('fdMsg','Aggiunto: '+d.product.name+(d.vegan_label?' ✓':' — ⚠️ NON etichettato vegan su OFF: verifica prima di usarlo'), d.vegan_label?'ok':'');
+    var note=d.vegan_check==='vegan' ? ' ✓ vegano' : ' — ⚠️ da verificare (OFF senza ingredienti)';
+    msg('fdMsg','Aggiunto: '+d.product.name+note, d.vegan_check==='vegan'?'ok':'');
     fdRender();
   }catch(e){ msg('fdMsg','Errore: '+(e.message||e),'ko'); }
 }
@@ -1459,20 +1519,57 @@ function fdEdit(r){
 }
 
 /* --- scanner codice a barre (html5-qrcode) --- */
-var scanner=null;
-function stopScan(){ if(scanner){ try{ scanner.stop(); }catch(e){} scanner=null; } $('scan').innerHTML=''; }
+var scanner=null, scanBusy=false;
+/* IMPORTANTE: stop() e clear() sono ASINCRONI. Vanno ATTESI prima di togliere il
+   DOM, altrimenti lo stream della fotocamera non viene rilasciato e resta bloccata. */
+async function stopScan(){
+  var s=scanner; scanner=null;
+  if(s){
+    try{ await s.stop(); }catch(e){}
+    try{ await s.clear(); }catch(e){}
+  }
+  var box=$('scan'); if(box) box.innerHTML='';
+  $('fdScan').textContent='📷 Scansiona';
+  scanBusy=false;
+}
 $('fdScan').onclick=async function(){
-  if(scanner){ stopScan(); return; }
+  if(scanBusy) return;
+  if(scanner){ scanBusy=true; await stopScan(); scanBusy=false; return; }
   if(typeof Html5Qrcode==='undefined'){ msg('fdMsg','Scanner non caricato (rete?). Digita l\'EAN a mano.','ko'); return; }
-  $('scan').innerHTML='<div id="scanBox"></div>';
+  scanBusy=true;
+  $('scan').innerHTML='<div id="scanBox"><button id="scanStop" type="button">✕ Chiudi</button></div>';
+  $('scanStop').onclick=async function(){ await stopScan(); scanBusy=false; };
+  $('fdScan').textContent='✕ Chiudi scanner';
   scanner=new Html5Qrcode('scanBox');
-  var fmts=[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E];
+  var fmts=(typeof Html5QrcodeSupportedFormats!=='undefined')
+    ? [Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E] : undefined;
+  var cfg={ fps:15,
+    // barcode = riquadro LARGO e basso; e uso il BarcodeDetector NATIVO se c'è (legge gli EAN molto meglio di ZXing)
+    qrbox:function(w,h){ return {width:Math.round(Math.min(w*0.92,360)),height:Math.round(Math.min(h*0.45,150))}; },
+    aspectRatio:1.3333,
+    experimentalFeatures:{ useBarCodeDetectorIfSupported:true },
+    formatsToSupport:fmts };
+  var onHit=function(txt){ var ean=String(txt).replace(/\D/g,''); if(ean.length>=6){ (async function(){ await stopScan(); scanBusy=false; $('fdEan').value=ean; addByEan(ean); })(); } };
+  msg('fdMsg','Avvio fotocamera…','wait');
   try{
-    await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:160},formatsToSupport:fmts},
-      function(txt){ var ean=String(txt).replace(/\D/g,''); if(ean.length>=6){ stopScan(); $('fdEan').value=ean; addByEan(ean); } },
-      function(){});
-    msg('fdMsg','Inquadra il codice a barre…','wait');
-  }catch(e){ msg('fdMsg','Fotocamera non disponibile: '+(e.message||e),'ko'); stopScan(); }
+    // 1) prova a scegliere la camera POSTERIORE tra quelle disponibili (più affidabile di facingMode)
+    var camId=null;
+    try{
+      var cams=await Html5Qrcode.getCameras();
+      if(cams && cams.length){
+        var back=cams.filter(function(c){ return /back|rear|environment|posterior/i.test(c.label||''); });
+        camId=(back[0]||cams[cams.length-1]).id;
+      }
+    }catch(e){}
+    var res={ width:{ideal:1280}, height:{ideal:720} };
+    var src=camId?Object.assign({deviceId:{exact:camId}},res):Object.assign({facingMode:'environment'},res);
+    await scanner.start(src, cfg, onHit, function(){});
+    scanBusy=false; msg('fdMsg','Inquadra il codice a barre nel riquadro.','wait');
+  }catch(e){
+    // fallback: camera frontale / default
+    try{ await scanner.start({facingMode:'user'}, cfg, onHit, function(){}); scanBusy=false; msg('fdMsg','Inquadra il codice a barre.','wait'); }
+    catch(e2){ msg('fdMsg','Fotocamera non disponibile: '+(e2.message||e2),'ko'); await stopScan(); scanBusy=false; }
+  }
 };
 
 /* ======================= SELETTORE PRODOTTO in RICETTA ======================= */
@@ -1485,7 +1582,7 @@ $('fp').addEventListener('click', function(e){
 });
 document.addEventListener('keydown', function(e){ if(e.key==='Escape' && $('fp').classList.contains('on')) fpClose(); });
 async function fpRender(){
-  var list=await searchFoods($('fpQ').value);
+  var list=await searchFoods($('fpQ').value,true);
   $('fpList').innerHTML=list.map(function(r){
     return '<li class="fd-item" data-c="'+esc(r.code)+'" style="cursor:pointer"><img loading="lazy" src="'+(r.image_url||'')+'" alt="">'
       +'<div><div class="nm">'+esc(r.name)+'</div><div class="mt">'+foodMeta(r)+'</div></div><div class="sp" style="font-size:1.3rem;color:var(--leaf)">＋</div></li>';

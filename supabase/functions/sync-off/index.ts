@@ -13,7 +13,7 @@ const OFF = 'https://world.openfoodfacts.net';
 const OFF_AUTH = 'Basic ' + btoa('off:off');
 const UA = 'BeetIt/1.0 (gianluca.davino@gmail.com)';
 const FIELDS =
-  'code,product_name,product_name_it,brands,quantity,image_front_url,image_url,categories,nutriments,nova_group,nutriscore_grade';
+  'code,product_name,product_name_it,brands,quantity,image_front_url,image_url,categories,nutriments,nova_group,nutriscore_grade,ingredients_text,ingredients_text_it,ingredients_analysis_tags';
 
 const num = (v: unknown): number | null => {
   const n = Number(v);
@@ -21,8 +21,29 @@ const num = (v: unknown): number | null => {
 };
 
 // Marche 100% vegetali: OFF spesso non tagga "vegan" i loro prodotti, quindi
-// vanno presi per marca (a prescindere dall'etichetta).
-const VEGAN_BRANDS = ['kioene', 'valsoia', 'vemondo', 'amo-essere-veg', 'verso-natura-veg', 'mopur'];
+// vanno presi per marca. NB: anche questi passano il controllo ingredienti
+// (Kioene/Vemondo hanno alcuni prodotti con albume -> vengono scartati).
+const VEGAN_BRANDS = ['kioene', 'vemondo', 'amo-essere-veg', 'verso-natura-veg', 'mopur', 'food-evolution'];
+
+// --- Controllo vegano per ingredienti (le "tracce/può contenere" NON contano) ---
+const TRACES = /(pu[oò][\s']*contenere|may contain|tracce di|traces of|possibile presenza|prodotto in uno stabilimento)/i;
+const PLANT_SAFE =
+  /(coconut|almond|soy|soya|oat|rice|cashew|hazelnut|hemp|nut|seed)\s+(milk|cream|butter)|cocoa butter|cream of tartar|latte di (cocco|mandorl\w*|soia|riso|avena|nocciol\w*|anacardi|arachid\w*|sesamo)|burro di (cacao|arachid\w*|mandorl\w*|nocciol\w*|semi|sesamo|anacardi|karit\w*)|(panna|formaggi\w*|yogurt|mozzarella)\s+(vegetal\w*|vegan\w*|di soia)|latte vegetale|bevanda (di|a base di) (soia|avena|riso|mandorl\w*|cocco)/gi;
+const NEG =
+  /\buov[oa]\b|albume|tuorl|ovoprodott|\begg\b|albumen|\byolk|(?<!senza )latte|lattosi|siero di latte|\bcasein|lattoalbumin|formagg|mozzarella|parmigian|pecorino|ricotta|mascarpone|\bmilk\b|\bwhey\b|lactose|\bcheese\b|\bbutter\b|\bcream\b|\bmiele\b|\bhoney\b|gelatin|\bstrutto\b|\blardo\b|\bsego\b|\btallow\b|\bcarne\b|pollo|tacchino|\bmanzo\b|maial|prosciutt|\bsalame\b|salamin|pancett|\bspeck\b|wurstel|mortadella|bresaola|\bbacon\b|\bham\b|sausage|\bmeat\b|chicken|\bbeef\b|\bpork\b|guancial|\bpesce\b|\btonno\b|acciugh|\balici\b|salmon|merluzz|gamber|crostace|mollusch|vongol|calamar|surimi|\bfish\b|\btuna\b|anchov|shrimp|prawn|colla di pesce|carminio|cocciniglia/i;
+
+function veganCheck(p: any): { check: string; ingredients: string | null } {
+  const a: string[] = p.ingredients_analysis_tags || [];
+  let body = (p.ingredients_text_it || p.ingredients_text || '').toLowerCase();
+  const m = body.match(TRACES);
+  if (m && m.index !== undefined) body = body.slice(0, m.index);
+  const ing = body.trim() ? body.slice(0, 1000) : null;
+  if (a.includes('en:vegan')) return { check: 'vegan', ingredients: ing };
+  if (a.includes('en:non-vegan')) return { check: 'non_vegan', ingredients: ing };
+  const scan = body.replace(PLANT_SAFE, ' ');
+  if (scan.trim() && NEG.test(scan)) return { check: 'non_vegan', ingredients: ing };
+  return { check: 'da_verificare', ingredients: ing };
+}
 
 async function getUrl(u: string, tries = 4): Promise<any[]> {
   for (let a = 0; a < tries; a++) {
@@ -42,6 +63,8 @@ const getBrandPage = (brand: string, page: number) =>
 function toRow(p: any) {
   const name = (p.product_name_it || p.product_name || '').trim();
   if (name.length < 2 || !p.code) return null;
+  const vc = veganCheck(p);
+  if (vc.check === 'non_vegan') return null; // non entra nel catalogo vegano
   const nu = p.nutriments || {};
   let nova: number | null = parseInt(p.nova_group, 10);
   if (!Number.isFinite(nova)) nova = null;
@@ -60,6 +83,8 @@ function toRow(p: any) {
     nova_group: nova,
     nutriscore: (p.nutriscore_grade || '').slice(0, 2) || null,
     source: 'off',
+    vegan_check: vc.check,
+    ingredients_text: vc.ingredients,
   };
 }
 

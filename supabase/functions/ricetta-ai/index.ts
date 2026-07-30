@@ -140,7 +140,7 @@ const SCHEMA_HINT = `{
   "difficolta": "Facile | Media | Difficile",
   "ingredienti": [{"testo": "800 g di melanzane", "nome": "melanzane"}],
   "passi": ["..."],
-  "nutrizione": {"kcal": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0, "fiber_g": 0},
+  "nutrizione": {"kcal": 0, "protein_g": 0, "carbs_g": 0, "sugars_g": 0, "fat_g": 0, "saturated_fat_g": 0, "fiber_g": 0},
   "ingredienti_en": "i 5 ingredienti principali VISIBILI nel piatto finito, in inglese, separati da virgola"
 }`;
 
@@ -158,7 +158,8 @@ async function assistRicetta(input: Record<string, unknown>) {
         const n = f.nutrition || {};
         return `- ${f.name}${f.brand ? ' (' + f.brand + ')' : ''}: ${f.qty || '?'} nella ricetta. ` +
           `Per 100 g: ${n.kcal ?? '?'} kcal, ${n.protein_g ?? '?'} g prot, ` +
-          `${n.carbs_g ?? '?'} g carbo, ${n.fat_g ?? '?'} g grassi, ${n.fiber_g ?? '?'} g fibre.`;
+          `${n.carbs_g ?? '?'} g carbo (di cui zuccheri ${n.sugars_g ?? '?'} g), ` +
+          `${n.fat_g ?? '?'} g grassi, ${n.fiber_g ?? '?'} g fibre.`;
       }).join('\n') +
       `\nIncludi questi prodotti tra gli ingredienti con la loro quantita'. ` +
       `Nel calcolo nutrizionale PER PORZIONE somma il loro contributo reale ` +
@@ -178,8 +179,11 @@ async function assistRicetta(input: Record<string, unknown>) {
     `usato (es. "Friggi le 800 g di melanzane...", "Unisci i 400 g di pomodori pelati...").\n` +
     `4. "nome" di ogni ingrediente e' il sostantivo pulito, senza dose ne' preparazione ` +
     `(es. "melanzane", "olio extravergine di oliva").\n` +
-    `5. La nutrizione e' PER PORZIONE. Per i PRODOTTI PRONTI usa i valori reali forniti; ` +
-    `per gli ingredienti freschi stima realisticamente.\n\n` +
+    `5. La nutrizione e' PER PORZIONE e OBBLIGATORIA in tutti i campi, inclusi ` +
+    `"sugars_g" (zuccheri) e "saturated_fat_g" (grassi saturi): calcolali sempre ` +
+    `dagli ingredienti, MAI lasciarli a 0 se il piatto ne contiene. Coerenza: ` +
+    `sugars_g <= carbs_g e saturated_fat_g <= fat_g. Per i PRODOTTI PRONTI usa i ` +
+    `valori reali forniti; per gli ingredienti freschi stima realisticamente.\n\n` +
     `Rispondi SOLO con JSON valido in questa forma:\n${SCHEMA_HINT}`;
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
