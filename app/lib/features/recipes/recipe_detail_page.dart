@@ -168,18 +168,53 @@ class _Detail extends ConsumerWidget {
   }
 }
 
-/// Riga ingrediente con foto realistica.
-Widget ingredientRow(BuildContext context, Ingredient ing) {
+/// Scala la DOSE iniziale di un ingrediente in base alle porzioni mostrate.
+/// Es. "200 g carota" (base 4) mostrato per 6 -> "300 g carota".
+/// Scala SOLO il numero in testa (la dose): non tocca numeri dentro il nome
+/// (es. "farina 00", "cioccolato 70%") ne', ovviamente, tempi/temperature.
+String scaleIngredientText(String raw, int baseServings, int shownServings) {
+  if (baseServings <= 0 || shownServings <= 0 || shownServings == baseServings) {
+    return raw;
+  }
+  final factor = shownServings / baseServings;
+  String fmt(double v) {
+    final r = (v * 10).round() / 10.0; // un decimale
+    if ((r - r.roundToDouble()).abs() < 0.049) return r.round().toString();
+    return r.toStringAsFixed(1).replaceAll('.', ','); // virgola decimale IT
+  }
+  double val(String s) => double.parse(s.replaceAll(',', '.'));
+  // range "2-3 foglie" -> scala entrambi gli estremi
+  final range =
+      RegExp(r'^(\s*)(\d+(?:[.,]\d+)?)(\s*[-–]\s*)(\d+(?:[.,]\d+)?)');
+  final mr = range.firstMatch(raw);
+  if (mr != null) {
+    final rep = '${mr.group(1)}${fmt(val(mr.group(2)!) * factor)}'
+        '${mr.group(3)}${fmt(val(mr.group(4)!) * factor)}';
+    return raw.replaceRange(0, mr.end, rep);
+  }
+  // singola dose in testa
+  final single = RegExp(r'^(\s*)(\d+(?:[.,]\d+)?)');
+  final ms = single.firstMatch(raw);
+  if (ms == null) return raw; // "q.b.", "sale q.b." -> nessuna dose da scalare
+  return raw.replaceRange(
+      0, ms.end, '${ms.group(1)}${fmt(val(ms.group(2)!) * factor)}');
+}
+
+/// Riga ingrediente con foto realistica. Le [porzioni] mostrate scalano la dose.
+Widget ingredientRow(BuildContext context, Ingredient ing,
+    {int baseServings = 0, int shownServings = 0}) {
+  final text = scaleIngredientText(ing.rawText, baseServings, shownServings);
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // L'avatar resta sul testo originale (serve solo per la foto).
         IngredientAvatar(raw: ing.rawText, img: ing.img, size: 38),
         const SizedBox(width: 10),
         Expanded(child: Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text(ing.rawText),
+          child: Text(text),
         )),
       ],
     ),
@@ -350,14 +385,18 @@ class _RecipeTab extends ConsumerWidget {
               ),
             ),
           _Section(
-            title: 'Ingredienti',
+            title: displayServings == recipe.servings
+                ? 'Ingredienti'
+                : 'Ingredienti · per $displayServings porzioni',
             child: recipe.ingredients.isEmpty
                 ? const Text('Nessun ingrediente')
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (final ing in recipe.ingredients)
-                        ingredientRow(context, ing),
+                        ingredientRow(context, ing,
+                            baseServings: recipe.servings,
+                            shownServings: displayServings),
                     ],
                   ),
           ),
