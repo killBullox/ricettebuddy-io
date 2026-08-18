@@ -43,7 +43,7 @@ String ingredientEmoji(String raw) {
   // è FARINA). Vanno PRIMA degli ingredienti grezzi per non farsi rubare il match.
   if (w(['olio', 'oliva', 'olive', 'evo'])) return '🫒';
   if (w(['burro', 'margarina'])) return '🧈';
-  if (w(['latte', 'panna', 'yogurt', 'bevanda vegetale', 'parmigian', 'pecorino',
+  if (w(['latte', 'panna', 'yogurt', 'bevanda', 'parmigian', 'pecorino',
         'formagg', 'mozzarell', 'ricotta', 'stracchino', 'mascarpone'])) return '🥛';
   if (w(['sale'])) return '🧂';
   if (w(['zucchero', 'dolcificante'])) return '🍬';
@@ -70,10 +70,11 @@ String ingredientEmoji(String raw) {
   if (w(['zucchin', 'cetriol'])) return '🥒';
   if (w(['melanzan'])) return '🍆';
   if (w(['fungh', 'porcini', 'champignon', 'shiitake', 'chiodini'])) return '🍄';
-  if (w(['basilico', 'prezzemolo', 'rosmarino', 'timo', 'menta', 'salvia',
-        'coriandolo', 'origano', 'erba', 'erbe', 'aneto', 'maggiorana'])) return '🌿';
+  if (w(['basilico', 'prezzemolo', 'rosmarino', 'timo', 'menta', 'mentucc', 'salvia',
+        'coriandolo', 'origano', 'erba', 'erbe', 'aneto', 'maggiorana', 'santoreggia',
+        'dragoncello', 'cerfoglio', 'melissa'])) return '🌿';
   if (w(['insalat', 'lattuga', 'spinac', 'rucola', 'cavol', 'bietol', 'verza',
-        'radicchio', 'catalogna'])) return '🥬';
+        'radicchio', 'catalogna', 'puntarelle', 'songino', 'valeriana', 'indivia'])) return '🥬';
   if (w(['mais'])) return '🌽';
   if (w(['avocado'])) return '🥑';
   if (w(['limon', 'lime'])) return '🍋';
@@ -83,11 +84,32 @@ String ingredientEmoji(String raw) {
   if (w(['mirtill', 'lampon', 'more', 'frutti di bosco', 'bacche', 'ribes'])) return '🫐';
   if (w(['cocco'])) return '🥥';
   if (w(['ceci', 'fagiol', 'lenticch', 'legumi', 'piselli', 'edamame',
-        'cannellini', 'borlotti', 'soia'])) return '🫘';
+        'cannellini', 'borlotti', 'soia', 'fave', 'cicerchi', 'lupini'])) return '🫘';
+  if (w(['germogli'])) return '🌱';
+  if (w(['marmellat', 'confettur'])) return '🍓';
   // semi (lino, chia, sesamo, zucca...): non sono frutta secca -> icona AI
   if (w(['semi di lino', 'semi di chia', 'semi di sesamo', 'semi di zucca',
         'semi di girasole', 'semi di papavero', 'lino', 'chia'])) return '';
   if (w(['arachid'])) return '🥜'; // 🥜 è "peanut": solo le arachidi
+  // altra frutta con emoji dedicata
+  if (w(['arance', 'arancia', 'arancie', 'agrumi'])) return '🍊';
+  if (w(['mango'])) return '🥭';
+  if (w(['pesche', 'pesca', 'albicocc'])) return '🍑';
+  if (w(['pere', 'pera'])) return '🍐';
+  if (w(['ananas'])) return '🍍';
+  if (w(['anguria', 'cocomero'])) return '🍉';
+  if (w(['melone', 'meloni'])) return '🍈';
+  if (w(['ciliege', 'ciliegie', 'amaren'])) return '🍒';
+  if (w(['uva', 'uvspina'])) return '🍇';
+  // altre verdure a foglia
+  if (w(['scarol', 'cicoria', 'cardi', 'catalogna', 'tenerum', 'cime di rapa',
+        'friarielli', 'grelos'])) return '🥬';
+  // altre forme di pasta (stessa emoji degli spaghetti)
+  if (w(['cavatell', 'paccher', 'trofie', 'orecchiett', 'bucatini', 'strozzapret',
+        'casarecce', 'linguine', 'bavette', 'mafald', 'pici', 'busiate', 'pappardell',
+        'cannellon', 'conchiglie', 'farfalle', 'ditalini', 'vermicell', 'cous cous'])) {
+    return '🍝';
+  }
   // mandorle, anacardi, noci, nocciole, pistacchi, pinoli, semi e le spezie
   // (pepe, lievito, curcuma...) non hanno un'emoji adatta: per questi usiamo la
   // FOTO reale di Spoonacular (vedi spoonacularSlug); qui torniamo '' e sarà
@@ -123,6 +145,7 @@ String? spoonacularSlug(String raw) {
   if (w('anacard')) return 'cashews';
   if (w('pinol')) return 'pine-nuts';
   if (w('arachid')) return 'peanuts';
+  if (w('castagn')) return 'chestnuts';
   if (w('moscata')) return 'nutmeg';
   if (w('cocco')) return null; // cocco intero -> emoji 🥥
   if (ww('noci') || ww('noce')) return 'walnuts';
@@ -132,6 +155,7 @@ String? spoonacularSlug(String raw) {
   if (w('seitan')) return 'seitan';
   // semi
   if (w('sesamo')) return 'sesame-seeds';
+  if (w('tahin')) return 'sesame-seeds'; // tahina = crema di sesamo
   if (w('chia')) return 'chia-seeds';
   if (ww('lino')) return 'flax-seeds';
   if (w('girasole')) return 'sunflower-seeds';
@@ -144,16 +168,49 @@ String? spoonacularSlug(String raw) {
   }
   if (w('curcuma')) return 'turmeric';
   if (w('cumino') || w('comino')) return 'cumin';
-  if (w('paprika')) return 'paprika';
+  if (w('paprika') || w('paprica')) return 'paprika';
   if (w('zenzero')) return 'ginger';
   if (w('cannella')) return 'cinnamon';
+  if (w('garam masala')) return 'garam-masala';
   if (w('curry')) return 'curry-powder';
+  if (w('sumac')) return 'sumac';
+  if (w('chiodi di garofano') || w('garofano')) return 'cloves';
+  if (w('cardamomo')) return 'cardamom';
+  if (w('zafferano')) return 'saffron';
   if (w('vanigli')) return 'vanilla';
+  if (w('anice')) return 'star-anise';
+  if (w('semi di finocchio')) return 'fennel-seeds';
+  if (w('semi di coriandolo') || w('coriandolo in polvere')) return 'coriander-seeds';
+  // peperoncino in POLVERE/secco/scaglie -> foto (quello fresco resta emoji 🌶️)
+  if (w('peperoncin') &&
+      (w('polvere') || w('macinat') || w('secc') || w('scaglie') || w('fiocchi') || w('piccante') || w('essiccat'))) {
+    return 'chili-powder';
+  }
   if (ww('pepe')) return 'black-pepper'; // parola intera: non "peperone"/"peperoncino"
-  // altri
+  // condimenti
   if (w('salsa di soia') || w('tamari') || w('shoyu')) return 'soy-sauce';
+  if (w('miso')) return 'miso';
+  if (w('senape')) return 'dijon-mustard';
+  if (w('aceto balsamico')) return 'balsamic-vinegar';
+  if (w('aceto di mele')) return 'apple-cider-vinegar';
+  if (w('capperi')) return 'capers';
+  if (w('alga nori') || w('nori')) return 'nori';
+  if (w('kombu')) return 'kombu';
+  if (w('tamarindo')) return 'tamarind';
+  // frutta secca/essiccata
   if (w('uvett') || w('uva passa')) return 'raisins';
   if (w('datter')) return 'dates';
   if (w('avena') && w('fiocch')) return 'rolled-oats';
+  // verdure senza emoji dedicata -> foto reale
+  if (w('sedano')) return 'celery';
+  if (w('finocchi')) return 'fennel';
+  if (w('carciof')) return 'artichokes';
+  if (w('asparag')) return 'asparagus';
+  if (w('ravanell')) return 'radishes';
+  if (w('cavolfiore')) return 'cauliflower';
+  if (w('broccol')) return 'broccoli';
+  if (w('semi di zucca')) return 'pumpkin-seeds'; // (già sopra, per sicurezza)
+  if (w('zucca')) return 'pumpkin';
+  if (w('alloro')) return 'bay-leaves';
   return null;
 }

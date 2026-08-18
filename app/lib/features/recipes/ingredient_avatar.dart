@@ -3,6 +3,24 @@ import 'package:flutter/material.dart';
 
 import 'ingredient_icon.dart';
 
+/// Icona di ripiego (solo per i rari ingredienti senza né foto né emoji):
+/// scelta per CATEGORIA dal nome, così non è mai una foglia generica.
+IconData fallbackIconFor(String raw) {
+  final t = raw.toLowerCase();
+  if (RegExp(r'lievito|bicarbonat|amido|fecola|maizena|farina').hasMatch(t)) {
+    return Icons.grain; // polveri
+  }
+  if (RegExp(r'salsa|aceto|sciroppo|brodo|sugo|passata|worcest|tabasco|senape')
+      .hasMatch(t)) {
+    return Icons.water_drop_outlined; // liquidi/salse
+  }
+  if (RegExp(r'spezi|masala|berbere|ras el|curry|zafferan|paprik|pepe|sumac|semi ')
+      .hasMatch(t)) {
+    return Icons.grain; // spezie in polvere/semi
+  }
+  return Icons.restaurant; // generico "alimento"
+}
+
 /// Avatar ingrediente. Priorità: FOTO realistica dalla libreria Spoonacular
 /// (slug [img] fornito dal server, oppure derivato dal nome per frutta secca,
 /// semi, spezie, tofu, gocce di cioccolato...); altrimenti emoji; altrimenti
@@ -29,8 +47,8 @@ class IngredientAvatar extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
           ),
           child: emoji.isEmpty
-              ? Icon(Icons.eco_outlined,
-                  size: size * 0.56, color: const Color(0xFF8AA17D))
+              ? Icon(fallbackIconFor(raw),
+                  size: size * 0.54, color: const Color(0xFF9A8F86))
               : Text(emoji, style: TextStyle(fontSize: size * 0.53)),
         );
 
