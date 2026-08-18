@@ -1,13 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../config.dart';
 import 'ingredient_icon.dart';
 
 /// Avatar ingrediente. Priorità: FOTO realistica dalla libreria Spoonacular
-/// (se l'enrich ha fornito lo slug [img]); altrimenti emoji; altrimenti icona
-/// SVG generata dall'AI. Condiviso tra scheda ricetta, spesa e dispensa.
+/// (slug [img] fornito dal server, oppure derivato dal nome per frutta secca,
+/// semi, spezie, tofu, gocce di cioccolato...); altrimenti emoji; altrimenti
+/// una piccola icona LOCALE. Condiviso tra scheda ricetta, spesa e dispensa.
 class IngredientAvatar extends StatelessWidget {
   final String raw;
   final String? img; // slug Spoonacular, es. "red-onion"
@@ -19,6 +18,8 @@ class IngredientAvatar extends StatelessWidget {
     final emoji = ingredientEmoji(raw);
     final radius = size * 0.28;
 
+    // Fallback SENZA rete: emoji se c'è, altrimenti una foglia (icona locale),
+    // così non resta mai il "pallino" di un'icona che non arriva.
     Widget fallback() => Container(
           width: size,
           height: size,
@@ -28,13 +29,16 @@ class IngredientAvatar extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
           ),
           child: emoji.isEmpty
-              ? _AiIngredientIcon(raw: raw, size: size * 0.73)
+              ? Icon(Icons.eco_outlined,
+                  size: size * 0.56, color: const Color(0xFF8AA17D))
               : Text(emoji, style: TextStyle(fontSize: size * 0.53)),
         );
 
-    final slug = img?.trim();
+    // Slug esplicito dal server, altrimenti derivato dal nome dell'ingrediente.
+    final slug = (img != null && img!.trim().isNotEmpty)
+        ? img!.trim()
+        : spoonacularSlug(raw);
     if (slug == null || slug.isEmpty) return fallback();
-    // Il server valida lo slug e può includere l'estensione (es. "vanilla.jpg").
     final file = slug.contains('.') ? slug : '$slug.jpg';
 
     return ClipRRect(
@@ -49,21 +53,5 @@ class IngredientAvatar extends StatelessWidget {
         errorWidget: (_, __, ___) => fallback(),
       ),
     );
-  }
-}
-
-/// Icona SVG dell'ingrediente servita da /api/ingredient-icon (cache-first).
-class _AiIngredientIcon extends StatelessWidget {
-  final String raw;
-  final double size;
-  const _AiIngredientIcon({required this.raw, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    final dot = Icon(Icons.circle, size: size * 0.32, color: Theme.of(context).hintColor);
-    final url = Config
-        .backendUri('api/ingredient-icon?name=${Uri.encodeQueryComponent(raw)}')
-        .toString();
-    return SvgPicture.network(url, width: size, height: size, placeholderBuilder: (_) => dot);
   }
 }

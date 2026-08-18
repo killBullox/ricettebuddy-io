@@ -88,9 +88,72 @@ String ingredientEmoji(String raw) {
   if (w(['semi di lino', 'semi di chia', 'semi di sesamo', 'semi di zucca',
         'semi di girasole', 'semi di papavero', 'lino', 'chia'])) return '';
   if (w(['arachid'])) return '🥜'; // 🥜 è "peanut": solo le arachidi
-  // mandorle, anacardi, noci, nocciole, pistacchi, pinoli, tahin, semi e le
-  // spezie (pepe, lievito, curcuma...): nessuna emoji dedicata (l'unica per la
-  // frutta secca è l'arachide) -> icona SVG generata dall'AI, distinta per ognuno.
-  // Lo stesso per tofu/tempeh/seitan.
+  // mandorle, anacardi, noci, nocciole, pistacchi, pinoli, semi e le spezie
+  // (pepe, lievito, curcuma...) non hanno un'emoji adatta: per questi usiamo la
+  // FOTO reale di Spoonacular (vedi spoonacularSlug); qui torniamo '' e sarà
+  // l'avatar a decidere foto o icona locale.
   return '';
+}
+
+/// Slug della FOTO Spoonacular per gli ingredienti che con emoji/icona rendono
+/// male: frutta secca, semi, spezie, tofu/tempeh/seitan, gocce di cioccolato...
+/// Ritorna null quando l'emoji va benissimo (verdura, frutta, pasta, latti...).
+/// Gli slug sono verificati esistenti su img.spoonacular.com.
+String? spoonacularSlug(String raw) {
+  final s = raw.toLowerCase();
+  bool w(String k) => RegExp('(^|[^a-zà-ù])$k').hasMatch(s); // radice
+  bool ww(String k) =>
+      RegExp('(^|[^a-zà-ù])$k([^a-zà-ù]|\$)').hasMatch(s); // parola intera
+
+  // Le "bevande vegetali" (latte di mandorla/soia/avena...) restano LATTE (emoji),
+  // non la foto della frutta secca da cui derivano.
+  if (RegExp(r'(latte|bevanda)\s+(di\s+)?'
+          r'(mandorl|nocciol|soia|riso|avena|cocco|anacard|canap|kamut|farro|miglio)')
+      .hasMatch(s)) {
+    return null;
+  }
+
+  // cioccolato / cacao
+  if (w('cacao')) return 'cocoa-powder';
+  if (w('cioccolat')) return w('gocc') ? 'chocolate-chips' : 'dark-chocolate';
+  // frutta secca
+  if (w('mandorl')) return 'almonds';
+  if (w('nocciol')) return 'hazelnuts';
+  if (w('pistacch')) return 'pistachios';
+  if (w('anacard')) return 'cashews';
+  if (w('pinol')) return 'pine-nuts';
+  if (w('arachid')) return 'peanuts';
+  if (w('moscata')) return 'nutmeg';
+  if (w('cocco')) return null; // cocco intero -> emoji 🥥
+  if (ww('noci') || ww('noce')) return 'walnuts';
+  // proteine vegetali
+  if (w('tofu')) return 'tofu';
+  if (w('tempeh')) return 'tempeh';
+  if (w('seitan')) return 'seitan';
+  // semi
+  if (w('sesamo')) return 'sesame-seeds';
+  if (w('chia')) return 'chia-seeds';
+  if (ww('lino')) return 'flax-seeds';
+  if (w('girasole')) return 'sunflower-seeds';
+  if (w('semi di zucca')) return 'pumpkin-seeds';
+  // spezie / aromi
+  if (w('lievito alimentare') ||
+      w('lievito nutrizional') ||
+      w('scaglie di lievito')) {
+    return 'nutritional-yeast';
+  }
+  if (w('curcuma')) return 'turmeric';
+  if (w('cumino') || w('comino')) return 'cumin';
+  if (w('paprika')) return 'paprika';
+  if (w('zenzero')) return 'ginger';
+  if (w('cannella')) return 'cinnamon';
+  if (w('curry')) return 'curry-powder';
+  if (w('vanigli')) return 'vanilla';
+  if (ww('pepe')) return 'black-pepper'; // parola intera: non "peperone"/"peperoncino"
+  // altri
+  if (w('salsa di soia') || w('tamari') || w('shoyu')) return 'soy-sauce';
+  if (w('uvett') || w('uva passa')) return 'raisins';
+  if (w('datter')) return 'dates';
+  if (w('avena') && w('fiocch')) return 'rolled-oats';
+  return null;
 }
