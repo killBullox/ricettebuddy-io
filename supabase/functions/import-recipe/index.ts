@@ -63,18 +63,20 @@ async function enrichFromText(
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) throw new Error("ANTHROPIC_API_KEY mancante");
   const prompt =
-    `Da questa didascalia/testo di un post di cucina, ricava una ricetta e ` +
-    `rendila 100% VEGANA (sostituisci ogni ingrediente animale con un'alternativa ` +
-    `vegetale sensata).\n\n` +
+    `Da questo testo di una ricetta (didascalia social o pagina web), ricava una ` +
+    `ricetta strutturata, TRADUCILA IN ITALIANO e rendila 100% VEGANA (sostituisci ` +
+    `ogni ingrediente animale con un'alternativa vegetale sensata).\n\n` +
     (hintTitle ? `Titolo suggerito: ${hintTitle}\n` : "") +
-    `Testo:\n"""${text.slice(0, 4000)}"""\n\n` +
+    `Testo:\n"""${text.slice(0, 8000)}"""\n\n` +
     `Regole:\n` +
-    `1. Ingredienti CON dose per le porzioni indicate (es. "200 g di tofu").\n` +
-    `2. In OGNI passo ripeti la dose dell'ingrediente quando viene usato.\n` +
-    `3. "nome" di ogni ingrediente = sostantivo pulito senza dose (es. "tofu").\n` +
-    `4. nutrizione PER PORZIONE, realistica.\n` +
-    `5. categoria: scegli la più vicina fra: ${CATEGORIE.join(" | ")}.\n` +
-    `6. was_vegan = true se il piatto era già vegano, false se l'hai veganizzato.\n\n` +
+    `1. Scrivi TUTTO in ITALIANO (titolo, ingredienti, passi): traduci se l'originale ` +
+    `è in un'altra lingua. Nessuna parola in lingua straniera se esiste il termine italiano.\n` +
+    `2. Ingredienti CON dose per le porzioni indicate (es. "200 g di tofu").\n` +
+    `3. In OGNI passo ripeti la dose dell'ingrediente quando viene usato.\n` +
+    `4. "nome" di ogni ingrediente = sostantivo pulito senza dose (es. "tofu").\n` +
+    `5. nutrizione PER PORZIONE, realistica.\n` +
+    `6. categoria: scegli la più vicina fra: ${CATEGORIE.join(" | ")}.\n` +
+    `7. was_vegan = true se il piatto era già vegano, false se l'hai veganizzato.\n\n` +
     `Rispondi SOLO con JSON valido:\n` +
     `{"titolo":"...","categoria":"...","zona":"...","porzioni":4,"prep_min":15,` +
     `"cottura_min":20,"difficolta":"Facile|Media|Difficile","was_vegan":true,` +
@@ -201,15 +203,19 @@ serve(async (req) => {
       if (body.image_url) norm.image_url = String(body.image_url);
       if (body.source_url) norm.source_url = String(body.source_url);
     } else if (body.url && /^https?:\/\//.test(body.url)) {
-      // Ramo URL: JSON-LD.
+      // Ramo URL: estrai il JSON-LD e POI passalo dall'AI, così anche le ricette
+      // da sito vengono TRADOTTE in italiano e VEGANIZZATE (non salvate grezze).
       const p = await parseRecipe(String(body.url));
       if (!p) return json({ error: "Ricetta non riconosciuta in questa pagina." }, 422);
-      norm = {
-        ...p,
-        cuisine: null, difficulty: null, servings: null, prep_minutes: null,
-        nutrition: null, was_vegan: null,
-        ingredients: p.ingredients.map((x) => ({ raw_text: x.raw_text, normalized_name: null })),
-      };
+      const text =
+        `Titolo: ${p.title}\n\nIngredienti:\n` +
+        p.ingredients.map((x) => `- ${x.raw_text}`).join("\n") +
+        `\n\nProcedimento:\n` +
+        (p.steps || []).map((s: { text: string }, i: number) => `${i + 1}. ${s.text}`).join("\n");
+      norm = await enrichFromText(text, p.title);
+      norm.source_type = "web";
+      norm.image_url = p.image_url ?? null; // conserva la foto del sito
+      norm.source_url = String(body.url);
     } else {
       return json({ error: "Serve un link valido o il testo della ricetta." }, 400);
     }
