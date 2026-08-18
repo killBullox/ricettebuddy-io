@@ -507,16 +507,36 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
     return cleanIngredientName(ing.rawText);
   }
 
-  /// Quantità formattata (es. "200 g", "2"), stringa vuota se assente.
-  String _amount(Ingredient ing) {
+  /// Fattore di scala dalle porzioni scelte nel dettaglio (override locale).
+  double _factor({required bool watch}) {
+    final base = widget.recipe.servings;
+    if (base <= 0) return 1;
+    final prov = _servingsOverrideProvider(widget.recipe.id ?? '');
+    final shown = (watch ? ref.watch(prov) : ref.read(prov)) ?? base;
+    return shown / base;
+  }
+
+  /// Quantità scalata (1 decimale), null se assente.
+  double? _scaledQty(Ingredient ing, double factor) {
     final q = ing.quantity;
+    if (q == null) return null;
+    return (q * factor * 10).roundToDouble() / 10;
+  }
+
+  /// Quantità formattata (es. "300 g", "1,5"), stringa vuota se assente.
+  String _amount(Ingredient ing, double factor) {
+    final q = _scaledQty(ing, factor);
     if (q == null) return '';
-    final qs = q == q.roundToDouble() ? q.toInt().toString() : '$q';
+    final qs = q == q.roundToDouble()
+        ? q.toInt().toString()
+        : q.toStringAsFixed(1).replaceAll('.', ','); // virgola decimale IT
     return ing.unit != null && ing.unit!.isNotEmpty ? '$qs ${ing.unit}' : qs;
   }
 
   Future<void> _addSelected() async {
     setState(() => _adding = true);
+    // Le dosi in lista rispettano le porzioni scelte nel dettaglio.
+    final factor = _factor(watch: false);
     // Aggiunge il PRODOTTO pulito (non la riga con la preparazione).
     final chosen = [
       for (var i = 0; i < widget.recipe.ingredients.length; i++)
@@ -525,7 +545,7 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
             position: i,
             rawText: _product(widget.recipe.ingredients[i]),
             normalizedName: _product(widget.recipe.ingredients[i]),
-            quantity: widget.recipe.ingredients[i].quantity,
+            quantity: _scaledQty(widget.recipe.ingredients[i], factor),
             unit: widget.recipe.ingredients[i].unit,
             aisleCategory: widget.recipe.ingredients[i].aisleCategory,
           ),
@@ -552,8 +572,23 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
         child: Text('Nessun ingrediente da aggiungere.'),
       ));
     }
+    final factor = _factor(watch: true);
+    final shownServings =
+        ref.watch(_servingsOverrideProvider(widget.recipe.id ?? '')) ??
+            widget.recipe.servings;
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Dosi per $shownServings porzioni',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).hintColor)),
+          ),
+        ),
         Expanded(
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -568,9 +603,9 @@ class _ShoppingTabState extends ConsumerState<_ShoppingTab> {
                   secondary: IngredientAvatar(raw: ings[i].rawText, img: ings[i].img, size: 38),
                   title: Text(_product(ings[i]),
                       style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: _amount(ings[i]).isEmpty
+                  subtitle: _amount(ings[i], factor).isEmpty
                       ? null
-                      : Text(_amount(ings[i])),
+                      : Text(_amount(ings[i], factor)),
                   controlAffinity: ListTileControlAffinity.trailing,
                 ),
             ],
