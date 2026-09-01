@@ -31,7 +31,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: io.beetit.recipes   # firma tutti i target (incl. estensione Share)
       vars:
-        APP_STORE_APPLE_ID: 0000000000   # <-- Apple ID NUMERICO dell'app
+        APP_STORE_APPLE_ID: 6788669009   # Apple ID di "Beet-It Vegan Recipes"
     scripts:
       - name: Flutter pub get
         script: cd app && flutter pub get
