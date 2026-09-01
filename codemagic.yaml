@@ -19,6 +19,15 @@ workflows:
     name: Beet It! iOS → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
+    # AUTOMATICO: ogni push su main builda e pubblica su TestFlight da solo.
+    # (Richiede il webhook GitHub, creato dalla Codemagic GitHub App già installata.)
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
     integrations:
       app_store_connect: CodemagicASC   # <-- nome ESATTO dell'integrazione ASC API key
     environment:
