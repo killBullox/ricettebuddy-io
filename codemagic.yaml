@@ -41,10 +41,14 @@ workflows:
       - name: Config-only (rigenera integrazione SPM)
         script: |
           cd app
+          LOG="$CM_BUILD_DIR/beetit-build.log"
+          { echo "=== flutter --version ==="; flutter --version; \
+            echo "=== flutter config ==="; flutter config; } 2>&1 | tee "$LOG"
+          set -o pipefail
           flutter build ios --config-only --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=API_BASE=$API_BASE
+            --dart-define=API_BASE=$API_BASE 2>&1 | tee -a "$LOG"
       - name: Aggiungi il target ShareExtension
         script: |
           cd app
@@ -73,6 +77,7 @@ workflows:
             --export-options-plist=$HOME/export_options.plist
     artifacts:
       - app/build/ios/ipa/*.ipa
+      - beetit-build.log
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
