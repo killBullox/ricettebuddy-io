@@ -1,18 +1,12 @@
-# Build iOS di Beet It! su Mac cloud ON-DEMAND (Codemagic) e pubblicazione su
-# TestFlight. Il Mac viene acceso solo per i ~15 min della build e spento da solo:
-# nessuna macchina sempre accesa (a differenza del Mac Scaleway).
-# Il progetto Flutter è nella sottocartella app/.
+# Build iOS di Beet It! su Mac cloud ON-DEMAND (Codemagic) -> TestFlight.
+# Replica la build di produzione (ship.sh): Swift Package Manager (NIENTE
+# CocoaPods), aggiunta del target ShareExtension, firma con la App Store Connect
+# API key. Nessuna configurazione manuale nella UI: variabili e chiave sono
+# impostate via API di Codemagic (gruppo "beetit").
 #
-# SETUP UNA-TANTUM su Codemagic (UI):
-#  1) Collega il repo GitHub killBullox/ricettebuddy-io.
-#  2) Team settings -> Integrations -> App Store Connect: carica una API key
-#     (ruolo App Manager) e chiamala ESATTAMENTE come "integrations.app_store_connect" qui sotto.
-#  3) Environment variables -> gruppo "beetit" (spunta "Secure") con:
-#       SUPABASE_URL       = https://zffcpwtijxbbshrpsxqq.supabase.co
-#       SUPABASE_ANON_KEY  = <la anon/publishable key dal tuo supabase-beetit.env>
-#       API_BASE           = (lascia vuoto: il backend ora è su Supabase Edge Functions)
-#  4) Sostituisci APP_STORE_APPLE_ID con l'Apple ID NUMERICO dell'app
-#     (App Store Connect -> la tua app -> App Information -> "Apple ID").
+# Variabili nel gruppo "beetit" (secure): SUPABASE_URL, SUPABASE_ANON_KEY,
+# API_BASE, APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER,
+# APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY.
 
 workflows:
   ios-testflight:
@@ -20,7 +14,6 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     # AUTOMATICO: ogni push su main builda e pubblica su TestFlight da solo.
-    # (Richiede il webhook GitHub, creato dalla Codemagic GitHub App già installata.)
     triggering:
       events:
         - push
@@ -28,32 +21,48 @@ workflows:
         - pattern: main
           include: true
           source: true
-    integrations:
-      app_store_connect: CodemagicASC   # <-- nome ESATTO dell'integrazione ASC API key
     environment:
       groups:
-        - beetit                         # SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE
+        - beetit
       flutter: stable
       xcode: latest
-      cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: io.beetit.recipes   # firma tutti i target (incl. estensione Share)
       vars:
-        APP_STORE_APPLE_ID: 6788669009   # Apple ID di "Beet-It Vegan Recipes"
+        BUNDLE_ID: "io.beetit.recipes"
+        SHARE_BUNDLE_ID: "io.beetit.recipes.ShareExtension"
+        APP_STORE_APPLE_ID: 6788669009
     scripts:
       - name: Flutter pub get
         script: cd app && flutter pub get
-      - name: Pod install
-        script: cd app/ios && pod install
-      - name: Firma (profili dalla ASC API key)
-        script: xcode-project use-profiles
+      - name: Abilita Swift Package Manager (niente CocoaPods)
+        script: |
+          flutter config --enable-swift-package-manager
+          rm -f app/ios/Podfile app/ios/Podfile.lock
+          rm -rf app/ios/Pods
+      - name: Config-only (rigenera integrazione SPM)
+        script: |
+          cd app
+          flutter build ios --config-only --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=API_BASE=$API_BASE
+      - name: Aggiungi il target ShareExtension
+        script: |
+          cd app
+          gem install xcodeproj --no-document 2>/dev/null || sudo gem install xcodeproj --no-document
+          ruby ios/scripts/add_share_target.rb ios/Runner.xcodeproj
+      - name: Firma (App Store Connect API key)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "$SHARE_BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Prossimo build number da TestFlight
         script: |
           BN=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
           echo "NEW_BUILD_NUMBER=$((BN + 1))" >> $CM_ENV
-          echo "Userò build number $((BN + 1))"
-      - name: Build IPA (con i dart-define reali, come ship.sh)
+          echo "build number: $((BN + 1))"
+      - name: Build IPA firmata
         script: |
           cd app
           flutter build ipa --release \
@@ -66,5 +75,7 @@ workflows:
       - app/build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
-        auth: integration
-        submit_to_testflight: true   # resta in TestFlight per i test interni, niente review automatica
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
