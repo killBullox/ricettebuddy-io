@@ -26,6 +26,7 @@ workflows:
         - beetit
       flutter: stable
       xcode: latest
+      cocoapods: default
       vars:
         BUNDLE_ID: "io.beetit.recipes"
         SHARE_BUNDLE_ID: "io.beetit.recipes.ShareExtension"
@@ -33,22 +34,14 @@ workflows:
     scripts:
       - name: Flutter pub get
         script: cd app && flutter pub get
-      - name: Abilita Swift Package Manager (niente CocoaPods)
-        script: |
-          flutter config --enable-swift-package-manager
-          rm -f app/ios/Podfile app/ios/Podfile.lock
-          rm -rf app/ios/Pods
-      - name: Config-only (rigenera integrazione SPM)
+      - name: Config-only (genera pbxproj/SPM, SENZA firma)
         script: |
           cd app
-          LOG="$CM_BUILD_DIR/beetit-build.log"
-          { echo "=== flutter --version ==="; flutter --version; \
-            echo "=== flutter config ==="; flutter config; } 2>&1 | tee "$LOG"
           set -o pipefail
-          flutter build ios --config-only --release \
+          flutter build ios --config-only --release --no-codesign \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=API_BASE=$API_BASE 2>&1 | tee -a "$LOG"
+            --dart-define=API_BASE=$API_BASE 2>&1 | tee "$CM_BUILD_DIR/beetit-build.log"
       - name: Aggiungi il target ShareExtension
         script: |
           cd app
@@ -69,12 +62,13 @@ workflows:
       - name: Build IPA firmata
         script: |
           cd app
+          set -o pipefail
           flutter build ipa --release \
             --build-number=$NEW_BUILD_NUMBER \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=API_BASE=$API_BASE \
-            --export-options-plist=$HOME/export_options.plist
+            --export-options-plist=$HOME/export_options.plist 2>&1 | tee -a "$CM_BUILD_DIR/beetit-build.log"
     artifacts:
       - app/build/ios/ipa/*.ipa
       - beetit-build.log
