@@ -167,10 +167,31 @@ async function assistRicetta(input: Record<string, unknown>) {
       `Il procedimento deve dire come si assembla/usa il prodotto pronto.`;
   }
 
+  // Obiettivo nutrizionale opzionale: il nutrizionista chiede una ricetta che
+  // CENTRI certi valori (per colmare un macro che il catalogo non copre).
+  const target = (input as any).target as Record<string, unknown> | undefined;
+  let targetBlock = '';
+  if (target && typeof target === 'object') {
+    const parts: string[] = [];
+    if (target.kcal) parts.push(`circa ${target.kcal} kcal`);
+    if (target.protein_g) parts.push(`almeno ${target.protein_g} g di proteine`);
+    if (target.carbs_g) parts.push(`circa ${target.carbs_g} g di carboidrati`);
+    if (target.fat_g) parts.push(`al massimo ${target.fat_g} g di grassi`);
+    const note = target.note ? ` Indicazioni: ${String(target.note)}.` : '';
+    if (parts.length || note) {
+      targetBlock =
+        `\n\nOBIETTIVO NUTRIZIONALE (PER PORZIONE) — scegli ingredienti e DOSI per ` +
+        `CENTRARE questi valori: ${parts.join(', ')}.${note} Per alzare le proteine ` +
+        `usa tofu, tempeh, seitan, legumi, soia, edamame; per contenere i grassi ` +
+        `modera oli e frutta secca. Dopo aver fissato le dosi, RICALCOLA la ` +
+        `nutrizione con precisione: deve rispettare l'obiettivo.`;
+    }
+  }
+
   const prompt =
     `Sei il nutrizionista che compila il database ricette base di Beet It! (100% vegetale).\n\n` +
     `Ricetta da strutturare:\n${JSON.stringify(input, null, 1)}\n` +
-    foodsBlock + `\n\n` +
+    foodsBlock + targetBlock + `\n\n` +
     `Regole NON negoziabili:\n` +
     `1. La ricetta e' VEGANA: mai uovo, latte, burro, formaggio, panna, miele, carne, pesce.\n` +
     `2. Ogni ingrediente ha la DOSE esplicita per il numero di porzioni indicato ` +

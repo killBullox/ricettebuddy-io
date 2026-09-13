@@ -111,7 +111,7 @@
   .btn-new{background:var(--beet);color:#fff;border:none;border-radius:9px;padding:6px 13px;
     cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:700}
   .btn-new:hover{background:var(--beet-br)}
-  #nw{position:fixed;inset:0;z-index:70;background:rgba(20,6,26,.62);display:none;
+  #nw{position:fixed;inset:0;z-index:74;background:rgba(20,6,26,.62);display:none;
     justify-content:center;padding:24px;overflow:auto}
   #nw.on{display:flex}
   .nw-box{background:#fff;border-radius:20px;max-width:860px;width:100%;height:max-content;
@@ -236,7 +236,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-14</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-15</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -1071,7 +1071,8 @@ $('aiBtn').onclick = async function(){
   try{
     var data = await fnCall({ action:'assist', ricetta:{
       titolo:t, zona:$('aiZona').value.trim(), porzioni:parseInt($('aiPorz').value,10)||4,
-      note:$('aiNote').value.trim(), prodotti_pronti:NW.foods } });
+      note:$('aiNote').value.trim(), prodotti_pronti:NW.foods,
+      target:(NW.aiTarget||null) } });
     var r = data.ricetta;
     $('fTitle').value = r.titolo || t;
     if(CATEGORIE.indexOf(r.categoria) >= 0) $('fCat').value = r.categoria;
@@ -1174,9 +1175,22 @@ $('saveBtn').onclick = async function(){
     }));
     if(qs.error) throw new Error('passi: '+qs.error.message);
 
-    msg('saveMsg', NW.editId ? 'Aggiornata.' : ('Salvata come '+NW.code+'.'),'ok');
     await loadRecipes();
-    setTimeout(function(){ nwClose(); openDetail(rid); }, 700);
+    if(NW.planTarget){
+      // ricetta su misura: aggiungila alla cella del piano e torna al piano
+      var pt=NW.planTarget; NW.planTarget=null;
+      var kc=parseInt($('nKcal').value,10)||0;
+      var dish={ base_code:NW.code, title:title, kcal:kc, id:rid };
+      var wk=PLAN.weeks[pt.week];
+      if(wk){ var key=cellKey(pt.d,pt.slot); (wk[key]=wk[key]||[]).push(dish); }
+      msg('saveMsg','Salvata e aggiunta al piano: '+title+'.','ok');
+      setTimeout(function(){ nwClose();
+        if(pt.week===PLAN.curWeek){ renderCell(pt.d,pt.slot); renderDayTotals(); }
+        refreshSend(); }, 800);
+    } else {
+      msg('saveMsg', NW.editId ? 'Aggiornata.' : ('Salvata come '+NW.code+'.'),'ok');
+      setTimeout(function(){ nwClose(); openDetail(rid); }, 700);
+    }
   }catch(e){ msg('saveMsg','Errore: '+(e.message||e),'ko'); }
   $('saveBtn').disabled = false;
 };
@@ -1445,8 +1459,10 @@ function renderCell(d, slot){
       +'<span class="rm" data-i="'+i+'" title="Rimuovi">&times;</span></div>';
   }).join('')
   + (totk ? ('<div style="font-size:.72rem;font-weight:800;color:var(--beet-deep,#6E1C43);margin:2px 0 0">&Sigma; '+totk+' kcal</div>') : '')
-  + '<button class="add">+ aggiungi</button>';
+  + '<button class="add">+ aggiungi</button>'
+  + '<button class="add aiadd" title="Genera una ricetta su misura con l\'AI per centrare i macro" style="margin-top:3px">🤖 su misura</button>';
   el.querySelector('.add').onclick = function(){ openPicker(d, slot); };
+  el.querySelector('.aiadd').onclick = function(){ openTargetRecipe(d, slot); };
   // titolo -> apri ricetta (vedi/modifica)
   el.querySelectorAll('.dt').forEach(function(node){
     node.onclick = function(){ var x=arr[+node.getAttribute('data-i')];
@@ -1501,6 +1517,33 @@ function addDish(r){
 }
 $('pickDone').onclick = function(){ $('pick').classList.remove('on'); };
 $('pick').addEventListener('keydown', function(e){ if(e.key==='Escape') $('pick').classList.remove('on'); });
+
+/* --- ricetta AI SU MISURA per una cella del piano: apre il creatore #nw con
+   obiettivo nutrizionale preimpostato; dopo il salvataggio entra nel piano --- */
+var SLOT_CAT = { breakfast:'Colazione', lunch:'Legumi e secondi vegetali', snack:'Antipasti e contorni', dinner:'Legumi e secondi vegetali' };
+var SLOT_SHARE = { breakfast:0.22, lunch:0.38, snack:0.10, dinner:0.30 };
+function openTargetRecipe(d, slot){
+  // reset del creatore, come "Nuova ricetta"
+  NW = { code:null, img:'', ingEn:'', nomi:{}, foods:[], editId:null };
+  ['aiTitle','aiZona','aiNote','fTitle','fCui','fIng','fSteps','nKcal','nPro','nCar','nZuc','nFat','nSat','nFib']
+    .forEach(function(id){ $(id).value=''; });
+  $('aiPorz').value=1; $('fPorz').value=1; $('fPrep').value=15; $('fCott').value=20;
+  $('fCat').selectedIndex=0; $('fDiff').selectedIndex=0;
+  $('fPiattoUnico').checked=false; $('fInsalatona').checked=false;
+  $('fImg').removeAttribute('src'); $('nwCode').textContent='';
+  msg('fotoMsg',''); msg('saveMsg','');
+  var cat=SLOT_CAT[slot]; if(cat && CATEGORIE.indexOf(cat)>=0) $('fCat').value=cat;
+  var dayK=parseInt($('gKcal').value,10)||2000;
+  var kcalT=Math.round((SLOT_SHARE[slot]||0.3)*dayK/10)*10;
+  var slotName=SLOTS.filter(function(s){return s[0]===slot;})[0][1];
+  $('aiTitle').value='Piatto proteico per '+slotName.toLowerCase();
+  $('aiNote').value='VEGANO, ~'+kcalT+' kcal a porzione (imposta 1 porzione), pensato per ALZARE LE PROTEINE '
+    +'(almeno 25-30 g per porzione): usa tofu/tempeh/seitan/legumi. Modera oli e grassi. Adatta il titolo al piatto reale.';
+  NW.planTarget={ d:d, slot:slot, week:PLAN.curWeek };
+  NW.aiTarget={ kcal:kcalT, protein_g:28, note:'piatto per '+slotName };
+  $('nw').classList.add('on');
+  msg('aiMsg','Obiettivo preimpostato. Ritocca la nota se vuoi, poi "Compila con AI" → genera la foto → Salva: la ricetta entra nel piano.','');
+}
 
 /* --- invio (tutte le settimane) --- */
 function itemsOf(cells){
