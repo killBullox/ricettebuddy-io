@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import 'calendly_embed.dart';
 import 'calendly_page.dart';
+import 'plan_intake_page.dart';
 
 /// Sezione "Consulenza Nutrizionale": due eventi prenotabili su Calendly.
 const String kCalendlyFirstUrl =
@@ -116,7 +117,22 @@ class _ConsulenzaPageState extends State<ConsulenzaPage> {
           ),
 
           const SizedBox(height: 28),
-          Text('Prenota', style: Theme.of(context).textTheme.titleMedium),
+          Text('Come vuoi il tuo piano?',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          // Senza videoconsulto: il cliente compila i dati antropometrici.
+          _BookCard(
+            icon: Icons.edit_note,
+            title: 'Senza videoconsulto',
+            subtitle:
+                'Compila i tuoi dati: il team prepara il piano su misura, senza chiamata.',
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PlanIntakePage(),
+            )),
+          ),
+          const SizedBox(height: 18),
+          Text('Con videoconsulto — prenota una videochiamata',
+              style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           // Due eventi: Prima consulenza e Follow-up.
           _BookCard(

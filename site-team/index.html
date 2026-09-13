@@ -236,7 +236,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-13</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-14</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -337,6 +337,35 @@
         <span class="sp" style="margin-left:auto"></span>
         <button class="btn btn-gh" id="chChange">Cambia cliente</button>
       </div>
+
+      <details id="intakeBox" style="margin:6px 0 14px;background:var(--paper);border-radius:12px;padding:10px 14px">
+        <summary style="cursor:pointer;font-weight:800;color:var(--aub)">📋 Dati del cliente (anamnesi) <span id="intakeTag" style="font-weight:400;color:var(--taupe);font-size:.85rem"></span></summary>
+        <p class="hint" style="margin:8px 0">Con videoconsulto compili tu questi dati durante/dopo la chiamata. Se il cliente ha richiesto il piano <b>senza</b> videoconsulto, qui trovi già i suoi dati: verificali prima di generare il piano.</p>
+        <div class="row" style="gap:10px">
+          <label style="flex:1 1 120px">Data nascita<input id="inBirth" type="date"></label>
+          <label style="flex:1 1 90px">Sesso<select id="inSex"><option value="">—</option><option value="F">F</option><option value="M">M</option><option value="Altro">Altro</option></select></label>
+          <label style="flex:1 1 80px">Altezza cm<input id="inH" type="number" step="0.1"></label>
+          <label style="flex:1 1 80px">Peso kg<input id="inW" type="number" step="0.1"></label>
+          <label style="flex:1 1 110px">Peso desiderato<input id="inTW" type="number" step="0.1"></label>
+          <label style="flex:1 1 160px">Obiettivo<select id="inGoal"><option value="">—</option><option value="dimagrimento">Dimagrimento</option><option value="massa">Massa muscolare</option><option value="abitudini">Migliorare abitudini</option></select></label>
+        </div>
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label style="flex:1 1 100%">Attività fisica (livello e tipo)<textarea id="inAct" rows="2"></textarea></label>
+        </div>
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label style="flex:1 1 48%;min-width:220px">Storia del peso<textarea id="inWH" rows="2"></textarea></label>
+          <label style="flex:1 1 48%;min-width:220px">Patologie / farmaci<textarea id="inPat" rows="2"></textarea></label>
+        </div>
+        <div class="row" style="gap:10px;margin-top:8px">
+          <label style="flex:1 1 100%">Gusti / intolleranze<textarea id="inPref" rows="2"></textarea></label>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn" id="inSave">Salva dati</button>
+          <span id="inBmi" style="font-size:.85rem;color:var(--taupe)"></span>
+          <span class="msg" id="inMsg"></span>
+        </div>
+      </details>
+
       <div class="pl-meta">
         <label>Settimana (lunedì)<input id="plWeek" type="date" /></label>
         <label style="flex:1;min-width:220px">Nota per il cliente (facoltativa)
@@ -1206,10 +1235,60 @@ function scegliCliente(c){
   $('chNm').textContent = c.full_name || '(senza nome)';
   $('chEm').textContent = c.email;
   $('plStep1').classList.add('hidden'); $('plStep2').classList.remove('hidden');
+  loadIntake(c.id);
   renderWeekNav(); buildWeek(); refreshSend();
 }
 $('chChange').onclick = function(){
   $('plStep2').classList.add('hidden'); $('plStep1').classList.remove('hidden');
+};
+
+/* --- anamnesi cliente (plan_requests): il team la compila (videoconsulto) o
+   verifica quella inviata dal cliente (senza videoconsulto) --- */
+function bmiState(b){ return b<18.5?'sottopeso':(b<25?'normopeso':(b<30?'sovrappeso':'obesità')); }
+function inBmi(){
+  var h=parseFloat($('inH').value), w=parseFloat($('inW').value);
+  if(h>0 && w>0){ var b=w/Math.pow(h/100,2); $('inBmi').textContent='BMI '+b.toFixed(1)+' · '+bmiState(b); }
+  else $('inBmi').textContent='';
+}
+['inH','inW'].forEach(function(id){ $(id).addEventListener('input', inBmi); });
+async function loadIntake(uid){
+  PLAN.intakeId=null; msg('inMsg','');
+  ['inBirth','inSex','inH','inW','inTW','inGoal','inAct','inWH','inPat','inPref'].forEach(function(id){ $(id).value=''; });
+  $('intakeTag').textContent=''; $('inBmi').textContent=''; $('intakeBox').open=false;
+  try{
+    var r=await sb.from('plan_requests').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(1);
+    var row=(r.data&&r.data[0])||null;
+    if(!row){ $('intakeTag').textContent='· nessun dato ancora'; return; }
+    PLAN.intakeId=row.id;
+    $('inBirth').value=row.birth_date||''; $('inSex').value=row.sex||'';
+    $('inH').value=(row.height_cm==null?'':row.height_cm); $('inW').value=(row.weight_kg==null?'':row.weight_kg);
+    $('inTW').value=(row.target_weight_kg==null?'':row.target_weight_kg); $('inGoal').value=row.goal||'';
+    $('inAct').value=row.activity||''; $('inWH').value=row.weight_history||''; $('inPat').value=row.pathologies||''; $('inPref').value=row.preferences||'';
+    $('intakeTag').textContent='· '+(row.wants_video?'con videoconsulto':'SENZA videoconsulto — dati inviati dal cliente');
+    if(!row.wants_video) $('intakeBox').open=true;   // apri: vanno verificati
+    inBmi();
+  }catch(e){ $('intakeTag').textContent='· errore nel caricamento'; }
+}
+$('inSave').onclick = async function(){
+  if(!PLAN.client){ return; }
+  var nn=function(id){ var v=parseFloat($(id).value); return isNaN(v)?null:v; };
+  var data={ birth_date:$('inBirth').value||null, sex:$('inSex').value||null,
+    height_cm:nn('inH'), weight_kg:nn('inW'), target_weight_kg:nn('inTW'),
+    goal:$('inGoal').value||null, activity:$('inAct').value.trim()||null,
+    weight_history:$('inWH').value.trim()||null, pathologies:$('inPat').value.trim()||null,
+    preferences:$('inPref').value.trim()||null, updated_at:new Date().toISOString() };
+  msg('inMsg','Salvo...','wait');
+  try{
+    if(PLAN.intakeId){
+      var q=await sb.from('plan_requests').update(data).eq('id',PLAN.intakeId);
+      if(q.error) throw q.error;
+    } else {
+      data.user_id=PLAN.client.id; data.wants_video=true; data.status='in_progress';
+      var q2=await sb.from('plan_requests').insert(data).select('id').single();
+      if(q2.error) throw q2.error; PLAN.intakeId=q2.data.id;
+    }
+    msg('inMsg','Dati salvati ✓','ok');
+  }catch(e){ msg('inMsg','Errore: '+(e.message||e),'ko'); }
 };
 
 /* --- navigazione tra settimane --- */
