@@ -1,18 +1,16 @@
 // Generatore di piano alimentare automatico, condiviso da app e area team.
-// Compone N settimane (diverse tra loro) rispettando: apporto calorico
-// giornaliero, ingredienti preferiti / da evitare, e la presenza o meno di
-// colazione, spuntini, dolci e frutta.
+// Compone N settimane rispettando: apporto calorico giornaliero, ingredienti
+// preferiti/da evitare, colazione/spuntini/dolci/frutta, e — novità — la
+// RIPARTIZIONE dei macronutrienti (Proteine/Carboidrati/Grassi come % delle
+// calorie, che sommano a 100) con tolleranza ±3%. Zuccheri e grassi saturi
+// restano TETTI massimi. Se il catalogo non permette di stare entro ±3% lo
+// SEGNALA nel riepilogo (macro.warnings + macro.feasible=false).
 //
-// Input (POST):
-//   { kcal: number|null, preferiti: string[], evitare: string[],
-//     colazione: bool, spuntini: bool, dolci: bool, frutta: bool,
-//     settimane: number }
-//
-// Output:
-//   { settimane: [ { items: [ {day_index, slot, base_code, title, kcal} ] } ],
-//     catalogo: number }
-//
-// Chi chiama deve essere autenticato (cliente per il proprio piano, o team).
+// Input (POST): { kcal, preferiti[], evitare[], colazione, spuntini, dolci,
+//   frutta, di_stagione, escludi_internazionali, settimane,
+//   profilo:{protein,carbs,fat (target, somma 100), sugars,saturated (max)} }
+// Output: { settimane:[{items:[{day_index,slot,base_code,title,kcal,
+//   protein_g,carbs_g,fat_g}]}], catalogo, macro }
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -29,10 +27,8 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 // ---------------------------------------------------------------- classificazione
-// Port delle regex di auto_planner.dart. I piatti "veri" vincono sulle basi.
 const reBreakfast = /colazion|breakfast|porridge|pancake|crep|smoothie|frullat|granola|overnight|chia|yogurt/i;
 const reFrutta = /\bfrutta\b|macedonia|frutti di bosco|spremuta|frullato di frutta|coppa di frutta/i;
-// \bdolce\b: evita che "agrodolce" (cipolline in agrodolce ecc.) sia un dolce.
 const reDolce = /\bdolce\b|dessert|tort[ae]|muffin|biscott|budino|crostat|plumcake|gelato|mousse|cioccolat|tiramis|panna cotta|semifreddo|castagnaccio|mostaccioli/i;
 const reAntipasto = /antipast|contorn|insalat|starter|side|bruschett|hummus|crostin|vellutata leggera/i;
 const rePrimo = /\bprim[oi]\b|past[a]\b|spaghett|penne|rigaton|risott|gnocch|lasagn|zupp|minestr|vellutat|ramen|noodle|couscous|cous cous/i;
@@ -61,10 +57,7 @@ function kcalOf(r: any): number | null {
   return typeof k === 'number' ? k : null;
 }
 
-// quote caloriche per pasto (rinormalizzate se manca la colazione)
 const SHARE: Record<string, number> = { breakfast: 0.22, lunch: 0.38, snack: 0.08, dinner: 0.32 };
-
-// combinazioni per pranzo/cena, in ordine di preferenza
 const COMBOS: Course[][] = [
   ['piattoUnico'],
   ['primo', 'secondo'],
@@ -73,8 +66,6 @@ const COMBOS: Course[][] = [
   ['antipasto', 'primo', 'secondo'],
 ];
 
-// PRNG deterministico (nessun Math.random nelle Edge Function volatili è ok, ma
-// vogliamo varietà riproducibile per seed).
 function mulberry32(seed: number) {
   return () => {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
@@ -91,6 +82,22 @@ function shuffle<T>(arr: T[], rnd: () => number): T[] {
   }
   return a;
 }
+
+// kcal per grammo (zuccheri come i carbo, saturi come i grassi)
+const FACT: Record<string, number> = { protein: 4, carbs: 4, sugars: 4, fat: 9, saturated: 9 };
+const TARGET_MACROS = ['protein', 'carbs', 'fat'] as const; // ripartizione = 100
+const CAP_MACROS = ['sugars', 'saturated'] as const;        // tetti massimi
+const ALL_MACROS = ['protein', 'carbs', 'sugars', 'fat', 'saturated'] as const;
+const TOLL = 3; // tolleranza ± sui macro target (punti percentuali)
+
+const numOrNull = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const macrosOf = (r: any): Record<string, number> => {
+  const n = r?.nutrition || {};
+  return {
+    protein: n.protein_g || 0, carbs: n.carbs_g || 0, sugars: n.sugars_g || 0,
+    fat: n.fat_g || 0, saturated: n.saturated_fat_g || 0,
+  };
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -116,33 +123,21 @@ Deno.serve(async (req) => {
   const settimane = Math.max(1, Math.min(8, parseInt(b.settimane, 10) || 1));
   const escludiInternazionali = !!b.escludi_internazionali;
   const diStagione = !!b.di_stagione;
-  // mese corrente (1-12) per la preferenza di stagione
   const meseCorrente = new Date().getUTCMonth() + 1;
 
-  // Profilo nutrizionale: % MASSIMA delle calorie per ciascun macro (null = nessun limite).
+  // Profilo: protein/carbs/fat = TARGET (%, somma ~100); sugars/saturated = MAX.
   const pctIn = (v: unknown): number | null => {
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? Math.min(100, n) : null;
   };
   const pIn = (b.profilo && typeof b.profilo === 'object') ? b.profilo as Record<string, unknown> : {};
-  const profilo = {
-    protein: pctIn(pIn.protein), carbs: pctIn(pIn.carbs), sugars: pctIn(pIn.sugars),
-    fat: pctIn(pIn.fat), saturated: pctIn(pIn.saturated),
+  const profilo: Record<string, number | null> = {
+    protein: pctIn(pIn.protein), carbs: pctIn(pIn.carbs), fat: pctIn(pIn.fat),
+    sugars: pctIn(pIn.sugars), saturated: pctIn(pIn.saturated),
   };
-  const hasCaps = Object.values(profilo).some((v) => v != null);
-  // kcal per grammo di ciascun macro (zuccheri come i carbo, saturi come i grassi)
-  const FACT: Record<string, number> = { protein: 4, carbs: 4, sugars: 4, fat: 9, saturated: 9 };
-  const MACROS = ['protein', 'carbs', 'sugars', 'fat', 'saturated'] as const;
-  const numOrNull = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-  const macrosOf = (r: any): Record<string, number | null> => {
-    const n = r?.nutrition || {};
-    return {
-      protein: numOrNull(n.protein_g), carbs: numOrNull(n.carbs_g), sugars: numOrNull(n.sugars_g),
-      fat: numOrNull(n.fat_g), saturated: numOrNull(n.saturated_fat_g),
-    };
-  };
+  const hasTargets = TARGET_MACROS.every((k) => profilo[k] != null);
+  const hasProfile = ALL_MACROS.some((k) => profilo[k] != null);
 
-  // Categorie del catalogo italiano: tutto il resto è "internazionale".
   const CAT_ITALIANE = new Set([
     'Antipasti e contorni', 'Primi di pasta', 'Riso e cereali', 'Zuppe e minestre',
     'Legumi e secondi vegetali', 'Lievitati, pane e pizza', 'Dolci', 'Colazione',
@@ -150,13 +145,10 @@ Deno.serve(async (req) => {
   const isInternazionale = (r: any) => !CAT_ITALIANE.has(r.category);
 
   try {
-    // catalogo base + ingredienti (per il match preferiti/evitare)
     const { data: recipes } = await admin.from('recipes')
       .select('id, base_code, title, category, tags, nutrition, season_months')
       .is('user_id', null);
 
-    // Gli ingredienti sono ~1500: PostgREST ne restituisce max 1000 per volta,
-    // quindi vanno paginati o il filtro "evitare" salta metà delle ricette.
     const ings: any[] = [];
     for (let from = 0; ; from += 1000) {
       const { data: page } = await admin.from('ingredients')
@@ -166,14 +158,12 @@ Deno.serve(async (req) => {
       ings.push(...page);
       if (page.length < 1000) break;
     }
-
     const ingByRecipe: Record<string, string> = {};
     for (const i of ings) {
       const t = `${i.normalized_name || ''} ${i.raw_text || ''}`.toLowerCase();
       ingByRecipe[i.recipe_id] = (ingByRecipe[i.recipe_id] || '') + ' ' + t;
     }
 
-    // prepara il pool: escludi le basi/condimenti e le ricette con ingredienti da evitare
     const pool = (recipes || [])
       .filter((r) => courseOf(r) !== 'base')
       .filter((r) => kcal == null || kcalOf(r) != null)
@@ -186,15 +176,11 @@ Deno.serve(async (req) => {
       .map((r) => {
         const txt = ingByRecipe[r.id] || '';
         const pref = preferiti.reduce((s, p) => s + (txt.includes(p) ? 1 : 0), 0);
-        // di stagione: bonus se il mese corrente è tra i mesi della ricetta.
-        const inSeason = Array.isArray(r.season_months) &&
-          r.season_months.includes(meseCorrente);
+        const inSeason = Array.isArray(r.season_months) && r.season_months.includes(meseCorrente);
         const seasonBonus = diStagione && inSeason ? 2 : 0;
-        // _score guida sia i preferiti sia la stagione (pesano insieme).
         return { ...r, _course: courseOf(r), _score: pref + seasonBonus };
       });
 
-    // indice per portata, ordinando i preferiti in cima
     const byCourse: Record<string, any[]> = {};
     for (const r of pool) (byCourse[r._course] ||= []).push(r);
     for (const c in byCourse) byCourse[c].sort((a, b) => b._score - a._score);
@@ -204,8 +190,6 @@ Deno.serve(async (req) => {
       if (c === 'breakfast') list = [...(byCourse.breakfast || []), ...(byCourse.dolce || [])];
       else if (c === 'snack') list = [
         ...(byCourse.dolce || []), ...(byCourse.breakfast || []), ...(byCourse.frutta || []),
-        // se non ci sono dolci/colazioni/frutta liberi, uno spuntino può essere
-        // anche un antipasto/contorno leggero (il catalogo ha pochi "snack veri").
         ...(byCourse.antipasto || []),
       ].filter((r) => (kcalOf(r) ?? 999) <= 250);
       else if (c === 'frutta') list = [...(byCourse.frutta || [])];
@@ -219,70 +203,67 @@ Deno.serve(async (req) => {
       ...(spuntini ? ['snack'] : []),
       'dinner',
     ];
-    // rinormalizza le quote sui pasti attivi
     const shareSum = slots.reduce((s, sl) => s + (SHARE[sl] || 0), 0);
 
-    const used = new Set<string>();   // varietà tra i giorni e tra le settimane
+    const used = new Set<string>();
     const rnd = mulberry32(0x9e37 ^ (kcal || 0) ^ settimane);
 
-    // Violazione dei vincoli se aggiungo il candidato allo stato nutrizionale
-    // corrente del giorno (pesata in kcal, così i macro sono confrontabili).
-    // I macro non calcolati (null) contano 0: non possono violare finché non ci sono i dati.
-    const violation = (r: any, accN: Record<string, number>, caps: Record<string, number | null> | null): number => {
-      if (!caps) return 0;
+    // SCOSTAMENTO (in kcal) dalla ripartizione ideale se aggiungo il candidato.
+    // Confronta i grammi proiettati con quelli "ideali" all'energia raggiunta:
+    // così spinge la selezione verso la % target indipendentemente da quanto
+    // si è già mangiato. Aggiunge una penale se sfora i tetti zuccheri/saturi.
+    const deviation = (r: any, accN: Record<string, number>, accKcal: number): number => {
+      if (!hasProfile) return 0;
       const g = macrosOf(r);
-      let v = 0;
-      for (const k of MACROS) {
-        if (caps[k] == null) continue;
+      const E = accKcal + (kcalOf(r) || 0);
+      if (E <= 0) return 0;
+      let pen = 0;
+      for (const k of TARGET_MACROS) {
+        if (profilo[k] == null) continue;
+        const ideal = (profilo[k] as number) / 100 * E / FACT[k];
         const proj = (accN[k] || 0) + (g[k] || 0);
-        if (proj > (caps[k] as number)) v += (proj - (caps[k] as number)) * FACT[k];
+        pen += Math.abs(proj - ideal) * FACT[k];
       }
-      return v;
+      for (const k of CAP_MACROS) {
+        if (profilo[k] == null) continue;
+        const capg = (profilo[k] as number) / 100 * E / FACT[k];
+        const proj = (accN[k] || 0) + (g[k] || 0);
+        if (proj > capg) pen += (proj - capg) * FACT[k] * 1.5;
+      }
+      return pen;
     };
 
-    // dayUsed: mai la stessa ricetta due volte nello stesso giorno (esclusione
-    // netta); used: varietà tra i giorni e le settimane (solo preferenza).
-    // accN/caps: stato nutrizionale corrente del giorno e limiti (per i vincoli).
     function pick(c: string, budget: number, dayUsed: Set<string>,
-                  accN: Record<string, number>, caps: Record<string, number | null> | null): any | null {
+                  accN: Record<string, number>, accKcal: number): any | null {
       const all = forCourse(c, budget).filter((r) => !dayUsed.has(r.base_code));
       if (!all.length) return null;
       let cands = all.filter((r) => !used.has(r.base_code));
       if (!cands.length) cands = all;
-      // ordina per: minima violazione dei vincoli, poi punteggio (preferiti+stagione)
+      // ordina per: minimo scostamento dalla ripartizione, poi preferiti/stagione
       cands = cands.slice().sort((a, b) => {
-        const va = violation(a, accN, caps), vb = violation(b, accN, caps);
-        if (va !== vb) return va - vb;
+        const va = deviation(a, accN, accKcal), vb = deviation(b, accN, accKcal);
+        if (Math.abs(va - vb) > 1e-6) return va - vb;
         return b._score - a._score;
       });
-      const minV = violation(cands[0], accN, caps);
+      const minV = deviation(cands[0], accN, accKcal);
       const bestS = cands[0]._score;
-      // fra i migliori a pari violazione e punteggio, scegli a caso (varietà)
-      const top = cands.filter((r) => violation(r, accN, caps) <= minV + 1e-6 && r._score === bestS);
+      const top = cands.filter((r) => deviation(r, accN, accKcal) <= minV + 1e-6 && r._score === bestS);
       return shuffle(top.length ? top : [cands[0]], rnd)[0];
     }
 
-    // Limiti giornalieri in GRAMMI, ricavati dalle % max sulle calorie del giorno.
-    // Senza kcal target non si possono calcolare i limiti (restano null = liberi).
-    const dayCaps: Record<string, number | null> | null = (hasCaps && kcal != null)
-      ? Object.fromEntries(MACROS.map((k) => [k, profilo[k] != null ? (profilo[k] as number) / 100 * kcal / FACT[k] : null]))
-      : null;
-
-    // Accumulatore per il RIEPILOGO macro dell'intero piano.
     const agg: Record<string, number> = { kcal: 0, protein: 0, carbs: 0, sugars: 0, fat: 0, saturated: 0 };
-    let missingData = 0; // ricette senza zuccheri/grassi saturi calcolati
+    let missingData = 0;
 
     const settimaneOut: any[] = [];
     for (let w = 0; w < settimane; w++) {
-      // ogni settimana ricomincia con varietà piena se il catalogo è piccolo
       if (used.size > pool.length * 0.7) used.clear();
       const items: any[] = [];
 
       for (let d = 0; d < 7; d++) {
         let remaining = kcal == null ? Infinity : kcal;
         const dayUsed = new Set<string>();
-        // stato nutrizionale del giorno (grammi) per i vincoli
         const dayN: Record<string, number> = { protein: 0, carbs: 0, sugars: 0, fat: 0, saturated: 0 };
+        let dayKcal = 0;
 
         for (const slot of slots) {
           const slotBudget = kcal == null
@@ -290,66 +271,61 @@ Deno.serve(async (req) => {
             : Math.min(remaining, (SHARE[slot] / shareSum) * kcal * 1.4);
 
           const add = (r: any) => {
-            items.push({ day_index: d, slot, base_code: r.base_code, title: r.title, kcal: Math.round(kcalOf(r) || 0) });
-            used.add(r.base_code);
-            dayUsed.add(r.base_code);
-            remaining -= kcalOf(r) || 0;
-            // aggiorna stato giorno + totali piano
             const g = macrosOf(r);
-            for (const k of MACROS) { dayN[k] += g[k] || 0; agg[k] += g[k] || 0; }
-            agg.kcal += kcalOf(r) || 0;
-            if (g.sugars == null || g.saturated == null) missingData++;
+            const rk = Math.round(kcalOf(r) || 0);
+            items.push({
+              day_index: d, slot, base_code: r.base_code, title: r.title, kcal: rk,
+              protein_g: Math.round(g.protein), carbs_g: Math.round(g.carbs), fat_g: Math.round(g.fat),
+            });
+            used.add(r.base_code); dayUsed.add(r.base_code);
+            remaining -= kcalOf(r) || 0;
+            for (const k of ALL_MACROS) { dayN[k] += g[k] || 0; agg[k] += g[k] || 0; }
+            dayKcal += kcalOf(r) || 0; agg.kcal += kcalOf(r) || 0;
+            const n = r?.nutrition || {};
+            if (n.sugars_g == null || n.saturated_fat_g == null) missingData++;
           };
 
           if (slot === 'breakfast' || slot === 'snack') {
-            const r = pick(slot === 'breakfast' ? 'breakfast' : 'snack', slotBudget, dayUsed, dayN, dayCaps);
+            const r = pick(slot === 'breakfast' ? 'breakfast' : 'snack', slotBudget, dayUsed, dayN, dayKcal);
             if (r) add(r);
-            // frutta a colazione/spuntino se richiesta
             if (frutta && remaining > 0) {
-              const f = pick('frutta', Math.max(150, remaining), dayUsed, dayN, dayCaps);
+              const f = pick('frutta', Math.max(150, remaining), dayUsed, dayN, dayKcal);
               if (f) add(f);
             }
           } else {
-            // Pranzo/cena: il budget dipende dalla QUOTA del pasto, NON dal
-            // residuo — così se il pranzo sfora la cena non resta senza budget
-            // (era la causa dei giorni senza cena).
-            const mealBudget = kcal == null
-              ? Infinity
-              : (SHARE[slot] / shareSum) * kcal * 1.6;
+            const mealBudget = kcal == null ? Infinity : (SHARE[slot] / shareSum) * kcal * 1.6;
             let placed = false;
             for (const combo of shuffle(COMBOS, rnd)) {
               const dishes: any[] = [];
               const comboUsed = new Set(dayUsed);
-              // stato nutrizionale provvisorio del pasto (parte da quello del giorno)
               const comboN: Record<string, number> = { ...dayN };
+              let comboKcal = dayKcal;
               let budget = mealBudget;
               let ok = true;
               for (const course of combo) {
-                const r = pick(course, budget, comboUsed, comboN, dayCaps);
+                const r = pick(course, budget, comboUsed, comboN, comboKcal);
                 if (!r) { ok = false; break; }
                 dishes.push(r);
                 comboUsed.add(r.base_code);
                 budget -= kcalOf(r) || 0;
                 const g = macrosOf(r);
-                for (const k of MACROS) comboN[k] += g[k] || 0;
+                for (const k of ALL_MACROS) comboN[k] += g[k] || 0;
+                comboKcal += kcalOf(r) || 0;
               }
               if (!ok) continue;
               if (dolci && budget > 80) {
-                const dolce = pick('dolce', budget, comboUsed, comboN, dayCaps);
+                const dolce = pick('dolce', budget, comboUsed, comboN, comboKcal);
                 if (dolce) dishes.push(dolce);
               }
               dishes.forEach(add);
               placed = true;
               break;
             }
-            // GARANZIA: pranzo e cena non restano MAI vuoti. Se nessuna combo
-            // passa (catalogo ridotto dopo il dedup), metti almeno un piatto
-            // ignorando il budget.
             if (!placed) {
-              const r = pick('piattoUnico', Infinity, dayUsed, dayN, dayCaps)
-                || pick('primo', Infinity, dayUsed, dayN, dayCaps)
-                || pick('secondo', Infinity, dayUsed, dayN, dayCaps)
-                || pick('antipasto', Infinity, dayUsed, dayN, dayCaps);
+              const r = pick('piattoUnico', Infinity, dayUsed, dayN, dayKcal)
+                || pick('primo', Infinity, dayUsed, dayN, dayKcal)
+                || pick('secondo', Infinity, dayUsed, dayN, dayKcal)
+                || pick('antipasto', Infinity, dayUsed, dayN, dayKcal);
               if (r) add(r);
             }
           }
@@ -358,20 +334,37 @@ Deno.serve(async (req) => {
       settimaneOut.push({ items });
     }
 
-    // Riepilogo macro medio del piano (% delle calorie) + avvisi sui limiti.
+    // ---- Riepilogo macro del piano: target vs reale, tolleranza ±3% ----
     const LABEL: Record<string, string> = {
       protein: 'Proteine', carbs: 'Carboidrati', sugars: 'Zuccheri', fat: 'Grassi', saturated: 'Grassi saturi',
     };
-    const pctOf = (k: string): number | null =>
+    const actualPct = (k: string): number | null =>
       agg.kcal > 0 ? Math.round((agg[k] * FACT[k] / agg.kcal * 100) * 10) / 10 : null;
+
     const macro: Record<string, any> = {
-      protein_pct: pctOf('protein'), carbs_pct: pctOf('carbs'), sugars_pct: pctOf('sugars'),
-      fat_pct: pctOf('fat'), saturated_pct: pctOf('saturated'),
-      warnings: [] as string[], missing_data: missingData,
+      kcal_avg: Math.round(agg.kcal / (settimane * 7)),
+      warnings: [] as string[], missing_data: missingData, feasible: true, targets: hasTargets,
     };
-    for (const k of MACROS) {
-      const cap = profilo[k], p = macro[k + '_pct'];
-      if (cap != null && p != null && p > cap + 0.5) macro.warnings.push(`${LABEL[k]} ${Math.round(p)}% oltre il max ${cap}%`);
+    for (const k of TARGET_MACROS) {
+      const act = actualPct(k), tgt = profilo[k];
+      macro[k] = { actual: act, target: tgt };
+      if (tgt != null && act != null) {
+        const ok = Math.abs(act - (tgt as number)) <= TOLL + 0.05;
+        macro[k].ok = ok;
+        if (!ok) {
+          macro.feasible = false;
+          macro.warnings.push(`${LABEL[k]}: ${act}% (obiettivo ${tgt}% ±${TOLL}) — il catalogo non offre combinazioni per rientrare.`);
+        }
+      }
+    }
+    for (const k of CAP_MACROS) {
+      const act = actualPct(k), max = profilo[k];
+      macro[k] = { actual: act, max };
+      if (max != null && act != null) {
+        const ok = act <= (max as number) + 0.05;
+        macro[k].ok = ok;
+        if (!ok) { macro.feasible = false; macro.warnings.push(`${LABEL[k]}: ${act}% oltre il max ${max}%.`); }
+      }
     }
 
     return json({ settimane: settimaneOut, catalogo: pool.length, macro });

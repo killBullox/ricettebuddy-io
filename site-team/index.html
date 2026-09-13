@@ -50,7 +50,7 @@
   .pill{display:inline-block;border-radius:20px;padding:2px 9px;font-size:.68rem;font-weight:800}
   .pill.veg{background:#E6F1E7;color:var(--leaf)}
   .pill.nut{background:#FFF0D6;color:#9A6B00}
-  #ov{position:fixed;inset:0;background:rgba(20,6,26,.62);display:none;z-index:50;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
+  #ov{position:fixed;inset:0;background:rgba(20,6,26,.62);display:none;z-index:80;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
   #ov.on{display:flex}
   .modal{background:#fff;border-radius:20px;max-width:780px;width:100%;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4);position:relative}
   #modalBody>img{width:100%;height:300px;object-fit:cover;display:block}
@@ -236,7 +236,7 @@
     <b>Beet It! &middot; Team nutrizione</b>
     <span class="sp"></span>
     <span class="who" id="who"></span>
-    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-12</span>
+    <span class="who" id="ver" title="Versione della pagina caricata">v2026.07.27-13</span>
     <button class="btn-plan" id="planBtn">🗓 Piano cliente</button>
     <button class="btn-plan" id="foodsBtn" style="background:var(--amber)">🥫 Cibi pronti</button>
     <button class="btn-new" id="newBtn">+ Nuova ricetta</button>
@@ -367,14 +367,18 @@
           <span class="chip gopt" data-opt="escludi_internazionali">Solo italiane</span>
         </div>
         <div style="margin:6px 0 10px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:12px">
-          <div style="font-size:.82rem;font-weight:800;color:var(--taupe);margin-bottom:6px">Profilo nutrizionale
-            <span style="font-weight:400">— % <b>massima</b> delle calorie giornaliere (vuoto = nessun limite)</span></div>
+          <div style="font-size:.82rem;font-weight:800;color:var(--taupe);margin-bottom:2px">Profilo nutrizionale — ripartizione delle calorie</div>
+          <div style="font-size:.72rem;color:var(--taupe);margin-bottom:8px">Proteine + Carboidrati + Grassi devono fare <b>100%</b>. Il piano viene generato entro <b>±3%</b> da questi valori; se il catalogo non permette combinazioni migliori, te lo segnala.</div>
+          <div class="row" style="gap:8px;align-items:flex-end">
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Proteine %<input id="gPctProtein" class="gMacro" type="number" min="0" max="100" step="1" value="20" style="margin-top:3px"></label>
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Carboidrati %<input id="gPctCarbs" class="gMacro" type="number" min="0" max="100" step="1" value="50" style="margin-top:3px"></label>
+            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Grassi %<input id="gPctFat" class="gMacro" type="number" min="0" max="100" step="1" value="30" style="margin-top:3px"></label>
+            <span id="pctSum" style="flex:0 0 auto;font-size:.82rem;font-weight:800;padding-bottom:7px;white-space:nowrap">= 100%</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--taupe);margin:9px 0 2px">Tetti massimi (opzionali) — sono sottoinsiemi di carbo/grassi, non entrano nel 100%:</div>
           <div class="row" style="gap:8px">
-            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Proteine %<input id="gPctProtein" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
-            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Carboidrati %<input id="gPctCarbs" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
-            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Zuccheri %<input id="gPctSugars" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
-            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Grassi %<input id="gPctFat" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
-            <label style="flex:1 1 92px;font-size:.75rem;font-weight:700;color:var(--taupe)">Grassi saturi %<input id="gPctSat" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+            <label style="flex:1 1 130px;font-size:.75rem;font-weight:700;color:var(--taupe)">Zuccheri % max<input id="gPctSugars" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
+            <label style="flex:1 1 130px;font-size:.75rem;font-weight:700;color:var(--taupe)">Grassi saturi % max<input id="gPctSat" type="number" min="0" max="100" step="1" placeholder="—" style="margin-top:3px"></label>
           </div>
         </div>
         <button class="btn" id="genBtn">⚡ Genera piano</button>
@@ -1244,10 +1248,26 @@ function csv(id){
 
 /* --- genera piano automatico --- */
 function pct(id){ var v=parseFloat($(id).value); return (isNaN(v)||v<=0)?null:Math.min(100,v); }
+function recipeByCode(bc){ for(var i=0;i<RECIPES.length;i++){ if(RECIPES[i].base_code===bc) return RECIPES[i]; } return null; }
+/* la ripartizione Proteine+Carboidrati+Grassi deve fare 100% */
+function macroSum(){ return (parseFloat($('gPctProtein').value)||0)+(parseFloat($('gPctCarbs').value)||0)+(parseFloat($('gPctFat').value)||0); }
+function updatePctSum(){
+  var s=Math.round(macroSum()), el=$('pctSum');
+  el.textContent='= '+s+'%';
+  el.style.color = (s===100) ? '#2e7d32' : '#b00020';
+}
+['gPctProtein','gPctCarbs','gPctFat'].forEach(function(id){ $(id).addEventListener('input', updatePctSum); });
+updatePctSum();
+
 $('genBtn').onclick = async function(){
+  if(Math.round(macroSum())!==100){
+    msg('genMsg','La ripartizione Proteine + Carboidrati + Grassi deve fare esattamente 100% (ora '+Math.round(macroSum())+'%).','ko');
+    return;
+  }
   $('genBtn').disabled = true; msg('genMsg','Genero il piano... (10-30 secondi)','wait'); $('genMacro').innerHTML='';
   try{
-    var profilo = { protein:pct('gPctProtein'), carbs:pct('gPctCarbs'), sugars:pct('gPctSugars'), fat:pct('gPctFat'), saturated:pct('gPctSat') };
+    /* protein/carbs/fat = target (somma 100); sugars/saturated = tetti massimi */
+    var profilo = { protein:pct('gPctProtein'), carbs:pct('gPctCarbs'), fat:pct('gPctFat'), sugars:pct('gPctSugars'), saturated:pct('gPctSat') };
     var data = await fnCall2({ action:null,   /* genera-piano non usa "action" */
       kcal:parseInt($('gKcal').value,10)||null,
       preferiti:csv('gPref'), evitare:csv('gAvoid'),
@@ -1257,12 +1277,12 @@ $('genBtn').onclick = async function(){
       profilo:profilo,
       settimane:parseInt($('gWeeks').value,10)||1
     }, 'genera-piano');
-    /* costruisci PLAN.weeks dalle settimane restituite */
+    /* costruisci PLAN.weeks dalle settimane restituite (con kcal + id per la UI) */
     PLAN.weeks = data.settimane.map(function(sett){
       var cells = {};
       sett.items.forEach(function(it){
         var key = it.day_index + '-' + it.slot;
-        (cells[key] = cells[key] || []).push({ base_code:it.base_code, title:it.title });
+        (cells[key] = cells[key] || []).push({ base_code:it.base_code, title:it.title, kcal:it.kcal, id:(recipeByCode(it.base_code)||{}).id });
       });
       return cells;
     });
@@ -1271,70 +1291,104 @@ $('genBtn').onclick = async function(){
     renderWeekNav(); buildWeek(); refreshSend();
     var tot = data.settimane.reduce(function(s,w){ return s + w.items.length; }, 0);
     msg('genMsg','Generato: '+PLAN.weeks.length+' settiman'+(PLAN.weeks.length>1?'e':'a')+', '+tot+' piatti. Rivedi e invia.','ok');
-    renderMacro(data.macro, profilo);
+    renderMacro(data.macro);
   }catch(e){ msg('genMsg','Errore: '+(e.message||e),'ko'); }
   $('genBtn').disabled = false;
 };
-/* riepilogo profilo macro medio del piano (% delle calorie), con avvisi sui limiti */
-function renderMacro(m, prof){
+/* riepilogo profilo REALE del piano vs target (±3%), con segnalazioni */
+function renderMacro(m){
   if(!m){ $('genMacro').innerHTML=''; return; }
-  var rows=[
-    ['Proteine','protein',m.protein_pct, prof&&prof.protein],
-    ['Carboidrati','carbs',m.carbs_pct, prof&&prof.carbs],
-    ['di cui zuccheri','sugars',m.sugars_pct, prof&&prof.sugars],
-    ['Grassi','fat',m.fat_pct, prof&&prof.fat],
-    ['di cui saturi','saturated',m.saturated_pct, prof&&prof.saturated]
-  ];
+  function line(label,o,isCap){
+    if(!o) return '';
+    var act=(o.actual==null?'—':Math.round(o.actual)+'%');
+    var ref=isCap ? (o.max!=null?(' <span style="color:var(--taupe)">/ max '+o.max+'%</span>'):'')
+                  : (o.target!=null?(' <span style="color:var(--taupe)">/ obiettivo '+o.target+'%</span>'):'');
+    var bad=(o.ok===false), col=bad?'#b00020':'var(--ink,#333)';
+    var mark=bad?' ⚠️':(o.ok?' ✓':'');
+    return '<div style="font-size:.85rem"><span style="color:var(--taupe)">'+label+'</span> <b style="color:'+col+'">'+act+'</b>'+ref+mark+'</div>';
+  }
   var html='<div style="margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.03);border-radius:12px">'
-    +'<div style="font-size:.82rem;font-weight:800;color:var(--taupe);margin-bottom:6px">Profilo medio del piano (% delle calorie · media giornaliera)</div>'
-    +'<div class="row" style="gap:14px;flex-wrap:wrap">';
-  rows.forEach(function(r){
-    var val=(r[2]==null?'—':Math.round(r[2])+'%');
-    var over=(r[3]!=null && r[2]!=null && r[2]>r[3]+0.5);
-    var col=over?'#b00020':'var(--ink,#333)';
-    var cap=(r[3]!=null?' <span style="color:var(--taupe)">/ max '+r[3]+'%</span>':'');
-    html+='<div style="font-size:.85rem"><span style="color:var(--taupe)">'+r[0]+'</span> <b style="color:'+col+'">'+val+'</b>'+cap+(over?' ⚠️':'')+'</div>';
-  });
-  html+='</div>';
+    +'<div style="font-size:.82rem;font-weight:800;color:var(--taupe);margin-bottom:6px">Profilo reale del piano · media giornaliera'
+    +(m.kcal_avg?(' · '+m.kcal_avg+' kcal/die'):'')+'</div>'
+    +'<div class="row" style="gap:14px;flex-wrap:wrap">'
+    + line('Proteine',m.protein,false)+line('Carboidrati',m.carbs,false)+line('Grassi',m.fat,false)
+    + line('di cui zuccheri',m.sugars,true)+line('di cui saturi',m.saturated,true)
+    +'</div>';
   if(m.warnings && m.warnings.length){
-    html+='<div style="margin-top:6px;font-size:.8rem;color:#b00020">⚠️ '+m.warnings.map(esc).join(' · ')+'</div>';
+    html+='<div style="margin-top:8px;font-size:.8rem;color:#b00020">⚠️ '+m.warnings.map(esc).join('<br>')+'</div>';
+  } else if(m.targets){
+    html+='<div style="margin-top:8px;font-size:.8rem;color:#2e7d32">✓ Piano entro ±3% dalla ripartizione impostata.</div>';
   }
   if(m.missing_data){
-    html+='<div style="margin-top:6px;font-size:.78rem;color:var(--taupe)">Nota: '+m.missing_data+' ricette senza zuccheri/grassi saturi calcolati: quelle percentuali sono stimate al ribasso finché non completi i valori.</div>';
+    html+='<div style="margin-top:6px;font-size:.78rem;color:var(--taupe)">Nota: '+m.missing_data+' piatti senza zuccheri/saturi calcolati: quelle % sono stimate al ribasso.</div>';
   }
   html+='</div>';
   $('genMacro').innerHTML=html;
 }
 
 /* --- griglia settimanale --- */
+/* kcal di un piatto della cella (usa quella salvata, altrimenti la ricava dal catalogo) */
+function kcalFor(x){ if(x && x.kcal!=null) return x.kcal; var r=recipeByCode(x.base_code); return r?Math.round(kcalOf(r)||0):0; }
 function buildWeek(){
   $('wkHead').innerHTML = '<th></th>' + GIORNI.map(function(g){ return '<th>'+g+'</th>'; }).join('');
-  $('wkBody').innerHTML = SLOTS.map(function(s){
+  var rows = SLOTS.map(function(s){
     var tds = '';
     for(var d=0; d<7; d++){ tds += '<td><div class="cell" id="c-'+d+'-'+s[0]+'"></div></td>'; }
     return '<tr><th>'+s[1]+'</th>'+tds+'</tr>';
   }).join('');
+  var totTds='';
+  for(var dd=0; dd<7; dd++){ totTds += '<td id="tot-'+dd+'" style="text-align:center;font-size:.78rem"></td>'; }
+  rows += '<tr class="daytot"><th style="font-size:.75rem">Totale giorno</th>'+totTds+'</tr>';
+  $('wkBody').innerHTML = rows;
   for(var d=0; d<7; d++){ for(var si=0; si<SLOTS.length; si++){ renderCell(d, SLOTS[si][0]); } }
+  renderDayTotals();
 }
 function cellKey(d,slot){ return d+'-'+slot; }
+function renderDayTotals(){
+  for(var d=0; d<7; d++){
+    var t=0;
+    for(var si=0; si<SLOTS.length; si++){
+      var arr = PLAN.cells[cellKey(d,SLOTS[si][0])] || [];
+      for(var j=0;j<arr.length;j++){ t += kcalFor(arr[j]); }
+    }
+    var el=$('tot-'+d); if(el) el.innerHTML = t?('<b>'+t+'</b> kcal'):'';
+  }
+}
 function renderCell(d, slot){
   var el = $('c-'+d+'-'+slot); if(!el) return;
   var arr = PLAN.cells[cellKey(d,slot)] || [];
+  var totk = 0;
   el.innerHTML = arr.map(function(x,i){
-    return '<div class="dish">'+esc(x.title)+'<span class="rm" data-i="'+i+'">&times;</span></div>';
-  }).join('') + '<button class="add">+ aggiungi</button>';
+    var kc = kcalFor(x); if(kc) totk += kc;
+    var kctxt = kc ? (' <span style="color:var(--taupe);font-size:.72rem">'+kc+' kcal</span>') : '';
+    return '<div class="dish"><span class="dt" data-i="'+i+'" style="cursor:pointer;text-decoration:underline dotted" title="Apri: vedi / modifica">'+esc(x.title)+'</span>'+kctxt
+      +'<span class="sub" data-i="'+i+'" title="Sostituisci" style="cursor:pointer;margin-left:auto">⇄</span>'
+      +'<span class="rm" data-i="'+i+'" title="Rimuovi">&times;</span></div>';
+  }).join('')
+  + (totk ? ('<div style="font-size:.72rem;font-weight:800;color:var(--beet-deep,#6E1C43);margin:2px 0 0">&Sigma; '+totk+' kcal</div>') : '')
+  + '<button class="add">+ aggiungi</button>';
   el.querySelector('.add').onclick = function(){ openPicker(d, slot); };
-  var rms = el.querySelectorAll('.rm');
-  for(var k=0;k<rms.length;k++){ rms[k].onclick = (function(idx){ return function(){
-    PLAN.cells[cellKey(d,slot)].splice(idx,1); renderCell(d,slot); refreshSend();
-  }; })(k); }
+  // titolo -> apri ricetta (vedi/modifica)
+  el.querySelectorAll('.dt').forEach(function(node){
+    node.onclick = function(){ var x=arr[+node.getAttribute('data-i')];
+      if(x && x.id) openDetail(x.id); else msg('plMsg','Ricetta non nel catalogo base: non apribile qui.','ko'); };
+  });
+  // sostituisci
+  el.querySelectorAll('.sub').forEach(function(node){
+    node.onclick = function(){ openPicker(d, slot, +node.getAttribute('data-i')); };
+  });
+  // rimuovi
+  el.querySelectorAll('.rm').forEach(function(node){
+    node.onclick = function(){ PLAN.cells[cellKey(d,slot)].splice(+node.getAttribute('data-i'),1);
+      renderCell(d,slot); renderDayTotals(); refreshSend(); };
+  });
 }
 
 /* --- picker ricette (riusa RECIPES) --- */
-function openPicker(d, slot){
-  pickTarget = { d:d, slot:slot };
+function openPicker(d, slot, replaceIdx){
+  pickTarget = { d:d, slot:slot, replaceIdx:(replaceIdx==null?null:replaceIdx) };
   var sl = SLOTS.filter(function(s){ return s[0]===slot; })[0][1];
-  $('pickWhat').textContent = GIORNI[d]+' · '+sl;
+  $('pickWhat').textContent = GIORNI[d]+' · '+sl+(replaceIdx!=null?' · sostituisci':'');
   $('pickQ').value=''; renderPick(); $('pick').classList.add('on'); $('pickQ').focus();
 }
 function renderPick(){
@@ -1356,9 +1410,14 @@ $('pickQ').oninput = renderPick;
 function addDish(r){
   var key = cellKey(pickTarget.d, pickTarget.slot);
   if(!PLAN.cells[key]) PLAN.cells[key] = [];
-  if(!PLAN.cells[key].some(function(x){ return x.base_code===r.base_code; })){
-    PLAN.cells[key].push({ base_code:r.base_code, title:r.title });
-    renderCell(pickTarget.d, pickTarget.slot); refreshSend();
+  var dish = { base_code:r.base_code, title:r.title, kcal:Math.round(kcalOf(r)||0), id:r.id };
+  if(pickTarget.replaceIdx!=null){
+    PLAN.cells[key][pickTarget.replaceIdx] = dish;
+    renderCell(pickTarget.d, pickTarget.slot); renderDayTotals(); refreshSend();
+    $('pick').classList.remove('on');   // sostituzione: chiudi dopo la scelta
+  } else if(!PLAN.cells[key].some(function(x){ return x.base_code===r.base_code; })){
+    PLAN.cells[key].push(dish);
+    renderCell(pickTarget.d, pickTarget.slot); renderDayTotals(); refreshSend();
   }
 }
 $('pickDone').onclick = function(){ $('pick').classList.remove('on'); };
